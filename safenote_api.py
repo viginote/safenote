@@ -3,6 +3,7 @@ SafeNote — Community Safety Platform
 FastAPI backend
 
 Routes:
+  GET  /                       — serves safenote_sa.html (the app)
   POST /api/reports            — anonymous incident submission
   GET  /api/reports/public     — delayed public feed (24h lag)
   GET  /api/reports/live       — NHW real-time feed (NHW token required)
@@ -11,6 +12,10 @@ Routes:
   GET  /api/eskom/status       — Eskom load-shedding status (via EskomSePush)
   GET  /api/admin/reports      — full admin export (admin session required)
   GET  /api/admin/export       — CSV export for funding reports
+  GET  /api/admin/nhw-tokens   — list NHW access tokens
+  POST /api/admin/nhw-tokens   — create new NHW token
+  DELETE /api/admin/nhw-tokens/{token} — revoke NHW token
+  GET  /api/health             — service health check
 
 Data stored per report:
   id, token (random UUID, device-side), type, severity, lat, lng,
@@ -21,7 +26,8 @@ NO names, emails, phone numbers or any PII ever stored.
 
 from fastapi import FastAPI, HTTPException, Depends, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 import sqlite3, uuid, time, os, hashlib, json, io, csv
@@ -406,7 +412,14 @@ async def health():
     return {"status": "ok", "service": "SafeNote", "ts": int(time.time())}
 
 
-# ── STATIC SERVING (production) ───────────────────────────────────────────────
-# Uncomment when serving the HTML as a static file from FastAPI:
-# from fastapi.staticfiles import StaticFiles
-# app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# ── STATIC SERVING ────────────────────────────────────────────────────────────
+# Serves safenote_sa.html at / — the full app
+# All /api/* routes above take priority due to FastAPI route ordering
+
+HTML_FILE = os.path.join(os.path.dirname(__file__), "safenote_sa.html")
+
+@app.get("/", include_in_schema=False)
+async def serve_app():
+    if not os.path.exists(HTML_FILE):
+        raise HTTPException(status_code=404, detail="App file not found. Ensure safenote_sa.html is in the same directory as safenote_api.py.")
+    return FileResponse(HTML_FILE, media_type="text/html")
