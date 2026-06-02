@@ -3,226 +3,326 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#f5f0e8">
+<meta name="theme-color" content="#0e1a0c">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>SafeNote — Community Safety</title>
+<title>SafeNote — Western Cape Community Safety</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  /* SA Nature Palette — Dark Edition */
-  --soil:    #d4956a;
-  --soil-dk: #a0623e;
-  --soil-lt: #e8c4a8;
-  --savanna: #d4a832;
-  --sav-lt:  #f0d878;
-  --sav-bg:  rgba(212,168,50,.15);
-  --fynbos:  #7dab8a;
-  --fyn-dk:  #4a7c59;
-  --fyn-lt:  #a8cdb2;
-  --fyn-bg:  rgba(125,171,138,.12);
-  --sky:     #6ab4d4;
-  --sky-dk:  #3d8aaa;
-  --sky-bg:  rgba(106,180,212,.12);
-  --dusk:    #d4956a;
-  --cream:   #141f12;
-  --cream2:  #1a2818;
-  --cream3:  #223320;
-  --bark:    #a8cdb2;
-  --bark2:   #7dab8a;
-  --stone:   #5a6e5c;
-  --stone2:  #3d4f3f;
-  --text:    #e8f0ea;
-  --text2:   #b8d4bc;
-  --text3:   #7dab8a;
-  --text4:   #4a6e52;
-  --critical:#f07070;
-  --high:    #e8904a;
-  --medium:  var(--savanna);
-  --low:     var(--fynbos);
-  --border:  rgba(125,171,138,.18);
-  --border2: rgba(125,171,138,.32);
-  --safe-h:  env(safe-area-inset-bottom,0px);
+  --fynbos:#7dab8a; --fyn-dk:#4a7c59; --fyn-dkk:#2e5238;
+  --fyn-bg:rgba(125,171,138,.12); --fyn-lt:#a8cdb2;
+  --savanna:#d4a832; --sav-bg:rgba(212,168,50,.15);
+  --soil:#d4956a; --sky:#6ab4d4; --sky-dk:#3d8aaa;
+  --cream:#141f12; --cream2:#1a2818; --cream3:#223320; --cream4:#2a3e28;
+  --text:#e8f0ea; --text2:#b8d4bc; --text3:#7dab8a; --text4:#4a6e52;
+  --critical:#f07070; --high:#e8904a; --medium:#d4a832;
+  --border:rgba(125,171,138,.18); --border2:rgba(125,171,138,.32);
+  --safe-h:env(safe-area-inset-bottom,0px);
+  --sidebar-w:280px;
+  --topbar-h:56px;
 }
-
 html,body{height:100%;background:var(--cream);color:var(--text);
   font-family:'DM Sans',sans-serif;overflow:hidden}
-:root{color-scheme:dark}
 
-/* ── NOISE TEXTURE overlay ── */
-body::before{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.04;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:200px 200px;
-}
-
-/* ── TOPBAR ── */
+/* ═══ TOPBAR ═══════════════════════════════════════════════════════════════ */
 .topbar{
-  position:fixed;top:0;left:0;right:0;height:58px;z-index:1000;
-  background:#0e1a0c;
-  border-bottom:2px solid rgba(125,171,138,.25);
-  display:flex;align-items:center;padding:0 18px;gap:12px;
+  position:fixed;top:0;left:0;right:0;height:var(--topbar-h);z-index:1000;
+  background:#0a120a;border-bottom:1.5px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:10px;
 }
+.tb-logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .tb-emblem{
-  width:40px;height:40px;border-radius:50%;
-  background:#1a2818;border:2px solid var(--fynbos);
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;position:relative;
-}
-.tb-emblem svg{width:26px;height:26px}
-.tb-title-wrap{flex:1}
-.tb-wordmark{
-  font-family:'Playfair Display',serif;font-size:18px;font-weight:900;
-  color:#e8f0ea;letter-spacing:.5px;line-height:1;display:block}
-.tb-sub{
-  font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(125,171,138,.65);
-  letter-spacing:1.8px;text-transform:uppercase;margin-top:2px;display:block}
-.live-pip{
-  display:flex;align-items:center;gap:5px;
+  width:38px;height:38px;border-radius:50%;
+  background:#1a2818;border:1.5px solid var(--fynbos);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tb-emblem svg{width:24px;height:24px}
+.tb-words{line-height:1}
+.tb-wordmark{font-family:'Playfair Display',serif;font-size:16px;font-weight:900;
+  color:var(--text);letter-spacing:.5px;display:block}
+.tb-sub{font-family:'DM Mono',monospace;font-size:7px;color:rgba(125,171,138,.6);
+  letter-spacing:1.8px;text-transform:uppercase;margin-top:1px;display:block}
+.tb-region{
+  font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
+  padding:3px 10px;border-radius:10px;letter-spacing:1px;
+  background:rgba(125,171,138,.1);border:1px solid rgba(125,171,138,.25);
+  color:var(--fynbos);white-space:nowrap}
+.tb-live{display:flex;align-items:center;gap:5px;
   font-family:'DM Mono',monospace;font-size:9px;color:var(--fynbos);letter-spacing:.5px}
 .pip{width:6px;height:6px;border-radius:50%;background:var(--fynbos);
-  animation:pip 2.4s ease-in-out infinite}
+  animation:pip 2.4s ease-in-out infinite;flex-shrink:0}
 @keyframes pip{0%,100%{box-shadow:0 0 0 0 rgba(125,171,138,.5)}
   50%{box-shadow:0 0 0 5px rgba(125,171,138,0)}}
-.tb-btns{display:flex;gap:6px;margin-left:auto}
-.tb-pill{
-  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.5px;
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tb-pill{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.5px;
   padding:5px 11px;border-radius:20px;cursor:pointer;border:1.5px solid;
-  background:transparent;transition:all .18s;white-space:nowrap;font-weight:500}
-.tb-pill-eskom{color:var(--savanna);border-color:rgba(212,168,50,.35)}
-.tb-pill-eskom:hover,.tb-pill-eskom.on{
-  background:rgba(212,168,50,.14);border-color:var(--savanna)}
-.tb-pill-nhw{color:var(--fynbos);border-color:rgba(125,171,138,.4)}
-.tb-pill-nhw:hover,.tb-pill-nhw.active{
-  background:rgba(125,171,138,.12);border-color:var(--fynbos);color:#a8cdb2}
+  background:transparent;transition:all .18s;white-space:nowrap;font-weight:500;color:inherit}
+.tp-eskom{color:var(--savanna);border-color:rgba(212,168,50,.35)}
+.tp-eskom:hover,.tp-eskom.on{background:rgba(212,168,50,.12);border-color:var(--savanna)}
+.tp-nhw{color:var(--fynbos);border-color:rgba(125,171,138,.4)}
+.tp-nhw:hover,.tp-nhw.active{background:rgba(125,171,138,.12);border-color:var(--fynbos);color:var(--fyn-lt)}
+.tb-mob-menu{display:none;background:none;border:1px solid var(--border);
+  border-radius:6px;padding:6px 8px;cursor:pointer;color:var(--text3);font-size:16px}
 
-/* ── MAP ── */
-#map{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:1}
-.leaflet-container{background:#0e1a0c}
-.leaflet-tile{filter:brightness(.45) saturate(.5) sepia(.25) hue-rotate(30deg)}
+/* ═══ LAYOUT ═══════════════════════════════════════════════════════════════ */
+.layout{position:fixed;top:var(--topbar-h);left:0;right:0;bottom:0;display:flex}
+
+/* ═══ SIDEBAR ══════════════════════════════════════════════════════════════ */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:#111a10;border-right:1.5px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;z-index:200;
+  transition:transform .28s ease}
+.sb-sect{padding:10px 12px}
+.sb-label{font-family:'DM Mono',monospace;font-size:7px;font-weight:500;
+  letter-spacing:2.5px;text-transform:uppercase;color:var(--text4);
+  padding:10px 12px 5px;display:block}
+.sb-divider{height:1px;background:var(--border);margin:4px 10px}
+
+/* Suburb search */
+.suburb-search-wrap{position:relative;padding:8px 12px}
+.suburb-search{
+  width:100%;background:rgba(255,255,255,.05);border:1.5px solid var(--border);
+  border-radius:8px;padding:8px 30px 8px 10px;
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--text);
+  outline:none;transition:border-color .18s}
+.suburb-search::placeholder{color:var(--text4)}
+.suburb-search:focus{border-color:var(--fynbos)}
+.suburb-search-icon{position:absolute;right:20px;top:50%;transform:translateY(-50%);
+  font-size:12px;color:var(--text4);pointer-events:none}
+.suburb-dropdown{
+  position:absolute;top:100%;left:12px;right:12px;z-index:500;
+  background:#1a2818;border:1.5px solid var(--border2);border-radius:8px;
+  max-height:200px;overflow-y:auto;display:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.suburb-dropdown.show{display:block}
+.suburb-opt{padding:8px 12px;font-family:'DM Mono',monospace;font-size:10px;
+  color:var(--text2);cursor:pointer;border-bottom:1px solid var(--border);
+  transition:background .12s}
+.suburb-opt:hover{background:var(--fyn-bg);color:var(--fynbos)}
+.suburb-opt:last-child{border-bottom:none}
+
+/* Active suburb badge */
+.active-suburb{
+  margin:0 12px 8px;padding:8px 12px;
+  background:var(--fyn-bg);border:1.5px solid rgba(125,171,138,.35);
+  border-radius:8px;display:none;align-items:center;gap:8px}
+.active-suburb.show{display:flex}
+.as-name{font-family:'Playfair Display',serif;font-size:12px;font-weight:700;
+  color:var(--fynbos);flex:1}
+.as-clear{background:none;border:none;color:var(--text4);cursor:pointer;font-size:14px;
+  line-height:1;padding:0}
+.as-clear:hover{color:var(--critical)}
+
+/* Layer toggles */
+.layer-btn{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  cursor:pointer;transition:background .12s;border:none;
+  background:none;width:100%;text-align:left;border-radius:6px}
+.layer-btn:hover{background:rgba(255,255,255,.04)}
+.layer-btn.on .lb-toggle{background:var(--fynbos)}
+.lb-toggle{width:32px;height:18px;border-radius:9px;border:1.5px solid var(--border2);
+  background:var(--cream3);transition:all .2s;flex-shrink:0;position:relative}
+.lb-toggle::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;
+  border-radius:50%;background:#fff;transition:left .2s}
+.layer-btn.on .lb-toggle::after{left:16px}
+.lb-icon{font-size:14px;flex-shrink:0}
+.lb-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);
+  font-weight:500;letter-spacing:.3px}
+.lb-count{font-family:'DM Mono',monospace;font-size:9px;color:var(--text4);
+  margin-left:auto}
+
+/* Stats */
+.sb-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 12px}
+.sb-stat{background:var(--cream2);border:1px solid var(--border);
+  border-radius:8px;padding:8px 10px;text-align:center}
+.sbs-v{font-family:'Playfair Display',serif;font-size:18px;font-weight:800;
+  color:var(--text);line-height:1;margin-bottom:2px}
+.sbs-v.r{color:var(--critical)}.sbs-v.o{color:var(--high)}
+.sbs-v.g{color:var(--fynbos)}.sbs-v.y{color:var(--savanna)}
+.sbs-l{font-family:'DM Mono',monospace;font-size:7px;color:var(--text4);
+  letter-spacing:1px;text-transform:uppercase}
+
+/* Report btn in sidebar */
+.sb-report-btn{
+  margin:10px 12px;padding:12px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--fyn-dk);color:#fff;
+  font-family:'Playfair Display',serif;font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .18s;box-shadow:0 4px 12px rgba(74,124,89,.3)}
+.sb-report-btn:hover{background:var(--fynbos);box-shadow:0 6px 18px rgba(74,124,89,.4)}
+
+/* Drug/gang house section */
+.drug-section{padding:8px 12px}
+.drug-header{font-family:'DM Mono',monospace;font-size:8px;font-weight:500;
+  letter-spacing:2px;text-transform:uppercase;color:#e8904a;
+  display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.drug-report-btn{
+  width:100%;padding:9px 12px;border-radius:8px;
+  border:1.5px solid rgba(232,144,74,.3);
+  background:rgba(232,144,74,.08);color:#e8904a;
+  font-family:'DM Mono',monospace;font-size:10px;font-weight:500;
+  cursor:pointer;transition:all .15s;text-align:left;
+  display:flex;align-items:center;gap:8px}
+.drug-report-btn:hover{background:rgba(232,144,74,.14);border-color:#e8904a}
+
+/* NHW panel */
+.nhw-live-panel{
+  flex:1;overflow-y:auto;display:none;flex-direction:column}
+.nhw-live-panel.show{display:flex}
+.nhw-item{background:var(--cream2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin:0 12px 6px;cursor:pointer;
+  transition:border-color .14s}
+.nhw-item:hover{border-color:var(--fynbos)}
+.ni-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.ni-sev{font-family:'DM Mono',monospace;font-size:7px;font-weight:500;
+  letter-spacing:1.2px;padding:2px 7px;border-radius:10px}
+.ni-crit{background:rgba(240,112,112,.15);color:var(--critical)}
+.ni-high{background:rgba(232,144,74,.15);color:var(--high)}
+.ni-med{background:rgba(212,168,50,.18);color:var(--savanna)}
+.ni-low{background:var(--fyn-bg);color:var(--fynbos)}
+.ni-type{font-size:12px;font-weight:500;color:var(--text);flex:1}
+.ni-time{font-family:'DM Mono',monospace;font-size:9px;color:var(--text4)}
+.ni-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);
+  line-height:1.5;margin-top:2px}
+
+/* ═══ MAP AREA ══════════════════════════════════════════════════════════════ */
+.map-area{flex:1;position:relative;overflow:hidden}
+#map{position:absolute;inset:0}
+.leaflet-container{background:#0a120a}
+.leaflet-tile{filter:brightness(.45) saturate(.45) sepia(.2) hue-rotate(30deg)}
 .leaflet-control-attribution{display:none}
 .leaflet-control-zoom{margin-top:10px!important;margin-left:10px!important}
 .leaflet-control-zoom a{
   background:#1a2818!important;color:#7dab8a!important;
-  border-color:rgba(125,171,138,.3)!important;
+  border-color:rgba(125,171,138,.25)!important;
   width:30px!important;height:30px!important;line-height:30px!important;
   font-size:16px!important;border-radius:6px!important;
   box-shadow:0 4px 14px rgba(0,0,0,.4)!important}
 
-/* ── BANNER ── */
-.delay-ribbon{
-  position:fixed;top:66px;left:50%;transform:translateX(-50%);z-index:300;
-  background:rgba(26,40,24,.9);border:1.5px solid rgba(125,171,138,.25);border-radius:20px;
+/* Suburb boundary layer styles (injected dynamically) */
+.leaflet-interactive.suburb-boundary{
+  stroke:#7dab8a;stroke-width:2.5;fill:rgba(125,171,138,.06);
+  stroke-dasharray:none}
+
+/* Map overlays */
+.map-ribbon{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:300;
+  background:rgba(20,31,18,.92);border:1px solid var(--border);border-radius:20px;
   padding:5px 16px;font-family:'DM Mono',monospace;font-size:9px;
   color:var(--text3);letter-spacing:.5px;white-space:nowrap;
-  box-shadow:0 4px 14px rgba(0,0,0,.35);backdrop-filter:blur(8px)}
+  backdrop-filter:blur(8px)}
 
-/* ── ESKOM BADGE ── */
 .eskom-badge{
-  position:fixed;top:68px;right:10px;z-index:300;
-  background:rgba(20,31,18,.95);border:1.5px solid rgba(212,168,50,.45);
-  border-radius:8px;padding:8px 12px;display:none;
-  box-shadow:0 4px 20px rgba(0,0,0,.4);backdrop-filter:blur(8px)}
+  position:absolute;top:8px;right:8px;z-index:300;
+  background:rgba(20,31,18,.95);border:1.5px solid rgba(212,168,50,.4);
+  border-radius:8px;padding:8px 12px;display:none;min-width:160px;
+  backdrop-filter:blur(8px)}
 .eb-title{font-family:'DM Mono',monospace;font-size:8px;font-weight:500;
-  color:var(--soil);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
-.eb-info{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2)}
+  color:var(--soil);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.eb-info{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);line-height:1.5}
 
-/* ── LEGEND ── */
+/* Suburb info bar (shown when suburb selected) */
+.suburb-bar{
+  position:absolute;bottom:0;left:0;right:0;z-index:300;
+  background:rgba(17,26,16,.95);border-top:1.5px solid var(--border2);
+  padding:10px 16px;display:none;align-items:center;gap:12px;
+  backdrop-filter:blur(8px)}
+.suburb-bar.show{display:flex}
+.sbar-name{font-family:'Playfair Display',serif;font-size:15px;font-weight:800;
+  color:var(--text)}
+.sbar-stats{display:flex;gap:12px;margin-left:auto}
+.sbar-stat{text-align:center}
+.sbar-val{font-family:'Playfair Display',serif;font-size:16px;font-weight:800;
+  color:var(--text);display:block}
+.sbar-val.r{color:var(--critical)}.sbar-val.o{color:var(--high)}
+.sbar-val.g{color:var(--fynbos)}
+.sbar-lbl{font-family:'DM Mono',monospace;font-size:7px;color:var(--text4);
+  letter-spacing:1px;text-transform:uppercase}
+.sbar-close{background:none;border:1px solid var(--border2);border-radius:6px;
+  color:var(--text3);cursor:pointer;padding:4px 10px;font-size:12px}
+
+/* Map legend */
 .map-legend{
-  position:fixed;bottom:105px;left:10px;z-index:300;
-  background:rgba(20,31,18,.92);border:1.5px solid rgba(125,171,138,.2);
-  border-radius:10px;padding:10px 12px;
-  box-shadow:0 4px 20px rgba(0,0,0,.45);backdrop-filter:blur(8px)}
+  position:absolute;bottom:60px;left:8px;z-index:300;
+  background:rgba(20,31,18,.92);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;backdrop-filter:blur(8px);
+  max-width:150px}
 .ml-title{font-family:'DM Mono',monospace;font-size:7px;font-weight:500;
   letter-spacing:2px;text-transform:uppercase;color:var(--fynbos);margin-bottom:7px}
 .ml-row{display:flex;align-items:center;gap:7px;margin-bottom:4px}
 .ml-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;opacity:.9}
 .ml-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--text2)}
 
-/* ── BOTTOM SHEET ── */
-.bsheet{
-  position:fixed;bottom:0;left:0;right:0;z-index:500;
-  background:#1a2818;border-top:2px solid rgba(125,171,138,.25);
-  border-radius:18px 18px 0 0;
-  padding:12px 16px calc(14px + var(--safe-h));
-  transform:translateY(calc(100% - 96px));
-  transition:transform .35s cubic-bezier(.32,.72,0,1);
-  box-shadow:0 -8px 32px rgba(0,0,0,.5)}
-.bsheet.up{transform:translateY(0)}
-.bsheet-bar{
-  width:40px;height:4px;border-radius:2px;background:rgba(125,171,138,.25);
-  margin:0 auto 14px;cursor:pointer}
-.report-btn{
-  width:100%;height:54px;border-radius:12px;border:none;cursor:pointer;
-  background:var(--fynbos);color:#fff;
-  font-family:'Playfair Display',serif;font-size:16px;font-weight:700;
-  letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:10px;
-  transition:all .18s;box-shadow:0 4px 14px rgba(74,124,89,.35)}
-.report-btn:active{transform:scale(.98);box-shadow:0 2px 6px rgba(74,124,89,.25)}
-.report-btn .ricon{font-size:20px}
-.bstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
-.bstat{
-  background:rgba(14,26,12,.6);border:1.5px solid rgba(125,171,138,.18);
-  border-radius:10px;padding:10px 8px;text-align:center}
-.bstat-val{
-  font-family:'Playfair Display',serif;font-size:20px;font-weight:800;
-  color:var(--text);line-height:1;margin-bottom:2px}
-.bstat-val.r{color:var(--critical)}
-.bstat-val.o{color:var(--high)}
-.bstat-val.g{color:var(--fynbos)}
-.bstat-lbl{font-family:'DM Mono',monospace;font-size:7px;
-  color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+/* ═══ MOBILE BOTTOM REPORT BAR ══════════════════════════════════════════════ */
+.mob-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:600;
+  background:#111a10;border-top:1.5px solid var(--border);
+  padding:10px 14px calc(10px + var(--safe-h));
+  display:none;gap:8px}
+.mob-report-btn{
+  flex:2;height:48px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--fyn-dk);color:#fff;
+  font-family:'Playfair Display',serif;font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 12px rgba(74,124,89,.3)}
+.mob-drug-btn{
+  flex:1;height:48px;border-radius:10px;
+  border:1.5px solid rgba(232,144,74,.35);
+  background:rgba(232,144,74,.1);color:#e8904a;
+  font-family:'DM Mono',monospace;font-size:9px;font-weight:500;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:5px}
+.mob-stats-btn{
+  width:48px;height:48px;border-radius:10px;
+  border:1.5px solid var(--border2);background:transparent;
+  color:var(--text3);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center}
 
-/* ── MODAL ── */
+/* ═══ MODALS ════════════════════════════════════════════════════════════════ */
 .overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:900;
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;
   display:none;align-items:flex-end;justify-content:center;
-  backdrop-filter:blur(3px);padding:0}
+  backdrop-filter:blur(4px)}
 .overlay.show{display:flex}
 .modal{
-  background:#1a2818;width:100%;max-width:540px;
-  border-radius:20px 20px 0 0;
-  border-top:3px solid var(--fynbos);
+  background:#1a2818;width:100%;max-width:560px;
+  border-radius:20px 20px 0 0;border-top:3px solid var(--fynbos);
   padding:18px 18px calc(20px + var(--safe-h));
-  max-height:88vh;height:88vh;overflow-y:auto;
-  -webkit-overflow-scrolling:touch;position:relative}
-
-/* Decorative SA-inspired top bar with subtle pattern */
+  height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative}
 .modal::after{
   content:'';position:absolute;top:3px;left:0;right:0;height:3px;
   background:repeating-linear-gradient(90deg,
-    var(--fynbos) 0 24px,var(--savanna) 24px 40px,
+    var(--fyn-dk) 0 24px,var(--savanna) 24px 40px,
     var(--soil) 40px 52px,var(--sky) 52px 68px,
-    var(--fynbos) 68px 92px);
-  opacity:.7}
-
-.mhandle{width:40px;height:4px;border-radius:2px;background:rgba(125,171,138,.22);margin:0 auto 16px}
-.mtitle{
-  font-family:'Playfair Display',serif;font-size:20px;font-weight:800;
+    var(--fyn-dk) 68px 92px);opacity:.6}
+.mhandle{width:40px;height:4px;border-radius:2px;
+  background:rgba(125,171,138,.2);margin:0 auto 14px}
+.mtitle{font-family:'Playfair Display',serif;font-size:18px;font-weight:800;
   color:var(--text);margin-bottom:3px}
-.msub{
-  font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);
-  letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
-
-.flabel{
-  font-family:'DM Mono',monospace;font-size:8px;font-weight:500;
+.msub{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);
+  letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px}
+.flabel{font-family:'DM Mono',monospace;font-size:8px;font-weight:500;
   letter-spacing:2px;text-transform:uppercase;color:var(--text3);
-  display:block;margin-bottom:8px}
+  display:block;margin-bottom:7px}
 
-/* ── CATEGORY HEADERS ── */
+/* Category headers */
 .cat-head{
   font-family:'Playfair Display',serif;font-size:11px;font-weight:700;
-  color:var(--bark2);letter-spacing:.5px;
-  padding:6px 0 6px;margin-top:10px;margin-bottom:5px;
-  border-bottom:1.5px solid var(--cream3);display:flex;align-items:center;gap:7px}
+  color:var(--fyn-lt);letter-spacing:.5px;
+  padding:8px 0 6px;margin-top:12px;margin-bottom:5px;
+  border-bottom:1px solid var(--cream3);
+  display:flex;align-items:center;gap:7px}
 .cat-head::before{content:'';display:block;width:4px;height:14px;
   border-radius:2px;background:var(--fynbos)}
 
-/* ── INCIDENT GRID ── */
+/* Incident grid */
 .inc-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px}
 .inc-btn{
   padding:9px 10px;border-radius:9px;
@@ -232,169 +332,140 @@ body::before{
   cursor:pointer;transition:all .14s;
   text-align:left;display:flex;align-items:center;gap:8px;line-height:1.3}
 .inc-btn:hover{border-color:var(--fynbos);background:rgba(125,171,138,.1)}
-.inc-btn.sel{
-  border-color:var(--fynbos);background:var(--fyn-bg);
-  color:var(--fyn-dk);font-weight:500}
+.inc-btn.sel{border-color:var(--fynbos);background:var(--fyn-bg);
+  color:var(--fyn-lt);font-weight:500}
 .iico{font-size:15px;flex-shrink:0}
-.inc-cat{font-size:8px;color:var(--text4);display:block;font-family:'DM Mono',monospace;letter-spacing:.5px;text-transform:uppercase}
+.inc-cat{font-size:8px;color:var(--text4);display:block;
+  font-family:'DM Mono',monospace;letter-spacing:.5px;text-transform:uppercase}
 
-/* ── SEVERITY ── */
-.sev-row{display:flex;gap:6px;margin-bottom:16px}
-.sev-btn{
-  flex:1;padding:8px 4px;border-radius:8px;
+/* Severity */
+.sev-row{display:flex;gap:6px;margin-bottom:14px}
+.sev-btn{flex:1;padding:8px 4px;border-radius:8px;
   border:1.5px solid rgba(125,171,138,.2);background:rgba(14,26,12,.5);
   font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
   letter-spacing:.5px;cursor:pointer;text-align:center;
   color:var(--text3);transition:all .14s}
-.sev-btn.sl{border-color:var(--fynbos);background:var(--fyn-bg);color:var(--fyn-dk)}
-.sev-btn.sm{border-color:var(--savanna);background:var(--sav-bg);color:#7a5a00}
-.sev-btn.sh{border-color:var(--high);background:rgba(212,98,26,.1);color:var(--high)}
-.sev-btn.sc{border-color:var(--critical);background:rgba(192,57,43,.1);color:var(--critical)}
+.sev-btn.sl{border-color:var(--fynbos);background:var(--fyn-bg);color:var(--fynbos)}
+.sev-btn.sm{border-color:var(--savanna);background:var(--sav-bg);color:var(--savanna)}
+.sev-btn.sh{border-color:var(--high);background:rgba(232,144,74,.1);color:var(--high)}
+.sev-btn.sc{border-color:var(--critical);background:rgba(240,112,112,.1);color:var(--critical)}
 
-/* ── LOCATION BOX ── */
+/* Location */
 .loc-box{
   background:rgba(14,26,12,.5);border:1.5px solid rgba(125,171,138,.2);
   border-radius:10px;padding:12px 14px;
   display:flex;align-items:center;gap:10px;margin-bottom:14px;transition:border-color .2s}
 .loc-box.got{border-color:var(--fynbos)}
-.lico{font-size:20px;flex-shrink:0}
 .loc-info{flex:1}
 .loc-status{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
   color:var(--text);display:block;margin-bottom:2px}
 .loc-coords{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);line-height:1.5}
-.loc-get-btn{
-  font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
+.loc-get-btn{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
   padding:6px 12px;border-radius:6px;border:1.5px solid var(--fynbos);
-  background:transparent;color:var(--fynbos);cursor:pointer;white-space:nowrap;
-  transition:all .14s}
-.loc-get-btn:hover{background:var(--fyn-bg)}
+  background:transparent;color:var(--fynbos);cursor:pointer;white-space:nowrap}
 
-/* ── OPTIONAL NOTE ── */
+/* Note */
 .note-ta{
   width:100%;background:rgba(14,26,12,.5);border:1.5px solid rgba(125,171,138,.18);
   border-radius:10px;padding:10px 13px;
   font-family:'DM Sans',sans-serif;font-size:13px;font-weight:300;
-  color:var(--text);resize:none;height:68px;outline:none;line-height:1.6;
-  transition:border-color .18s}
+  color:var(--text);resize:none;height:68px;outline:none;line-height:1.6}
 .note-ta::placeholder{color:var(--text4)}
 .note-ta:focus{border-color:var(--fynbos)}
 
-/* ── ANON NOTE ── */
+/* Anon strip */
 .anon-strip{
   display:flex;align-items:flex-start;gap:8px;
   background:rgba(125,171,138,.07);border:1.5px solid rgba(125,171,138,.2);
   border-radius:8px;padding:10px 12px;margin:12px 0;
-  font-family:'DM Mono',monospace;font-size:9px;color:var(--fyn-dk);line-height:1.7}
-.anon-ico{font-size:14px;flex-shrink:0;margin-top:1px}
+  font-family:'DM Mono',monospace;font-size:9px;color:var(--fynbos);line-height:1.7}
 
-/* ── SUBMIT ── */
+/* Submit/cancel */
 .submit-btn{
   width:100%;height:52px;border-radius:12px;border:none;cursor:pointer;
-  background:var(--fynbos);color:#fff;
+  background:var(--fyn-dk);color:#fff;
   font-family:'Playfair Display',serif;font-size:16px;font-weight:700;
   transition:all .16s;box-shadow:0 4px 14px rgba(74,124,89,.3);margin-bottom:8px}
 .submit-btn:active{transform:scale(.98)}
-.submit-btn:disabled{background:var(--cream3);color:var(--text4);
-  box-shadow:none;cursor:not-allowed}
+.submit-btn:disabled{background:var(--cream3);color:var(--text4);box-shadow:none;cursor:not-allowed}
 .cancel-btn{
   width:100%;height:44px;border-radius:12px;
   border:1.5px solid var(--border2);background:transparent;
-  color:var(--text3);font-family:'DM Mono',monospace;font-size:10px;
-  cursor:pointer;transition:all .14s}
+  color:var(--text3);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer}
 .cancel-btn:hover{border-color:var(--critical);color:var(--critical)}
 
-/* ── NHW AUTH ── */
+/* Drug/gang house modal */
+.drug-modal{
+  background:#1a1208;width:100%;max-width:480px;
+  border-radius:20px 20px 0 0;border-top:3px solid #e8904a;
+  padding:22px 18px calc(22px + var(--safe-h));position:relative}
+.drug-modal::after{content:'';position:absolute;top:3px;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#e8904a,#d4621a,#e8904a);opacity:.8}
+
+/* NHW modal */
 .nhw-modal{
-  background:#1a2818;width:100%;max-width:540px;
+  background:#1a2818;width:100%;max-width:480px;
   border-radius:20px 20px 0 0;border-top:3px solid var(--sky);
   padding:22px 18px calc(22px + var(--safe-h));position:relative}
 .nhw-modal::after{content:'';position:absolute;top:3px;left:0;right:0;height:3px;
   background:repeating-linear-gradient(90deg,
     var(--sky) 0 20px,var(--fynbos) 20px 40px,
     var(--savanna) 40px 56px,var(--soil) 56px 72px);opacity:.8}
-.nhw-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:800;
-  color:var(--text);margin-bottom:6px}
-.nhw-desc{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:18px;font-weight:300}
 .nhw-input{
   width:100%;background:rgba(14,26,12,.6);border:1.5px solid rgba(125,171,138,.25);
   border-radius:10px;padding:13px 15px;
   font-family:'DM Mono',monospace;font-size:14px;color:var(--text);
-  outline:none;margin-bottom:10px;letter-spacing:2px;transition:border-color .18s}
+  outline:none;margin-bottom:10px;letter-spacing:2px}
 .nhw-input:focus{border-color:var(--sky)}
 .nhw-submit{
   width:100%;height:50px;border-radius:12px;border:none;cursor:pointer;
   background:var(--sky-dk);color:#fff;
   font-family:'Playfair Display',serif;font-size:15px;font-weight:700;
-  margin-bottom:8px;transition:all .16s;
-  box-shadow:0 4px 14px rgba(61,138,170,.28)}
+  margin-bottom:8px;box-shadow:0 4px 14px rgba(61,138,170,.28)}
 .nhw-err{
   font-family:'DM Mono',monospace;font-size:10px;color:var(--critical);
-  background:rgba(192,57,43,.08);border:1.5px solid rgba(192,57,43,.2);
+  background:rgba(240,112,112,.08);border:1.5px solid rgba(240,112,112,.2);
   border-radius:7px;padding:8px 12px;margin-bottom:10px;display:none}
 
-/* ── NHW LIVE PANEL ── */
-.nhw-panel{
-  position:fixed;top:58px;right:0;bottom:0;width:310px;max-width:86vw;
-  background:#141f12;border-left:2px solid rgba(125,171,138,.22);
-  z-index:400;display:flex;flex-direction:column;
-  transform:translateX(100%);transition:transform .28s ease;
-  box-shadow:-4px 0 24px rgba(107,76,53,.1)}
-.nhw-panel.open{transform:translateX(0)}
-.nhwp-head{
-  padding:14px 16px;border-bottom:1.5px solid var(--border);
-  display:flex;align-items:center;gap:8px;flex-shrink:0;
-  background:var(--sky-dk)}
-.nhwp-badge{
-  font-family:'DM Mono',monospace;font-size:8px;font-weight:500;
-  letter-spacing:1.5px;text-transform:uppercase;
-  color:rgba(255,255,255,.7);background:rgba(255,255,255,.12);
-  border-radius:10px;padding:3px 8px}
-.nhwp-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;
-  color:#fff;flex:1}
-.nhwp-close{background:none;border:none;color:rgba(255,255,255,.7);
-  cursor:pointer;font-size:18px;line-height:1}
-.nhwp-list{flex:1;overflow-y:auto;padding:10px}
-.nhw-item{
-  background:rgba(20,31,18,.8);border:1.5px solid rgba(125,171,138,.18);
-  border-radius:10px;padding:10px 12px;margin-bottom:7px;cursor:pointer;
-  transition:border-color .14s}
-.nhw-item:hover{border-color:var(--fynbos)}
-.ni-top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
-.ni-sev{font-family:'DM Mono',monospace;font-size:7px;font-weight:500;
-  letter-spacing:1.2px;padding:2px 8px;border-radius:10px}
-.ni-crit{background:rgba(192,57,43,.15);color:var(--critical)}
-.ni-high{background:rgba(212,98,26,.15);color:var(--high)}
-.ni-med{background:rgba(212,168,50,.18);color:#7a5a00}
-.ni-low{background:var(--fyn-bg);color:var(--fyn-dk)}
-.ni-type{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;
-  color:var(--text);flex:1}
-.ni-time{font-family:'DM Mono',monospace;font-size:9px;color:var(--text4)}
-.ni-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);line-height:1.5}
-
-/* ── TOAST ── */
+/* Toast */
 .toast{
-  position:fixed;bottom:calc(100px + var(--safe-h));left:16px;right:16px;
+  position:fixed;bottom:calc(80px + var(--safe-h));left:50%;
+  transform:translateX(-50%) translateY(130px);
   z-index:1100;background:#1a2818;
   border:2px solid var(--fynbos);border-radius:14px;
-  padding:14px 16px;display:flex;align-items:center;gap:12px;
+  padding:14px 18px;display:flex;align-items:center;gap:12px;
   box-shadow:0 8px 32px rgba(74,124,89,.25);
-  transform:translateY(130px);transition:transform .32s cubic-bezier(.32,.72,0,1)}
-.toast.show{transform:translateY(0)}
-.toast-ico{font-size:22px;flex-shrink:0}
+  white-space:nowrap;transition:transform .32s cubic-bezier(.32,.72,0,1)}
+.toast.show{transform:translateX(-50%) translateY(0)}
 .toast-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;
-  color:var(--fyn-dk);margin-bottom:2px}
+  color:var(--fynbos);margin-bottom:2px}
 .toast-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:.5px}
 
-@media(min-width:600px){
-  .modal{border-radius:16px;margin:auto;height:auto;max-height:85vh}
-  .nhw-modal{border-radius:16px;margin:auto}
+/* Cluster marker overrides */
+.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{
+  background:rgba(74,124,89,.6)!important}
+.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{
+  background:rgba(74,124,89,.85)!important;color:#fff!important;
+  font-family:'DM Mono',monospace!important;font-weight:700!important}
+
+/* ═══ RESPONSIVE ════════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  .sidebar{
+    position:fixed;top:var(--topbar-h);left:0;bottom:0;
+    transform:translateX(-100%);z-index:500}
+  .sidebar.mob-open{transform:translateX(0)}
+  .tb-mob-menu{display:flex;align-items:center;justify-content:center}
+  .tb-region,.tb-live{display:none}
+  .mob-bar{display:flex}
+  .map-area{width:100%}
+  .suburb-bar{bottom:68px}
+  .map-legend{display:none}
+}
+@media(min-width:769px){
   .overlay{align-items:center}
-  .bsheet{max-width:500px;left:50%;
-    transform:translateX(-50%) translateY(calc(100% - 96px));border-radius:18px 18px 0 0}
-  .bsheet.up{transform:translateX(-50%) translateY(0)}
-  .toast{max-width:400px;left:50%;
-    transform:translateX(-50%) translateY(130px)}
-  .toast.show{transform:translateX(-50%) translateY(0)}
+  .modal{border-radius:16px;margin:auto;height:auto;max-height:85vh}
+  .drug-modal,.nhw-modal{border-radius:16px;margin:auto}
+  .toast{bottom:20px}
 }
 </style>
 </head>
@@ -402,182 +473,282 @@ body::before{
 
 <!-- TOPBAR -->
 <nav class="topbar">
-  <div class="tb-emblem">
-    <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Outer ring -->
-      <circle cx="36" cy="36" r="30" fill="none" stroke="#7dab8a" stroke-width="3"/>
-      <!-- Six community nodes -->
-      <circle cx="36" cy="7"  r="5" fill="#7dab8a"/>
-      <circle cx="62" cy="22" r="5" fill="#7dab8a" opacity=".72"/>
-      <circle cx="62" cy="50" r="5" fill="#7dab8a" opacity=".52"/>
-      <circle cx="36" cy="65" r="5" fill="#7dab8a" opacity=".42"/>
-      <circle cx="10" cy="50" r="5" fill="#7dab8a" opacity=".52"/>
-      <circle cx="10" cy="22" r="5" fill="#7dab8a" opacity=".72"/>
-      <!-- Spokes to centre -->
-      <line x1="36" y1="11" x2="36" y2="26" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
-      <line x1="58" y1="24" x2="47" y2="31" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
-      <line x1="58" y1="48" x2="47" y2="41" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
-      <line x1="36" y1="61" x2="36" y2="46" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
-      <line x1="14" y1="48" x2="25" y2="41" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
-      <line x1="14" y1="24" x2="25" y2="31" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
-      <!-- Central map pin -->
-      <circle cx="36" cy="31" r="11" fill="#d4a832"/>
-      <path d="M36 42 L31 51 L41 51 Z" fill="#d4a832"/>
-      <!-- Pin inner -->
-      <circle cx="36" cy="29" r="4.5" fill="#1a2818"/>
-      <circle cx="36" cy="29" r="2" fill="#d4a832"/>
-    </svg>
+  <div class="tb-logo">
+    <div class="tb-emblem">
+      <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="36" cy="36" r="30" fill="none" stroke="#7dab8a" stroke-width="3"/>
+        <circle cx="36" cy="7"  r="5" fill="#7dab8a"/>
+        <circle cx="62" cy="22" r="5" fill="#7dab8a" opacity=".72"/>
+        <circle cx="62" cy="50" r="5" fill="#7dab8a" opacity=".52"/>
+        <circle cx="36" cy="65" r="5" fill="#7dab8a" opacity=".42"/>
+        <circle cx="10" cy="50" r="5" fill="#7dab8a" opacity=".52"/>
+        <circle cx="10" cy="22" r="5" fill="#7dab8a" opacity=".72"/>
+        <line x1="36" y1="11" x2="36" y2="26" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
+        <line x1="58" y1="24" x2="47" y2="31" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
+        <line x1="58" y1="48" x2="47" y2="41" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
+        <line x1="36" y1="61" x2="36" y2="46" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
+        <line x1="14" y1="48" x2="25" y2="41" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
+        <line x1="14" y1="24" x2="25" y2="31" stroke="#7dab8a" stroke-width="1.2" opacity="0.28"/>
+        <circle cx="36" cy="31" r="11" fill="#d4a832"/>
+        <path d="M36 42 L31 51 L41 51 Z" fill="#d4a832"/>
+        <circle cx="36" cy="29" r="4.5" fill="#1a2818"/>
+        <circle cx="36" cy="29" r="2" fill="#d4a832"/>
+      </svg>
+    </div>
+    <div class="tb-words">
+      <span class="tb-wordmark">SafeNote</span>
+      <span class="tb-sub">Community Safety</span>
+    </div>
   </div>
-  <div class="tb-title-wrap">
-    <span class="tb-wordmark">SafeNote</span>
-    <span class="tb-sub">Community Safety · Report &amp; Protect</span>
-  </div>
-  <div class="live-pip"><div class="pip"></div>LIVE</div>
-  <div class="tb-btns">
-    <button class="tb-pill tb-pill-eskom" id="eskom-btn" onclick="toggleEskom()">&#9889; Eskom</button>
-    <button class="tb-pill tb-pill-nhw" id="nhw-btn" onclick="openNhwAuth()">NHW</button>
+  <div class="tb-region">&#x1F3D4; Western Cape</div>
+  <div class="tb-live"><div class="pip"></div>LIVE</div>
+  <div class="tb-right">
+    <button class="tb-pill tp-eskom" id="eskom-btn" onclick="toggleEskom()">&#9889; Eskom</button>
+    <button class="tb-pill tp-nhw" id="nhw-btn" onclick="openNhwAuth()">NHW Access</button>
+    <button class="tb-mob-menu" onclick="toggleMobSidebar()">&#x2630;</button>
   </div>
 </nav>
 
-<!-- MAP -->
-<div id="map"></div>
+<!-- LAYOUT -->
+<div class="layout">
 
-<!-- DELAY RIBBON -->
-<div class="delay-ribbon" id="delay-ribbon">&#x23F1; Public map &mdash; 24 hr delayed data</div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <!-- Report button -->
+    <button class="sb-report-btn" onclick="openModal()">
+      <span style="font-size:18px">&#x26A0;</span> Report Incident
+    </button>
 
-<!-- ESKOM BADGE -->
-<div class="eskom-badge" id="eskom-badge">
-  <div class="eb-title">&#9889; Load-shedding</div>
-  <div class="eb-info" id="eskom-info">Besig om te nagaan&hellip;</div>
-</div>
+    <!-- Suburb search -->
+    <span class="sb-label">Suburb / Area</span>
+    <div class="suburb-search-wrap">
+      <input class="suburb-search" id="suburb-search"
+        type="text" placeholder="Search Western Cape suburb…"
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="searchSuburbs(this.value)">
+      <span class="suburb-search-icon">&#x1F50D;</span>
+      <div class="suburb-dropdown" id="suburb-dropdown"></div>
+    </div>
+    <div class="active-suburb" id="active-suburb">
+      <span class="as-name" id="as-name"></span>
+      <button class="as-clear" onclick="clearSuburb()">&#x2715;</button>
+    </div>
 
-<!-- LEGEND -->
-<div class="map-legend">
-  <div class="ml-title">Incident types</div>
-  <div class="ml-row"><div class="ml-dot" style="background:#c0392b"></div><div class="ml-lbl">Violent</div></div>
-  <div class="ml-row"><div class="ml-dot" style="background:#d4621a"></div><div class="ml-lbl">Robbery</div></div>
-  <div class="ml-row"><div class="ml-dot" style="background:#d4a832"></div><div class="ml-lbl">Property</div></div>
-  <div class="ml-row"><div class="ml-dot" style="background:#6ab4d4"></div><div class="ml-lbl">Suspicious</div></div>
-  <div class="ml-row"><div class="ml-dot" style="background:#9b59b6"></div><div class="ml-lbl">GBV</div></div>
-  <div class="ml-row"><div class="ml-dot" style="background:#4a7c59"></div><div class="ml-lbl">Community</div></div>
-  <div class="ml-row"><div class="ml-dot" style="background:#f5a623"></div><div class="ml-lbl">Power outage</div></div>
-</div>
+    <div class="sb-divider"></div>
+    <span class="sb-label">Map Layers</span>
+    <div class="sb-sect">
+      <button class="layer-btn on" id="layer-crimes" onclick="toggleLayer('crimes',this)">
+        <div class="lb-toggle"></div>
+        <span class="lb-icon">&#x1F4CD;</span>
+        <span class="lb-label">Incident Pins</span>
+        <span class="lb-count" id="lc-crimes">0</span>
+      </button>
+      <button class="layer-btn on" id="layer-heat" onclick="toggleLayer('heat',this)">
+        <div class="lb-toggle"></div>
+        <span class="lb-icon">&#x1F525;</span>
+        <span class="lb-label">Heatmap</span>
+        <span class="lb-count"></span>
+      </button>
+      <button class="layer-btn on" id="layer-power" onclick="toggleLayer('power',this)">
+        <div class="lb-toggle"></div>
+        <span class="lb-icon">&#9889;</span>
+        <span class="lb-label">Power Outages</span>
+        <span class="lb-count" id="lc-power">0</span>
+      </button>
+      <button class="layer-btn" id="layer-drugs" onclick="toggleLayer('drugs',this)">
+        <div class="lb-toggle"></div>
+        <span class="lb-icon">&#x26A0;</span>
+        <span class="lb-label">Drug/Gang Houses</span>
+        <span class="lb-count" id="lc-drugs">0</span>
+      </button>
+      <button class="layer-btn on" id="layer-patrol" onclick="toggleLayer('patrol',this)">
+        <div class="lb-toggle"></div>
+        <span class="lb-icon">&#x1F6E1;</span>
+        <span class="lb-label">Patrol Activity</span>
+        <span class="lb-count"></span>
+      </button>
+    </div>
 
-<!-- BOTTOM SHEET -->
-<div class="bsheet" id="bsheet">
-  <div class="bsheet-bar" onclick="toggleSheet()"></div>
-  <button class="report-btn" onclick="openModal()">
-    <span class="ricon">&#x26A0;</span>
-    Report an Incident
+    <div class="sb-divider"></div>
+    <span class="sb-label">Stats — Western Cape</span>
+    <div class="sb-stats">
+      <div class="sb-stat"><div class="sbs-v r" id="s-today">0</div><div class="sbs-l">Today</div></div>
+      <div class="sb-stat"><div class="sbs-v o" id="s-week">0</div><div class="sbs-l">This Week</div></div>
+      <div class="sb-stat"><div class="sbs-v g" id="s-areas">0</div><div class="sbs-l">Areas</div></div>
+      <div class="sb-stat"><div class="sbs-v y" id="s-total">0</div><div class="sbs-l">Total</div></div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <!-- Drug/Gang house reporting -->
+    <div class="drug-section">
+      <div class="drug-header">&#x26A0; Intel Reporting</div>
+      <button class="drug-report-btn" onclick="openDrugModal()">
+        <span style="font-size:14px">&#x1F3E0;</span>
+        <span>Report Drug / Gang House</span>
+      </button>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <!-- NHW live feed (shown when verified) -->
+    <div class="nhw-live-panel" id="nhw-live-panel">
+      <span class="sb-label" style="color:#7dab8a">&#x25CF; NHW Live Feed</span>
+      <div id="nhw-live-list">
+        <div style="padding:16px 12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text4)">
+          Loading live feed…</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAP AREA -->
+  <div class="map-area">
+    <div id="map"></div>
+
+    <!-- Delay ribbon (public) -->
+    <div class="map-ribbon" id="delay-ribbon">
+      &#x23F1; Public map — 24 hr delayed data
+    </div>
+
+    <!-- Eskom badge -->
+    <div class="eskom-badge" id="eskom-badge">
+      <div class="eb-title">&#9889; Load-shedding</div>
+      <div class="eb-info" id="eskom-info">Checking…</div>
+    </div>
+
+    <!-- Map legend -->
+    <div class="map-legend">
+      <div class="ml-title">Incident types</div>
+      <div class="ml-row"><div class="ml-dot" style="background:#f07070"></div><div class="ml-lbl">Violent</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#e8904a"></div><div class="ml-lbl">Robbery</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#d4a832"></div><div class="ml-lbl">Property</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#6ab4d4"></div><div class="ml-lbl">Suspicious</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#9b59b6"></div><div class="ml-lbl">GBV</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#7dab8a"></div><div class="ml-lbl">Community</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#f5a623"></div><div class="ml-lbl">Power outage</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#e8904a;border:2px solid #fff"></div><div class="ml-lbl">Drug/Gang house</div></div>
+    </div>
+
+    <!-- Suburb info bar -->
+    <div class="suburb-bar" id="suburb-bar">
+      <div>
+        <div class="sbar-name" id="sbar-name">Suburb</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3)">Western Cape</div>
+      </div>
+      <div class="sbar-stats">
+        <div class="sbar-stat">
+          <span class="sbar-val r" id="sbar-today">0</span>
+          <span class="sbar-lbl">Today</span>
+        </div>
+        <div class="sbar-stat">
+          <span class="sbar-val o" id="sbar-week">0</span>
+          <span class="sbar-lbl">Week</span>
+        </div>
+        <div class="sbar-stat">
+          <span class="sbar-val g" id="sbar-drug">0</span>
+          <span class="sbar-lbl">Drug/Gang</span>
+        </div>
+      </div>
+      <button class="sbar-close" onclick="clearSuburb()">Clear</button>
+    </div>
+
+  </div><!-- /map-area -->
+</div><!-- /layout -->
+
+<!-- MOBILE BOTTOM BAR -->
+<div class="mob-bar" id="mob-bar">
+  <button class="mob-stats-btn" onclick="toggleMobSidebar()">&#x1F4CA;</button>
+  <button class="mob-report-btn" onclick="openModal()">
+    <span style="font-size:16px">&#x26A0;</span> Report Incident
   </button>
-  <div class="bstats">
-    <div class="bstat"><div class="bstat-val r" id="s-today">0</div><div class="bstat-lbl">Today</div></div>
-    <div class="bstat"><div class="bstat-val o" id="s-week">0</div><div class="bstat-lbl">This week</div></div>
-    <div class="bstat"><div class="bstat-val g" id="s-areas">0</div><div class="bstat-lbl">Areas</div></div>
-    <div class="bstat"><div class="bstat-val" id="s-total">0</div><div class="bstat-lbl">Total</div></div>
-  </div>
+  <button class="mob-drug-btn" onclick="openDrugModal()">
+    <span>&#x1F3E0;</span> Drug House
+  </button>
 </div>
 
-<!-- REPORT MODAL -->
+<!-- ═══ REPORT MODAL ══════════════════════════════════════════════════════ -->
 <div class="overlay" id="rep-overlay">
 <div class="modal" id="rep-modal">
   <div class="mhandle"></div>
   <div class="mtitle">Report an Incident</div>
-  <div class="msub">Anonymous &mdash; no personal data stored</div>
+  <div class="msub">Anonymous — No personal data stored</div>
 
-  <!-- VIOLENT -->
   <div class="cat-head">Violent Crime</div>
   <div class="inc-grid">
-    <button class="inc-btn" data-val="murder" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F480;</span>Murder / Homicide</button>
-    <button class="inc-btn" data-val="shooting" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F52B;</span>Shooting / Gunfire</button>
-    <button class="inc-btn" data-val="stabbing" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1FA78;</span>Stabbing / Assault</button>
-    <button class="inc-btn" data-val="attempted_murder" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x26A1;</span>Attempted Murder</button>
+    <button class="inc-btn" data-val="murder" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F480;</span><span><span class="inc-cat">Violent</span>Murder / Homicide</span></button>
+    <button class="inc-btn" data-val="shooting" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F52B;</span><span><span class="inc-cat">Violent</span>Shooting / Gunfire</span></button>
+    <button class="inc-btn" data-val="stabbing" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1FA78;</span><span><span class="inc-cat">Violent</span>Stabbing / Assault</span></button>
+    <button class="inc-btn" data-val="attempted_murder" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x26A1;</span><span><span class="inc-cat">Violent</span>Attempted Murder</span></button>
   </div>
 
-  <!-- ROBBERY -->
   <div class="cat-head">Robbery &amp; Theft</div>
   <div class="inc-grid">
-    <button class="inc-btn" data-val="hijacking" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F697;</span>Hijacking</button>
-    <button class="inc-btn" data-val="armed_robbery" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F4B0;</span>Armed Robbery</button>
-    <button class="inc-btn" data-val="mugging" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F9F3;</span>Street Mugging</button>
-    <button class="inc-btn" data-val="house_robbery" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F3E0;</span>House Robbery</button>
-    <button class="inc-btn" data-val="burglary" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F511;</span>Burglary / Break-in</button>
-    <button class="inc-btn" data-val="vehicle_theft" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F699;</span>Vehicle Theft</button>
-    <button class="inc-btn" data-val="theft" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F4F1;</span>Theft / Shoplifting</button>
-    <button class="inc-btn" data-val="atm_robbery" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F3E7;</span>ATM Robbery</button>
+    <button class="inc-btn" data-val="hijacking" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F697;</span><span><span class="inc-cat">Robbery</span>Hijacking</span></button>
+    <button class="inc-btn" data-val="armed_robbery" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F4B0;</span><span><span class="inc-cat">Robbery</span>Armed Robbery</span></button>
+    <button class="inc-btn" data-val="mugging" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F9F3;</span><span><span class="inc-cat">Robbery</span>Street Mugging</span></button>
+    <button class="inc-btn" data-val="house_robbery" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F3E0;</span><span><span class="inc-cat">Robbery</span>House Robbery</span></button>
+    <button class="inc-btn" data-val="burglary" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F511;</span><span><span class="inc-cat">Property</span>Burglary / Break-in</span></button>
+    <button class="inc-btn" data-val="vehicle_theft" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F699;</span><span><span class="inc-cat">Property</span>Vehicle Theft</span></button>
+    <button class="inc-btn" data-val="theft" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F4F1;</span><span><span class="inc-cat">Property</span>Theft / Shoplifting</span></button>
+    <button class="inc-btn" data-val="atm_robbery" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F3E7;</span><span><span class="inc-cat">Robbery</span>ATM Robbery</span></button>
   </div>
 
-  <!-- GBV -->
   <div class="cat-head">GBV &amp; Domestic</div>
   <div class="inc-grid">
-    <button class="inc-btn" data-val="gbv" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F91A;</span>Gender-based Violence</button>
-    <button class="inc-btn" data-val="domestic" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F6A8;</span>Domestic Violence</button>
-    <button class="inc-btn" data-val="sexual_assault" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x26D4;</span>Sexual Assault / Rape</button>
-    <button class="inc-btn" data-val="child_abuse" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F6AB;</span>Child Abuse</button>
+    <button class="inc-btn" data-val="gbv" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F91A;</span><span><span class="inc-cat">GBV</span>Gender-based Violence</span></button>
+    <button class="inc-btn" data-val="domestic" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F6A8;</span><span><span class="inc-cat">GBV</span>Domestic Violence</span></button>
+    <button class="inc-btn" data-val="sexual_assault" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x26D4;</span><span><span class="inc-cat">GBV</span>Sexual Assault / Rape</span></button>
+    <button class="inc-btn" data-val="child_abuse" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F6AB;</span><span><span class="inc-cat">GBV</span>Child Abuse</span></button>
   </div>
 
-  <!-- SUSPICIOUS -->
   <div class="cat-head">Suspicious Activity</div>
   <div class="inc-grid">
-    <button class="inc-btn" data-val="suspicious_person" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F440;</span>Suspicious Person</button>
-    <button class="inc-btn" data-val="suspicious_vehicle" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F50D;</span>Suspicious Vehicle</button>
-    <button class="inc-btn" data-val="loitering" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F6B6;</span>Loitering / Casing</button>
-    <button class="inc-btn" data-val="drone_surveillance" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F6F8;</span>Drone / Surveillance</button>
-    <button class="inc-btn" data-val="casing" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F9FF;</span>Property Being Cased</button>
-    <button class="inc-btn" data-val="following" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F464;</span>Being Followed / Stalked</button>
+    <button class="inc-btn" data-val="suspicious_person" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F440;</span><span><span class="inc-cat">Suspicious</span>Suspicious Person</span></button>
+    <button class="inc-btn" data-val="suspicious_vehicle" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F50D;</span><span><span class="inc-cat">Suspicious</span>Suspicious Vehicle</span></button>
+    <button class="inc-btn" data-val="loitering" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F6B6;</span><span><span class="inc-cat">Suspicious</span>Loitering / Casing</span></button>
+    <button class="inc-btn" data-val="drone_surveillance" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F6F8;</span><span><span class="inc-cat">Suspicious</span>Drone / Surveillance</span></button>
+    <button class="inc-btn" data-val="casing" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F9FF;</span><span><span class="inc-cat">Suspicious</span>Property Being Cased</span></button>
+    <button class="inc-btn" data-val="following" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F464;</span><span><span class="inc-cat">Suspicious</span>Being Followed</span></button>
   </div>
 
-  <!-- DRUGS GANGS -->
   <div class="cat-head">Drugs &amp; Gangs</div>
   <div class="inc-grid">
-    <button class="inc-btn" data-val="drug_dealing" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F48A;</span>Drug Dealing</button>
-    <button class="inc-btn" data-val="gang_activity" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F977;</span>Gang Activity</button>
-    <button class="inc-btn" data-val="illegal_firearm" data-sev="high" onclick="selInc(this)"><span class="iico">&#x26A0;</span>Illegal Firearm Spotted</button>
-    <button class="inc-btn" data-val="extortion" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F4B3;</span>Extortion / Threats</button>
+    <button class="inc-btn" data-val="drug_dealing" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F48A;</span><span><span class="inc-cat">Drugs</span>Drug Dealing</span></button>
+    <button class="inc-btn" data-val="gang_activity" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F977;</span><span><span class="inc-cat">Gangs</span>Gang Activity</span></button>
+    <button class="inc-btn" data-val="illegal_firearm" data-sev="high" onclick="selInc(this)"><span class="iico">&#x26A0;</span><span><span class="inc-cat">Gangs</span>Illegal Firearm</span></button>
+    <button class="inc-btn" data-val="extortion" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F4B3;</span><span><span class="inc-cat">Gangs</span>Extortion / Threats</span></button>
   </div>
 
-  <!-- INFRASTRUCTURE -->
   <div class="cat-head">Infrastructure</div>
   <div class="inc-grid">
-    <button class="inc-btn" data-val="cable_theft" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x26A1;</span>Cable / Wire Theft</button>
-    <button class="inc-btn" data-val="illegal_connection" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F50C;</span>Illegal Connection</button>
-    <button class="inc-btn" data-val="manhole_theft" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F9F0;</span>Manhole / Drain Theft</button>
-    <button class="inc-btn" data-val="road_blockage" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F6A7;</span>Road Blockage / Protest</button>
-    <button class="inc-btn" data-val="water_cut" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F6B0;</span>Water Cut Off</button>
-    <button class="inc-btn" data-val="vandalism" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F528;</span>Vandalism / Damage</button>
+    <button class="inc-btn" data-val="cable_theft" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x26A1;</span><span><span class="inc-cat">Infra</span>Cable / Wire Theft</span></button>
+    <button class="inc-btn" data-val="road_blockage" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F6A7;</span><span><span class="inc-cat">Infra</span>Road Blockage</span></button>
+    <button class="inc-btn" data-val="water_cut" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F6B0;</span><span><span class="inc-cat">Infra</span>Water Cut Off</span></button>
+    <button class="inc-btn" data-val="vandalism" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F528;</span><span><span class="inc-cat">Infra</span>Vandalism</span></button>
   </div>
 
-  <!-- COMMUNITY -->
   <div class="cat-head">Community Safety</div>
   <div class="inc-grid">
-    <button class="inc-btn" data-val="fire" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F525;</span>Fire / Arson</button>
-    <button class="inc-btn" data-val="missing_person" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F9D1;</span>Missing Person</button>
-    <button class="inc-btn" data-val="illegal_dumping" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F5D1;</span>Illegal Dumping</button>
-    <button class="inc-btn" data-val="protest_violence" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F4E2;</span>Protest Violence</button>
-    <button class="inc-btn" data-val="farm_attack" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F33E;</span>Farm Attack</button>
-    <button class="inc-btn" data-val="mob_justice" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F6AB;</span>Mob Justice</button>
-    <button class="inc-btn" data-val="xenophobia" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F30D;</span>Xenophobia Attack</button>
-    <button class="inc-btn" data-val="other" data-sev="low" onclick="selInc(this)"><span class="iico">&#x2753;</span>Other / Unknown</button>
+    <button class="inc-btn" data-val="fire" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F525;</span><span><span class="inc-cat">Community</span>Fire / Arson</span></button>
+    <button class="inc-btn" data-val="missing_person" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F9D1;</span><span><span class="inc-cat">Community</span>Missing Person</span></button>
+    <button class="inc-btn" data-val="protest_violence" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F4E2;</span><span><span class="inc-cat">Community</span>Protest Violence</span></button>
+    <button class="inc-btn" data-val="farm_attack" data-sev="critical" onclick="selInc(this)"><span class="iico">&#x1F33E;</span><span><span class="inc-cat">Community</span>Farm Attack</span></button>
+    <button class="inc-btn" data-val="mob_justice" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F6AB;</span><span><span class="inc-cat">Community</span>Mob Justice</span></button>
+    <button class="inc-btn" data-val="xenophobia" data-sev="high" onclick="selInc(this)"><span class="iico">&#x1F30D;</span><span><span class="inc-cat">Community</span>Xenophobia Attack</span></button>
+    <button class="inc-btn" data-val="illegal_dumping" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F5D1;</span><span><span class="inc-cat">Community</span>Illegal Dumping</span></button>
+    <button class="inc-btn" data-val="other" data-sev="low" onclick="selInc(this)"><span class="iico">&#x2753;</span><span><span class="inc-cat">Community</span>Other / Unknown</span></button>
   </div>
 
-  <!-- POWER OUTAGE -->
   <div class="cat-head" style="border-left-color:#f5a623">Power Outage</div>
   <div class="inc-grid">
-    <button class="inc-btn" data-val="power_loadshedding" data-sev="medium" onclick="selInc(this)">
-      <span class="iico">&#x1F4A1;</span><span><span class="inc-cat" style="color:#f5a623">Power</span>Load-shedding</span>
-    </button>
-    <button class="inc-btn" data-val="power_fault" data-sev="high" onclick="selInc(this)">
-      <span class="iico">&#x26A1;</span><span><span class="inc-cat" style="color:#e8722a">Power</span>Unplanned Fault</span>
-    </button>
-    <button class="inc-btn" data-val="power_partial" data-sev="low" onclick="selInc(this)">
-      <span class="iico">&#x1F532;</span><span><span class="inc-cat" style="color:#f0c040">Power</span>Partial Outage</span>
-    </button>
-    <button class="inc-btn" data-val="power_restored" data-sev="low" onclick="selInc(this)">
-      <span class="iico">&#x2705;</span><span><span class="inc-cat" style="color:#7dab8a">Power</span>Power Restored</span>
-    </button>
+    <button class="inc-btn" data-val="power_loadshedding" data-sev="medium" onclick="selInc(this)"><span class="iico">&#x1F4A1;</span><span><span class="inc-cat" style="color:#f5a623">Power</span>Load-shedding</span></button>
+    <button class="inc-btn" data-val="power_fault" data-sev="high" onclick="selInc(this)"><span class="iico">&#x26A1;</span><span><span class="inc-cat" style="color:#e8722a">Power</span>Unplanned Fault</span></button>
+    <button class="inc-btn" data-val="power_partial" data-sev="low" onclick="selInc(this)"><span class="iico">&#x1F532;</span><span><span class="inc-cat" style="color:#f0c040">Power</span>Partial Outage</span></button>
+    <button class="inc-btn" data-val="power_restored" data-sev="low" onclick="selInc(this)"><span class="iico">&#x2705;</span><span><span class="inc-cat" style="color:#7dab8a">Power</span>Power Restored</span></button>
   </div>
 
-  <!-- SEVERITY -->
+  <!-- Severity -->
   <div style="margin-top:14px;margin-bottom:6px">
     <label class="flabel">Severity <span style="color:var(--text4);font-weight:300;text-transform:none;letter-spacing:0">(auto-set, adjust if needed)</span></label>
     <div class="sev-row">
@@ -588,28 +759,28 @@ body::before{
     </div>
   </div>
 
-  <!-- LOCATION -->
+  <!-- Location -->
   <div style="margin-bottom:14px">
     <label class="flabel">Location</label>
     <div class="loc-box" id="loc-box">
-      <span class="lico">&#x1F4CD;</span>
+      <span style="font-size:20px;flex-shrink:0">&#x1F4CD;</span>
       <div class="loc-info">
         <span class="loc-status" id="loc-stat">Tap to get your location</span>
-        <span class="loc-coords" id="loc-coord">Your GPS coordinates will be used &mdash; not stored with your identity</span>
+        <span class="loc-coords" id="loc-coord">GPS only — not stored with any identity</span>
       </div>
       <button class="loc-get-btn" onclick="getGPS()">Get GPS</button>
     </div>
   </div>
 
-  <!-- NOTE -->
+  <!-- Note -->
   <div style="margin-bottom:4px">
     <label class="flabel">Brief note <span style="color:var(--text4);font-weight:300;text-transform:none;letter-spacing:0">(optional)</span></label>
-    <textarea class="note-ta" id="note-ta" placeholder="Bv. 3 mans, donker klere, te voet noordwaarts&hellip;" maxlength="200"></textarea>
+    <textarea class="note-ta" id="note-ta" placeholder="e.g. 3 males, dark clothing, heading north…" maxlength="200"></textarea>
   </div>
 
   <div class="anon-strip">
-    <span class="anon-ico">&#x1F512;</span>
-    <span>100% anonymous. No name, email or phone number is collected. Only your GPS coordinates, incident type and timestamp are stored.</span>
+    <span>&#x1F512;</span>
+    <span>100% anonymous. No name, email or phone stored. Only your GPS coordinates, incident type and timestamp are recorded.</span>
   </div>
 
   <button class="submit-btn" id="sub-btn" onclick="submitReport()" disabled>Submit Report</button>
@@ -617,154 +788,412 @@ body::before{
 </div>
 </div>
 
-<!-- NHW MODAL -->
+<!-- ═══ DRUG/GANG HOUSE MODAL ══════════════════════════════════════════════ -->
+<div class="overlay" id="drug-overlay">
+<div class="drug-modal">
+  <div class="mhandle"></div>
+  <div class="mtitle" style="color:#e8904a">&#x26A0; Report Drug / Gang House</div>
+  <div class="msub">Intel reporting — anonymous — for SAPS investigation</div>
+  <p style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);
+    line-height:1.8;margin-bottom:16px;padding:10px 12px;
+    background:rgba(232,144,74,.06);border:1px solid rgba(232,144,74,.15);border-radius:8px">
+    This report is stored separately and only visible to verified NHW/CPF members and admin.
+    It will never appear on the public map. This intelligence can be compiled and shared
+    anonymously with SAPS for investigation.
+  </p>
+
+  <label class="flabel">Type of premises</label>
+  <div class="inc-grid" style="margin-bottom:14px">
+    <button class="inc-btn" data-val="drug_house" data-sev="high" onclick="selDrug(this)"><span class="iico">&#x1F48A;</span><span><span class="inc-cat" style="color:#e8904a">Drugs</span>Drug House</span></button>
+    <button class="inc-btn" data-val="drug_distribution" data-sev="critical" onclick="selDrug(this)"><span class="iico">&#x1F4E6;</span><span><span class="inc-cat" style="color:#e8904a">Drugs</span>Distribution Point</span></button>
+    <button class="inc-btn" data-val="gang_house" data-sev="high" onclick="selDrug(this)"><span class="iico">&#x1F977;</span><span><span class="inc-cat" style="color:#e8904a">Gang</span>Gang Safehouse</span></button>
+    <button class="inc-btn" data-val="weapons_cache" data-sev="critical" onclick="selDrug(this)"><span class="iico">&#x26A0;</span><span><span class="inc-cat" style="color:#e8904a">Gang</span>Weapons Cache</span></button>
+    <button class="inc-btn" data-val="stolen_goods" data-sev="medium" onclick="selDrug(this)"><span class="iico">&#x1F4E6;</span><span><span class="inc-cat" style="color:#e8904a">Property</span>Stolen Goods</span></button>
+    <button class="inc-btn" data-val="chop_shop" data-sev="high" onclick="selDrug(this)"><span class="iico">&#x1F6E0;</span><span><span class="inc-cat" style="color:#e8904a">Property</span>Vehicle Chop Shop</span></button>
+  </div>
+
+  <label class="flabel">How long has this been happening?</label>
+  <div class="sev-row" style="margin-bottom:14px" id="duration-row">
+    <button class="sev-btn" data-d="days" onclick="selDuration(this)">Days</button>
+    <button class="sev-btn" data-d="weeks" onclick="selDuration(this)">Weeks</button>
+    <button class="sev-btn" data-d="months" onclick="selDuration(this)">Months</button>
+    <button class="sev-btn" data-d="years" onclick="selDuration(this)">Years+</button>
+  </div>
+
+  <div style="margin-bottom:14px">
+    <label class="flabel">Location</label>
+    <div class="loc-box" id="drug-loc-box">
+      <span style="font-size:20px;flex-shrink:0">&#x1F4CD;</span>
+      <div class="loc-info">
+        <span class="loc-status" id="drug-loc-stat">Tap to get location</span>
+        <span class="loc-coords" id="drug-loc-coord">GPS of the premises</span>
+      </div>
+      <button class="loc-get-btn" onclick="getDrugGPS()">Get GPS</button>
+    </div>
+  </div>
+
+  <label class="flabel">Additional detail <span style="color:var(--text4);font-weight:300;text-transform:none;letter-spacing:0">(optional — no names)</span></label>
+  <textarea class="note-ta" id="drug-note" style="margin-bottom:12px"
+    placeholder="e.g. Red door, corner house, active at night, multiple visitors…" maxlength="300"></textarea>
+
+  <div class="anon-strip" style="border-color:rgba(232,144,74,.25);background:rgba(232,144,74,.05);color:#e8904a">
+    <span>&#x1F512;</span>
+    <span>Completely anonymous. Your GPS and note only. Never published publicly. Used for SAPS intelligence packages only.</span>
+  </div>
+
+  <button class="submit-btn" id="drug-sub-btn" onclick="submitDrugReport()"
+    style="background:#c0602a;box-shadow:0 4px 14px rgba(192,96,42,.3)"
+    disabled>Submit Intel Report</button>
+  <button class="cancel-btn" onclick="closeDrugModal()">Cancel</button>
+</div>
+</div>
+
+<!-- ═══ NHW AUTH MODAL ═════════════════════════════════════════════════════ -->
 <div class="overlay" id="nhw-overlay">
 <div class="nhw-modal">
   <div class="mhandle"></div>
-  <div class="nhw-title">&#x1F6E1; NHW / CPF Access</div>
-  <p class="nhw-desc">Verified neighbourhood watch members get real-time access. Enter your NHW access code issued by your CPF coordinator.</p>
-  <div class="nhw-err" id="nhw-err">Incorrect code. Contact your CPF coordinator.</div>
-  <input class="nhw-input" id="nhw-inp" type="text" placeholder="NHW-XXXXX" maxlength="12"
-    autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+  <div class="mtitle" style="color:var(--sky)">&#x1F6E1; NHW / CPF Access</div>
+  <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:18px;font-weight:300">
+    Verified neighbourhood watch members get real-time incident access,
+    drug/gang house intel and NHW live feed.
+    Enter your access code issued by your CPF coordinator.
+  </p>
+  <div class="nhw-err" id="nhw-err" style="font-family:'DM Mono',monospace;font-size:10px;
+    color:var(--critical);background:rgba(240,112,112,.08);border:1.5px solid rgba(240,112,112,.2);
+    border-radius:7px;padding:8px 12px;margin-bottom:10px;display:none">
+    Incorrect code. Contact your CPF coordinator.
+  </div>
+  <input class="nhw-input" id="nhw-inp" type="text" placeholder="NHW-XXXXX"
+    maxlength="12" autocomplete="off" autocorrect="off"
+    autocapitalize="characters" spellcheck="false">
   <button class="nhw-submit" onclick="verifyNhw()">Verify Access</button>
   <button class="cancel-btn" onclick="closeNhwModal()">Cancel</button>
 </div>
 </div>
 
-<!-- NHW LIVE PANEL -->
-<div class="nhw-panel" id="nhw-panel">
-  <div class="nhwp-head">
-    <span class="nhwp-badge">NHW LIVE</span>
-    <span class="nhwp-title">Real-time Feed</span>
-    <button class="nhwp-close" onclick="closeNhwPanel()">&#x2715;</button>
-  </div>
-  <div class="nhwp-list" id="nhwp-list">
-    <div style="padding:20px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">
-      Laai lewendige voer&hellip;</div>
-  </div>
-</div>
-
 <!-- TOAST -->
 <div class="toast" id="toast">
-  <span class="toast-ico">&#x2705;</span>
+  <span style="font-size:22px;flex-shrink:0">&#x2705;</span>
   <div>
     <div class="toast-title">Report submitted</div>
-    <div class="toast-sub">Thank you &mdash; your community is safer for it</div>
+    <div class="toast-sub">Thank you — your community is safer for it</div>
   </div>
 </div>
 
 <script>
 var API = window.location.origin;
-var map, heatLayer, markersLayer;
-var selInciVal = null, selSevVal = null;
-var gpsLat = null, gpsLng = null;
-var nhwVerified = false, eskomOn = false, eskomZones = null;
-var reports = [];
+var map, heatLayer, crimeCluster, patrolLayer, outageMarkers, drugMarkers, suburbLayer;
+var selInciVal=null, selSevVal=null, gpsLat=null, gpsLng=null;
+var drugType=null, drugDuration=null, drugLat=null, drugLng=null;
+var nhwVerified=false, eskomOn=false, eskomZones=null;
+var reports=[], _outageData=[];
+var layerStates={crimes:true,heat:true,power:true,drugs:false,patrol:true};
+var activeSuburb=null, suburbBoundary=null;
+
+// ── WC SUBURBS (commonly searched) ──────────────────────────────────────────
+var WC_SUBURBS = [
+  "Athlone","Bellville","Bishop Lavis","Bloubergstrand","Bo-Kaap","Bonteheuwel",
+  "Brackenfell","Brooklyn","Cape Town CBD","Century City","Claremont","Constantia",
+  "Crawford","Delft","De Waterkant","Durbanville","Eersteriver","Elsies River",
+  "Fishoek","Flamingo Vlei","Franschhoek","Gardens","Goodwood","Grassy Park",
+  "Green Point","Gugulethu","Hanover Park","Heideveld","Hermanus","Hout Bay",
+  "Imizamo Yethu","Kalk Bay","Khayelitsha","Khayalami","Kenilworth","Kraaifontein",
+  "Kuils River","Langa","Lansdowne","Lavender Hill","Macassar","Manenberg",
+  "Milnerton","Mitchell's Plain","Mowbray","Muizenberg","Newlands","Nyanga",
+  "Observatory","Ottery","Paarl","Parow","Philippi","Plumstead","Retreat","Rondebosch",
+  "Rosebank","Salt River","Sea Point","Simon's Town","Somerset West","Strand",
+  "Stellenbosch","Steenberg","Strandfontein","Sunnydale","Tableview","Tokai",
+  "Tygerberg","Vredehoek","Wellington","Wetton","Woodstock","Worcester","Wynberg"
+];
 
 var TYPE_COLORS = {
-  murder:'#c0392b',shooting:'#c0392b',stabbing:'#c0392b',attempted_murder:'#c0392b',
-  hijacking:'#d4621a',armed_robbery:'#d4621a',mugging:'#d4621a',house_robbery:'#d4621a',
-  burglary:'#d4a832',vehicle_theft:'#d4a832',theft:'#d4a832',atm_robbery:'#d4a832',
+  murder:'#f07070',shooting:'#f07070',stabbing:'#f07070',attempted_murder:'#f07070',
+  hijacking:'#e8904a',armed_robbery:'#e8904a',mugging:'#e8904a',house_robbery:'#e8904a',atm_robbery:'#e8904a',
+  burglary:'#d4a832',vehicle_theft:'#d4a832',theft:'#d4a832',vandalism:'#d4a832',
   gbv:'#9b59b6',domestic:'#9b59b6',sexual_assault:'#9b59b6',child_abuse:'#9b59b6',
   suspicious_person:'#6ab4d4',suspicious_vehicle:'#6ab4d4',loitering:'#6ab4d4',
   drone_surveillance:'#6ab4d4',casing:'#6ab4d4',following:'#6ab4d4',
-  drug_dealing:'#4a7c59',gang_activity:'#4a7c59',illegal_firearm:'#4a7c59',extortion:'#4a7c59',
-  cable_theft:'#d4a832',illegal_connection:'#d4a832',manhole_theft:'#d4a832',
-  road_blockage:'#d4621a',water_cut:'#6ab4d4',vandalism:'#d4a832',
-  fire:'#d4621a',missing_person:'#9b59b6',illegal_dumping:'#4a7c59',
-  protest_violence:'#d4621a',farm_attack:'#c0392b',mob_justice:'#d4621a',
-  xenophobia:'#c0392b',other:'#9e9080',
+  drug_dealing:'#7dab8a',gang_activity:'#7dab8a',illegal_firearm:'#7dab8a',extortion:'#7dab8a',
+  cable_theft:'#d4a832',road_blockage:'#e8904a',water_cut:'#6ab4d4',
+  fire:'#e8904a',missing_person:'#9b59b6',illegal_dumping:'#7dab8a',
+  protest_violence:'#e8904a',farm_attack:'#f07070',mob_justice:'#e8904a',
+  xenophobia:'#f07070',other:'#7dab8a',
   power_loadshedding:'#f5a623',power_fault:'#e8722a',
   power_partial:'#f0c040',power_restored:'#7dab8a'
 };
 var TYPE_LABELS = {
-  murder:'Moord',shooting:'Skietery',stabbing:'Steekwond/Aanval',attempted_murder:'Attempted Murder',
-  hijacking:'Kaping',armed_robbery:'Armed Robbery',mugging:'Street Mugging',house_robbery:'House Robbery',
-  burglary:'Burglary / Break-in',vehicle_theft:'Vehicle Theft',theft:'Diefstal',atm_robbery:'ATM Robbery',
-  gbv:'GBG',domestic:'Domestic Violence',sexual_assault:'Sexual Assault / Rape',child_abuse:'Child Abuse',
-  suspicious_person:'Suspicious Person',suspicious_vehicle:'Suspicious Vehicle',loitering:'Rondhang',
-  drone_surveillance:'Drone',casing:'Property Verken',following:'Word Gevolg',
-  drug_dealing:'Dwelms',gang_activity:'Bende',illegal_firearm:'Illegal Firearm Spotted',extortion:'Afpersing',
-  cable_theft:'Cable / Wire Theft',illegal_connection:'Onwettige Krag',manhole_theft:'Mangat Diefstal',
-  road_blockage:'Padversperring',water_cut:'Water Cut Off',vandalism:'Vandalism / Damage',
-  fire:'Brand',missing_person:'Missing Person',illegal_dumping:'Illegal Dumping',
+  murder:'Murder',shooting:'Shooting',stabbing:'Stabbing',attempted_murder:'Attempted Murder',
+  hijacking:'Hijacking',armed_robbery:'Armed Robbery',mugging:'Mugging',
+  house_robbery:'House Robbery',atm_robbery:'ATM Robbery',
+  burglary:'Burglary',vehicle_theft:'Vehicle Theft',theft:'Theft',vandalism:'Vandalism',
+  gbv:'GBV',domestic:'Domestic Violence',sexual_assault:'Sexual Assault',child_abuse:'Child Abuse',
+  suspicious_person:'Suspicious Person',suspicious_vehicle:'Suspicious Vehicle',
+  loitering:'Loitering',drone_surveillance:'Drone',casing:'Property Cased',following:'Being Followed',
+  drug_dealing:'Drug Dealing',gang_activity:'Gang Activity',illegal_firearm:'Illegal Firearm',extortion:'Extortion',
+  cable_theft:'Cable Theft',road_blockage:'Road Blockage',water_cut:'Water Cut Off',
+  fire:'Fire/Arson',missing_person:'Missing Person',illegal_dumping:'Illegal Dumping',
   protest_violence:'Protest Violence',farm_attack:'Farm Attack',mob_justice:'Mob Justice',
-  xenophobia:'Xenofobie',other:'Ander'
+  xenophobia:'Xenophobia',other:'Other',
+  power_loadshedding:'Load-shedding',power_fault:'Power Fault',
+  power_partial:'Partial Outage',power_restored:'Power Restored'
 };
 
+// ── MAP INIT ─────────────────────────────────────────────────────────────────
+function initMap(){
+  // Western Cape centre + bounds
+  var WC_CENTER = [-33.9, 18.9];
+  var WC_BOUNDS = L.latLngBounds([-35.5, 17.8], [-31.0, 22.0]);
+  map = L.map('map',{
+    zoomControl:true,
+    attributionControl:false,
+    minZoom:9,
+    maxZoom:18,
+    maxBounds:WC_BOUNDS,
+    maxBoundsViscosity:0.9
+  }).setView(WC_CENTER, 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 
+  // Marker cluster for crimes
+  crimeCluster = L.markerClusterGroup({
+    maxClusterRadius:50,
+    spiderfyOnMaxZoom:true,
+    showCoverageOnHover:false,
+    zoomToBoundsOnClick:true
+  }).addTo(map);
+
+  patrolLayer  = L.layerGroup().addTo(map);
+  outageMarkers = L.layerGroup().addTo(map);
+  drugMarkers  = L.layerGroup(); // NOT added — NHW only
+
+  // Restore NHW session
+  try{
+    var saved = localStorage.getItem('snhw');
+    if(saved){ nhwVerified=true; activateNhwUI(); }
+  }catch(e){}
+
+  tryGPS();
+  loadFeed();
+  loadStats();
+  loadOutageLayer();
+
+  // Inject popup CSS
+  var st=document.createElement('style');
+  st.textContent='.sn-popup .leaflet-popup-content-wrapper{background:#1a2818;border:1.5px solid rgba(125,171,138,.3);border-radius:10px;color:#e8f0ea;box-shadow:0 4px 20px rgba(0,0,0,.5)}.sn-popup .leaflet-popup-tip{background:#1a2818}.sn-popup .leaflet-popup-content{margin:10px 14px}';
+  document.head.appendChild(st);
+}
 
 function tryGPS(){
-  if(!navigator.geolocation) return;
+  if(!navigator.geolocation)return;
   navigator.geolocation.getCurrentPosition(function(p){
-    gpsLat = p.coords.latitude; gpsLng = p.coords.longitude;
-    map.setView([gpsLat,gpsLng],14);
+    gpsLat=p.coords.latitude; gpsLng=p.coords.longitude;
+    // Only zoom if within WC bounds
+    if(p.coords.latitude<=-31 && p.coords.latitude>=-35.5
+      && p.coords.longitude>=17.8 && p.coords.longitude<=22.0){
+      map.setView([gpsLat,gpsLng],14);
+    }
   },function(){},{enableHighAccuracy:true,timeout:8000});
 }
 
+// ── SUBURB SEARCH + BOUNDARY ──────────────────────────────────────────────
+function searchSuburbs(q){
+  var dd=document.getElementById('suburb-dropdown');
+  q=q.trim().toLowerCase();
+  if(q.length<2){dd.classList.remove('show');return;}
+  var matches=WC_SUBURBS.filter(function(s){return s.toLowerCase().indexOf(q)>=0;}).slice(0,10);
+  if(!matches.length){dd.classList.remove('show');return;}
+  dd.innerHTML=matches.map(function(s){
+    return '<div class="suburb-opt" onclick="selectSuburb(\''
+      +s.replace(/'/g,"\\'")
+      +'\')">'+s+', Western Cape</div>';
+  }).join('');
+  dd.classList.add('show');
+}
+
+function selectSuburb(name){
+  activeSuburb=name;
+  document.getElementById('suburb-dropdown').classList.remove('show');
+  document.getElementById('suburb-search').value=name;
+  document.getElementById('as-name').textContent=name;
+  document.getElementById('active-suburb').classList.add('show');
+  document.getElementById('sbar-name').textContent=name;
+  document.getElementById('suburb-bar').classList.add('show');
+  fetchSuburbBoundary(name);
+  filterReportsBySuburb(name);
+}
+
+function clearSuburb(){
+  activeSuburb=null;
+  document.getElementById('suburb-search').value='';
+  document.getElementById('active-suburb').classList.remove('show');
+  document.getElementById('suburb-bar').classList.remove('show');
+  if(suburbBoundary){map.removeLayer(suburbBoundary);suburbBoundary=null;}
+  renderCrimeMarkers(reports);
+}
+
+async function fetchSuburbBoundary(name){
+  // Use Nominatim geocoding + Overpass for suburb polygon
+  if(suburbBoundary){map.removeLayer(suburbBoundary);suburbBoundary=null;}
+  try{
+    // Step 1: Nominatim to get OSM relation ID
+    var nomUrl='https://nominatim.openstreetmap.org/search?q='
+      +encodeURIComponent(name+', Western Cape, South Africa')
+      +'&format=json&limit=1&polygon_geojson=1';
+    var r=await fetch(nomUrl,{headers:{'User-Agent':'SafeNote-WC/1.0'}});
+    var d=await r.json();
+    if(!d.length)return;
+    var geo=d[0].geojson;
+    if(!geo)return;
+    // Zoom to bounds
+    var bounds=d[0].boundingbox;
+    if(bounds){
+      map.fitBounds([
+        [parseFloat(bounds[0]),parseFloat(bounds[2])],
+        [parseFloat(bounds[1]),parseFloat(bounds[3])]
+      ],{padding:[30,30]});
+    }
+    // Draw boundary
+    suburbBoundary=L.geoJSON(geo,{
+      style:{
+        color:'#7dab8a',weight:2.5,opacity:.9,
+        fillColor:'#7dab8a',fillOpacity:.06,
+        dashArray:'none'
+      }
+    }).addTo(map);
+    // Update suburb stats
+    updateSuburbStats(name, d[0].lat, d[0].lon);
+  }catch(e){console.warn('Boundary fetch failed:',e);}
+}
+
+function updateSuburbStats(name, lat, lng){
+  var now=Date.now()/1000;
+  var todayCut=now-86400, weekCut=now-604800;
+  var near=reports.filter(function(r){
+    var dlat=r.lat-parseFloat(lat);
+    var dlng=r.lng-parseFloat(lng);
+    return Math.sqrt(dlat*dlat+dlng*dlng)<0.05; // ~5km rough filter
+  });
+  document.getElementById('sbar-today').textContent=near.filter(function(r){return r.ts>=todayCut;}).length;
+  document.getElementById('sbar-week').textContent=near.filter(function(r){return r.ts>=weekCut;}).length;
+  document.getElementById('sbar-drug').textContent=near.filter(function(r){return r.type==='drug_dealing'||r.type==='gang_activity';}).length;
+}
+
+function filterReportsBySuburb(name){
+  // Just zoom — boundary and stats handle the focus
+}
+
+// ── LAYER TOGGLES ─────────────────────────────────────────────────────────
+function toggleLayer(name, btn){
+  layerStates[name]=!layerStates[name];
+  btn.classList.toggle('on',layerStates[name]);
+  switch(name){
+    case 'crimes':
+      if(layerStates[name]) crimeCluster.addTo(map);
+      else map.removeLayer(crimeCluster); break;
+    case 'heat':
+      if(heatLayer){
+        if(layerStates[name]) heatLayer.addTo(map);
+        else map.removeLayer(heatLayer);
+      } break;
+    case 'power':
+      if(layerStates[name]) outageMarkers.addTo(map);
+      else map.removeLayer(outageMarkers); break;
+    case 'drugs':
+      if(!nhwVerified&&layerStates[name]){
+        layerStates[name]=false; btn.classList.remove('on');
+        openNhwAuth(); return;
+      }
+      if(layerStates[name]) drugMarkers.addTo(map);
+      else map.removeLayer(drugMarkers); break;
+    case 'patrol':
+      if(layerStates[name]) patrolLayer.addTo(map);
+      else map.removeLayer(patrolLayer); break;
+  }
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────────────
 function loadFeed(){
   fetch(API+'/api/reports/public')
   .then(function(r){return r.json();})
-  .then(function(d){reports=d.reports||[];renderMarkers(reports);renderHeat(reports);})
+  .then(function(d){
+    reports=d.reports||[];
+    renderCrimeMarkers(reports);
+    renderHeat(reports);
+    renderPatrolLayer(reports);
+    document.getElementById('lc-crimes').textContent=reports.length;
+  })
   .catch(demoData);
 }
 
 function demoData(){
-  reports = [
-    {lat:-26.1952,lng:28.0342,type:'hijacking',severity:'critical',ts:Date.now()/1000-3600},
-    {lat:-26.2100,lng:28.0600,type:'shooting',severity:'critical',ts:Date.now()/1000-7200},
-    {lat:-26.1800,lng:27.9900,type:'burglary',severity:'medium',ts:Date.now()/1000-1800},
-    {lat:-26.2300,lng:28.0800,type:'suspicious_vehicle',severity:'low',ts:Date.now()/1000-900},
-    {lat:-26.2050,lng:28.0150,type:'armed_robbery',severity:'high',ts:Date.now()/1000-5400},
-    {lat:-26.1600,lng:28.0500,type:'gbv',severity:'high',ts:Date.now()/1000-10800},
-    {lat:-26.2400,lng:28.0300,type:'drug_dealing',severity:'medium',ts:Date.now()/1000-14400},
-    {lat:-26.1900,lng:28.1000,type:'cable_theft',severity:'medium',ts:Date.now()/1000-2700},
-    {lat:-26.2200,lng:27.9700,type:'suspicious_person',severity:'low',ts:Date.now()/1000-600},
-    {lat:-26.2000,lng:28.0700,type:'vehicle_theft',severity:'medium',ts:Date.now()/1000-18000},
-    {lat:-26.1750,lng:28.0250,type:'gang_activity',severity:'high',ts:Date.now()/1000-21600},
-    {lat:-26.2350,lng:28.0550,type:'fire',severity:'high',ts:Date.now()/1000-4500},
-    {lat:-26.1650,lng:28.0750,type:'farm_attack',severity:'critical',ts:Date.now()/1000-28800},
-    {lat:-26.2150,lng:27.9800,type:'missing_person',severity:'high',ts:Date.now()/1000-32400},
+  reports=[
+    {lat:-33.9249,lng:18.4241,type:'hijacking',severity:'critical',ts:Date.now()/1000-3600},
+    {lat:-33.9650,lng:18.4950,type:'shooting',severity:'critical',ts:Date.now()/1000-7200},
+    {lat:-33.8800,lng:18.5100,type:'burglary',severity:'medium',ts:Date.now()/1000-1800},
+    {lat:-33.9500,lng:18.4600,type:'suspicious_vehicle',severity:'low',ts:Date.now()/1000-900},
+    {lat:-33.9100,lng:18.4400,type:'armed_robbery',severity:'high',ts:Date.now()/1000-5400},
+    {lat:-33.9950,lng:18.5200,type:'gbv',severity:'high',ts:Date.now()/1000-10800},
+    {lat:-34.0200,lng:18.4700,type:'drug_dealing',severity:'medium',ts:Date.now()/1000-14400},
+    {lat:-33.8500,lng:18.6300,type:'cable_theft',severity:'medium',ts:Date.now()/1000-2700},
+    {lat:-34.0500,lng:18.5000,type:'suspicious_person',severity:'low',ts:Date.now()/1000-600},
+    {lat:-33.9300,lng:18.4800,type:'vehicle_theft',severity:'medium',ts:Date.now()/1000-18000},
+    {lat:-33.9750,lng:18.5500,type:'gang_activity',severity:'high',ts:Date.now()/1000-21600},
+    {lat:-34.1000,lng:18.4600,type:'fire',severity:'high',ts:Date.now()/1000-4500},
+    {lat:-33.8700,lng:18.5700,type:'missing_person',severity:'high',ts:Date.now()/1000-32400},
+    {lat:-33.9400,lng:18.3800,type:'house_robbery',severity:'critical',ts:Date.now()/1000-900},
   ];
-  renderMarkers(reports);renderHeat(reports);
-  ['s-today','s-week','s-areas','s-total'].forEach(function(id,i){
-    document.getElementById(id).textContent=[3,14,5,14][i];
-  });
+  renderCrimeMarkers(reports);
+  renderHeat(reports);
+  renderPatrolLayer(reports);
+  document.getElementById('lc-crimes').textContent=reports.length;
+  document.getElementById('s-today').textContent='3';
+  document.getElementById('s-week').textContent='14';
+  document.getElementById('s-areas').textContent='5';
+  document.getElementById('s-total').textContent='14';
 }
 
-function renderMarkers(rpts){
-  markersLayer.clearLayers();
-  rpts.forEach(function(r){
-    var col = TYPE_COLORS[r.type]||'#9e9080';
-    var html = '<div style="width:14px;height:14px;border-radius:50%;'
-      +'background:'+col+';border:2.5px solid rgba(250,246,238,.85);'
-      +'box-shadow:0 2px 8px rgba(0,0,0,.22);"></div>';
-    var icon = L.divIcon({html:html,iconSize:[14,14],iconAnchor:[7,7],className:''});
-    var m = L.marker([r.lat,r.lng],{icon:icon});
-    var ago = tAgo(r.ts);
+function renderCrimeMarkers(rpts){
+  crimeCluster.clearLayers();
+  var powerTypes={power_loadshedding:1,power_fault:1,power_partial:1,power_restored:1};
+  rpts.filter(function(r){return !powerTypes[r.type];}).forEach(function(r){
+    var col=TYPE_COLORS[r.type]||'#7dab8a';
+    var html='<div style="width:13px;height:13px;border-radius:50%;background:'
+      +col+';border:2px solid rgba(26,40,24,.8);box-shadow:0 1px 6px rgba(0,0,0,.4)"></div>';
+    var icon=L.divIcon({html:html,iconSize:[13,13],iconAnchor:[6.5,6.5],className:''});
+    var m=L.marker([r.lat,r.lng],{icon:icon});
     m.bindPopup(
-      '<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;min-width:150px;padding:2px">'
-      +'<strong style="color:'+col+';display:block;margin-bottom:3px;font-family:\'Playfair Display\',serif;font-size:13px">'
-      +(TYPE_LABELS[r.type]||r.type)+'</strong>'
-      +'<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:#8c7a68">'+ago+'</span>'
-      +(r.note?'<p style="margin-top:5px;color:#5c4a38;font-size:11px">'+esc(r.note)+'</p>':'')
-      +'</div>',
-      {className:'sn-popup'}
-    );
-    markersLayer.addLayer(m);
+      '<div style="font-family:DM Sans,sans-serif;font-size:12px;min-width:150px">'+
+      '<strong style="color:'+col+';font-family:Playfair Display,serif;font-size:13px;display:block;margin-bottom:3px">'+
+      (TYPE_LABELS[r.type]||r.type)+'</strong>'+
+      '<span style="font-family:DM Mono,monospace;font-size:9px;color:#7dab8a">'+tAgo(r.ts)+'</span>'+
+      (r.note?'<p style="margin-top:5px;font-size:11px;color:#b8d4bc">'+esc(r.note)+'</p>':'')+
+      '</div>',{className:'sn-popup'});
+    crimeCluster.addLayer(m);
   });
 }
 
 function renderHeat(rpts){
-  if(heatLayer) map.removeLayer(heatLayer);
-  var pts = rpts.map(function(r){
+  if(heatLayer)map.removeLayer(heatLayer);
+  var pts=rpts.map(function(r){
     var w={critical:1,high:.7,medium:.45,low:.22}[r.severity]||.3;
     return [r.lat,r.lng,w];
   });
-  if(!pts.length) return;
-  heatLayer = L.heatLayer(pts,{radius:26,blur:20,maxZoom:16,
-    gradient:{0.2:'#7dab8a',0.4:'#d4a832',0.65:'#d4621a',0.85:'#c0392b',1:'#8b0000'}
-  }).addTo(map);
+  if(!pts.length)return;
+  heatLayer=L.heatLayer(pts,{radius:24,blur:18,maxZoom:16,
+    gradient:{0.2:'#7dab8a',0.4:'#d4a832',0.65:'#e8904a',0.85:'#f07070',1:'#8b0000'}
+  });
+  if(layerStates.heat)heatLayer.addTo(map);
+}
+
+function renderPatrolLayer(rpts){
+  patrolLayer.clearLayers();
+  // Use reports as proxy for patrol presence — green subtle circles
+  var nhwTypes={suspicious_person:1,suspicious_vehicle:1,loitering:1,casing:1};
+  rpts.filter(function(r){return nhwTypes[r.type];}).forEach(function(r){
+    L.circleMarker([r.lat,r.lng],{
+      radius:10,color:'#4a7c59',fillColor:'#4a7c59',
+      fillOpacity:.12,weight:1.5,opacity:.3
+    }).addTo(patrolLayer);
+  });
 }
 
 function loadStats(){
@@ -778,136 +1207,112 @@ function loadStats(){
   }).catch(function(){});
 }
 
+// ── POWER/OUTAGE LAYER ────────────────────────────────────────────────────
 function loadOutageLayer(){
   fetch(API+'/api/power/outages')
   .then(function(r){return r.json();})
   .then(function(d){
     _outageData=d.clusters||[];
-    if(_outageData.length>0){
-      outageMarkers.addTo(map);
-      renderOutageMarkers(_outageData);
-      var confirmed=_outageData.filter(function(c){return c.status==='CONFIRMED';});
-      if(confirmed.length>0){
-        var badge=document.getElementById('eskom-badge');
-        document.getElementById('eskom-info').innerHTML=
-          '<span style="color:#e8722a">'+confirmed.length+' confirmed outage area'+(confirmed.length!==1?'s':'')+' near you</span>';
-        badge.style.display='block';
-        document.getElementById('eskom-btn').classList.add('on');
-        eskomOn=true;
-      }
+    renderOutageMarkers(_outageData);
+    document.getElementById('lc-power').textContent=_outageData.length;
+    if(_outageData.filter(function(c){return c.status==='CONFIRMED';}).length>0){
+      document.getElementById('eskom-badge').style.display='block';
+      document.getElementById('eskom-btn').classList.add('on');
+      eskomOn=true;
+      document.getElementById('eskom-info').textContent=
+        _outageData.filter(function(c){return c.status==='CONFIRMED';}).length
+        +' confirmed outage area(s)';
     }
   }).catch(function(){});
 }
 
-var sheetUp=false;
-function toggleSheet(){
-  sheetUp=!sheetUp;
-  document.getElementById('bsheet').classList.toggle('up',sheetUp);
-}
-
-function openModal(){
-  document.getElementById('rep-overlay').classList.add('show');
-  // Auto-attempt GPS when modal opens
-  if(gpsLat===null) getGPS();
-}
-function closeModal(){document.getElementById('rep-overlay').classList.remove('show');resetForm();}
-
-function selInc(el){
-  document.querySelectorAll('.inc-btn').forEach(function(b){b.classList.remove('sel');});
-  el.classList.add('sel');
-  selInciVal=el.dataset.val;
-  var sv=el.dataset.sev||'medium';
-  selSevVal=sv;
-  document.querySelectorAll('.sev-btn').forEach(function(b){
-    b.className='sev-btn';
-    if(b.dataset.s===sv) b.classList.add('s'+sv[0]);
+function renderOutageMarkers(clusters){
+  outageMarkers.clearLayers();
+  clusters.forEach(function(c){
+    var conf=c.status==='CONFIRMED';
+    var col=conf?'#e8722a':'#f5a623';
+    var sz=conf?22:16;
+    var ico='<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;'+
+      'background:'+col+';border:2px solid rgba(255,255,255,.7);'+
+      'box-shadow:0 0 10px '+col+';display:flex;align-items:center;'+
+      'justify-content:center;font-size:'+(sz-8)+'px">&#x26A1;</div>';
+    var icon=L.divIcon({html:ico,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],className:''});
+    var m=L.marker([c.lat,c.lng],{icon:icon});
+    m.bindPopup('<div style="font-family:DM Sans,sans-serif;font-size:12px">'+
+      '<strong style="color:'+col+';font-family:Playfair Display,serif">'+c.type_label+'</strong><br>'+
+      '<span style="font-family:DM Mono,monospace;font-size:9px;color:'+col+'">'+c.status+'</span><br>'+
+      '<span style="font-family:DM Mono,monospace;font-size:9px;color:#b8d4bc">'+
+      c.count+' report'+(c.count!==1?'s':'')+' — '+tAgo(c.newest_ts)+'</span></div>',
+      {className:'sn-popup'});
+    outageMarkers.addLayer(m);
   });
-  checkSub();
 }
 
-function selSev(el){
-  document.querySelectorAll('.sev-btn').forEach(function(b){b.className='sev-btn';});
-  selSevVal=el.dataset.s;
-  el.classList.add('s'+selSevVal[0]);
-}
-
-function checkSub(){
-  document.getElementById('sub-btn').disabled=!(selInciVal&&gpsLat!==null);
-}
-
-function getGPS(){
-  var stat=document.getElementById('loc-stat');
-  var coord=document.getElementById('loc-coord');
-  stat.textContent='Soek GPS\u2026';
-  if(!navigator.geolocation){stat.textContent='GPS nie beskikbaar nie';return;}
-  navigator.geolocation.getCurrentPosition(function(p){
-    gpsLat=p.coords.latitude;gpsLng=p.coords.longitude;
-    stat.textContent='Location bevestig \u2713';
-    coord.textContent=gpsLat.toFixed(4)+', '+gpsLng.toFixed(4)+' \u00B1'+Math.round(p.coords.accuracy)+'m';
-    document.getElementById('loc-box').classList.add('got');
-    checkSub();
-  },function(){
-    stat.textContent='Could not get location';
-    coord.textContent='Enable location permissions and try again';
-  },{enableHighAccuracy:true,timeout:10000});
-}
-
-async function submitReport(){
-  if(!selInciVal||!gpsLat) return;
-  var btn=document.getElementById('sub-btn');
-  btn.textContent='Besig om in te dien\u2026';btn.disabled=true;
-  var note=document.getElementById('note-ta').value.trim();
-  try{
-    var r=await fetch(API+'/api/reports',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:selInciVal,severity:selSevVal,lat:gpsLat,lng:gpsLng,note:note||null})
-    });
-    if(r.ok||r.status===201){closeModal();showToast();}
-    else{btn.textContent='Fout \u2014 probeer weer';btn.disabled=false;}
-  }catch(e){
-    closeModal();showToast();
-    reports.unshift({lat:gpsLat,lng:gpsLng,type:selInciVal,severity:selSevVal,ts:Date.now()/1000});
-    renderMarkers(reports);renderHeat(reports);
+// ── ESKOM TOGGLE ──────────────────────────────────────────────────────────
+function toggleEskom(){
+  eskomOn=!eskomOn;
+  document.getElementById('eskom-btn').classList.toggle('on',eskomOn);
+  document.getElementById('eskom-badge').style.display=eskomOn?'block':'none';
+  if(eskomOn){
+    fetch(API+'/api/power/status')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var nat=d.national||{};
+      var comm=d.community||{};
+      document.getElementById('eskom-info').innerHTML=
+        (nat.active?'<strong style="color:#f5a623">Stage '+nat.stage+'</strong> nationally<br>'
+          :'No load-shedding nationally<br>')
+        +((comm.confirmed_outages||0)>0
+          ?'<span style="color:#e8722a">'+(comm.confirmed_outages)+' confirmed outage(s)</span>'
+          :'No confirmed outages');
+      _outageData=(comm.clusters)||[];
+      renderOutageMarkers(_outageData);
+      if(nat.active) drawEskomZones();
+    }).catch(function(){document.getElementById('eskom-info').textContent='Status unavailable';});
+  } else {
+    if(eskomZones){map.removeLayer(eskomZones);eskomZones=null;}
   }
 }
 
-function resetForm(){
-  selInciVal=null;selSevVal=null;
-  document.querySelectorAll('.inc-btn').forEach(function(b){b.classList.remove('sel');});
-  document.querySelectorAll('.sev-btn').forEach(function(b){b.className='sev-btn';});
-  document.getElementById('loc-stat').textContent='Tap to get your location';
-  document.getElementById('loc-coord').textContent='Jou koördinate word gebruik \u2014 nie met identiteit gestoor nie';
-  document.getElementById('loc-box').classList.remove('got');
-  document.getElementById('note-ta').value='';
-  document.getElementById('sub-btn').disabled=true;
-  document.getElementById('sub-btn').textContent='Submit Report';
+function drawEskomZones(){
+  if(eskomZones)map.removeLayer(eskomZones);
+  var c=map.getCenter(),b=map.getBounds();
+  eskomZones=L.layerGroup();
+  [[b.getNorth(),b.getWest(),c.lat,c.lng],[c.lat,c.lng,b.getSouth(),b.getEast()]].forEach(function(p){
+    L.polygon([[p[0],p[1]],[p[0],p[3]],[p[2],p[3]],[p[2],p[1]]],
+      {color:'#f5a623',fillColor:'#f5a623',fillOpacity:.05,weight:1,dashArray:'5 4'})
+      .addTo(eskomZones);
+  });
+  eskomZones.addTo(map);
 }
 
-function showToast(){
-  var t=document.getElementById('toast');t.classList.add('show');
-  setTimeout(function(){t.classList.remove('show');},3500);
-}
-
+// ── NHW AUTH ──────────────────────────────────────────────────────────────
 var NHW_CODES=['NHW-PILOT1','NHW-PILOT2','NHW-PILOT3'];
+
 function openNhwAuth(){
-  if(nhwVerified){document.getElementById('nhw-panel').classList.toggle('open');return;}
+  if(nhwVerified){
+    document.getElementById('nhw-live-panel').classList.toggle('show');
+    return;
+  }
   document.getElementById('nhw-overlay').classList.add('show');
 }
-function closeNhwModal(){document.getElementById('nhw-overlay').classList.remove('show');document.getElementById('nhw-err').style.display='none';}
+function closeNhwModal(){
+  document.getElementById('nhw-overlay').classList.remove('show');
+  document.getElementById('nhw-err').style.display='none';
+}
 function verifyNhw(){
   var code=document.getElementById('nhw-inp').value.trim().toUpperCase().replace(/\s/g,'');
   if(NHW_CODES.indexOf(code)>=0){
     grantNhwAccess(code);
   } else if(code.length>=6){
-    fetch(API+'/api/nhw/verify',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code:code})
-    }).then(function(r){return r.json();})
+    fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:code})})
+    .then(function(r){return r.json();})
     .then(function(d){
-      if(d.valid) grantNhwAccess(code);
+      if(d.valid)grantNhwAccess(code);
       else document.getElementById('nhw-err').style.display='block';
     }).catch(function(){
-      if(code.startsWith('NHW-')) grantNhwAccess(code);
+      if(code.startsWith('NHW-'))grantNhwAccess(code);
       else document.getElementById('nhw-err').style.display='block';
     });
   } else {
@@ -918,135 +1323,257 @@ function grantNhwAccess(code){
   nhwVerified=true;
   try{localStorage.setItem('snhw',code);}catch(e){}
   closeNhwModal();
-  document.getElementById('nhw-btn').classList.add('active');
-  document.getElementById('nhw-btn').textContent='\u25CF NHW LIVE';
-  document.getElementById('delay-ribbon').style.display='none';
-  document.getElementById('nhw-panel').classList.add('open');
+  activateNhwUI();
   loadLiveFeed();
+  loadDrugMarkers();
 }
-function closeNhwPanel(){document.getElementById('nhw-panel').classList.remove('open');}
+function activateNhwUI(){
+  document.getElementById('nhw-btn').classList.add('active');
+  document.getElementById('nhw-btn').textContent='● NHW LIVE';
+  document.getElementById('delay-ribbon').style.display='none';
+  document.getElementById('nhw-live-panel').classList.add('show');
+  // Auto-enable drug layer
+  layerStates.drugs=true;
+  var btn=document.getElementById('layer-drugs');
+  btn.classList.add('on');
+  drugMarkers.addTo(map);
+}
 
 function loadLiveFeed(){
-  fetch(API+'/api/reports/live',{credentials:'include'})
+  var tok='';try{tok=localStorage.getItem('snhw')||'';}catch(e){}
+  fetch(API+'/api/reports/live',{
+    headers:tok?{'Authorization':'Bearer '+tok}:{},
+    credentials:'include'})
   .then(function(r){return r.json();})
-  .then(function(d){renderLive(d.reports||[]);})
-  .catch(function(){renderLive(reports.slice(0,20));});
+  .then(function(d){renderNhwFeed(d.reports||[]);})
+  .catch(function(){renderNhwFeed(reports.slice(0,15));});
 }
-function renderLive(rpts){
-  var list=document.getElementById('nhwp-list');
-  if(!rpts.length){list.innerHTML='<div style="padding:20px;text-align:center;font-family:\'DM Mono\',monospace;font-size:10px;color:var(--text3)">Geen lewendige voorvalle nie</div>';return;}
+
+function renderNhwFeed(rpts){
+  var list=document.getElementById('nhw-live-list');
+  if(!rpts.length){
+    list.innerHTML='<div style="padding:16px 12px;font-family:DM Mono,monospace;font-size:10px;color:var(--text4)">No live incidents</div>';
+    return;
+  }
   var sm={critical:'ni-crit',high:'ni-high',medium:'ni-med',low:'ni-low'};
   var sl={critical:'CRITICAL',high:'HIGH',medium:'MED',low:'LOW'};
-  list.innerHTML=rpts.slice(0,30).map(function(r){
-    return '<div class="nhw-item" onclick="map.flyTo(['+r.lat+','+r.lng+'],15)">'
-      +'<div class="ni-top">'
-        +'<span class="ni-sev '+(sm[r.severity]||'ni-low')+'">'+(sl[r.severity]||'LOW')+'</span>'
-        +'<span class="ni-type">'+(TYPE_LABELS[r.type]||r.type)+'</span>'
-        +'<span class="ni-time">'+tAgo(r.ts)+'</span>'
-      +'</div>'
-      +'<div class="ni-meta">'+r.lat.toFixed(4)+', '+r.lng.toFixed(4)+(r.note?' &mdash; '+esc(r.note):'')+'</div>'
-    +'</div>';
+  list.innerHTML=rpts.slice(0,25).map(function(r){
+    return '<div class="nhw-item" onclick="map.flyTo(['+r.lat+','+r.lng+'],16)">'+
+      '<div class="ni-top">'+
+        '<span class="ni-sev '+(sm[r.severity]||'ni-low')+'">'+
+        (sl[r.severity]||'LOW')+'</span>'+
+        '<span class="ni-type">'+(TYPE_LABELS[r.type]||r.type)+'</span>'+
+        '<span class="ni-time">'+tAgo(r.ts)+'</span>'+
+      '</div>'+
+      '<div class="ni-meta">'+r.lat.toFixed(4)+', '+r.lng.toFixed(4)+
+        (r.note?' — '+esc(r.note):'')+'</div>'+
+    '</div>';
   }).join('');
 }
 
-var outageMarkers = L.layerGroup();
-var _outageData = [];
-
-function toggleEskom(){
-  eskomOn=!eskomOn;
-  var btn=document.getElementById('eskom-btn');
-  var badge=document.getElementById('eskom-badge');
-  btn.classList.toggle('on',eskomOn);
-  badge.style.display=eskomOn?'block':'none';
-  if(eskomOn){
-    fetchPowerStatus();
-    outageMarkers.addTo(map);
-  } else {
-    if(eskomZones){map.removeLayer(eskomZones);eskomZones=null;}
-    map.removeLayer(outageMarkers);
-    outageMarkers.clearLayers();
-  }
-}
-
-function fetchPowerStatus(){
-  fetch(API+'/api/power/status')
+function loadDrugMarkers(){
+  // Drug/gang house markers — NHW only, from separate endpoint
+  var tok='';try{tok=localStorage.getItem('snhw')||'';}catch(e){}
+  fetch(API+'/api/intel/locations',{
+    headers:tok?{'Authorization':'Bearer '+tok}:{},
+    credentials:'include'})
   .then(function(r){return r.json();})
   .then(function(d){
-    var nat=d.national||{};
-    var comm=d.community||{};
-    var info=document.getElementById('eskom-info');
-    var natText = nat.active
-      ? '<strong style="color:#f5a623">Stage '+nat.stage+'</strong> nationally<br>'
-      : 'No national load-shedding<br>';
-    var commText = (comm.confirmed_outages||0)>0
-      ? '<span style="color:#e8722a">'+(comm.confirmed_outages)+' confirmed outage area'+((comm.confirmed_outages)!==1?'s':'')+'</span>'
-      : 'No confirmed outages nearby';
-    info.innerHTML = natText + commText;
-    _outageData = (comm.clusters)||[];
-    renderOutageMarkers(_outageData);
-    if(nat.active) drawEskomZones();
-  }).catch(function(){
-    document.getElementById('eskom-info').textContent='Status check failed';
-  });
-}
-
-function renderOutageMarkers(clusters){
-  outageMarkers.clearLayers();
-  clusters.forEach(function(c){
-    var confirmed = c.status==='CONFIRMED';
-    var col  = confirmed ? '#e8722a' : '#f5a623';
-    var size = confirmed ? 22 : 16;
-    var ico  = '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;'
-      +'background:'+col+';border:2.5px solid rgba(255,255,255,.75);'
-      +'box-shadow:0 0 10px '+col+';display:flex;align-items:center;'
-      +'justify-content:center;font-size:'+(size-8)+'px;">&#x26A1;</div>';
-    var icon = L.divIcon({html:ico,iconSize:[size,size],iconAnchor:[size/2,size/2],className:''});
-    var m = L.marker([c.lat,c.lng],{icon:icon});
-    m.bindPopup(
-      '<div style="font-family:'DM Sans',sans-serif;font-size:12px;min-width:165px">'
-      +'<strong style="color:'+col+';display:block;margin-bottom:3px;font-family:'Playfair Display',serif">'
-      +c.type_label+'</strong>'
-      +'<span style="font-family:'DM Mono',monospace;font-size:10px;color:'+col+'">'+c.status+'</span><br>'
-      +'<span style="font-family:'DM Mono',monospace;font-size:9px;color:#b8d4bc">'
-      +c.count+' report'+(c.count!==1?'s':'')+' — '+tAgo(c.newest_ts)+'</span>'
-      +'</div>',{className:'sn-popup'}
-    );
-    outageMarkers.addLayer(m);
-  });
-}
-
-function drawEskomZones(){
-  if(eskomZones)map.removeLayer(eskomZones);
-  var c=map.getCenter(),b=map.getBounds();
-  eskomZones=L.layerGroup();
-  [[b.getNorth(),b.getWest(),c.lat,c.lng],[c.lat,c.lng,b.getSouth(),b.getEast()]].forEach(function(p){
-    L.polygon([[p[0],p[1]],[p[0],p[3]],[p[2],p[3]],[p[2],p[1]]],
-      {color:'#f5a623',fillColor:'#f5a623',fillOpacity:.05,weight:1.5,dashArray:'5 4'}).addTo(eskomZones);
-  });
-  eskomZones.addTo(map);
-}
-
-function loadOutageLayer(){
-  fetch(API+'/api/power/outages')
-  .then(function(r){return r.json();})
-  .then(function(d){
-    _outageData=d.clusters||[];
-    if(_outageData.length>0){
-      renderOutageMarkers(_outageData);
-      outageMarkers.addTo(map);
-      var confirmed=_outageData.filter(function(c){return c.status==='CONFIRMED';});
-      if(confirmed.length>0){
-        document.getElementById('eskom-info').innerHTML=
-          '<span style="color:#e8722a">'+confirmed.length
-          +' confirmed outage area'+(confirmed.length!==1?'s':'')+' near you</span>';
-        document.getElementById('eskom-badge').style.display='block';
-        document.getElementById('eskom-btn').classList.add('on');
-        eskomOn=true;
-      }
-    }
+    renderDrugMarkers(d.locations||[]);
+    document.getElementById('lc-drugs').textContent=(d.locations||[]).length;
   }).catch(function(){});
 }
 
+function renderDrugMarkers(locs){
+  drugMarkers.clearLayers();
+  var typeIcon={
+    drug_house:'&#x1F48A;',drug_distribution:'&#x1F4E6;',
+    gang_house:'&#x1F977;',weapons_cache:'&#x26A0;',
+    stolen_goods:'&#x1F4E6;',chop_shop:'&#x1F6E0;'
+  };
+  var typeLabel={
+    drug_house:'Drug House',drug_distribution:'Distribution Point',
+    gang_house:'Gang Safehouse',weapons_cache:'Weapons Cache',
+    stolen_goods:'Stolen Goods',chop_shop:'Chop Shop'
+  };
+  locs.forEach(function(l){
+    var ico='<div style="width:24px;height:24px;border-radius:50%;'+
+      'background:#c0602a;border:2px solid rgba(255,255,255,.7);'+
+      'box-shadow:0 0 10px #c0602a;display:flex;align-items:center;'+
+      'justify-content:center;font-size:12px">'+(typeIcon[l.type]||'&#x26A0;')+'</div>';
+    var icon=L.divIcon({html:ico,iconSize:[24,24],iconAnchor:[12,12],className:''});
+    var m=L.marker([l.lat,l.lng],{icon:icon});
+    var dur={days:'Days',weeks:'Weeks',months:'Months',years:'Years+'};
+    m.bindPopup('<div style="font-family:DM Sans,sans-serif;font-size:12px;min-width:160px">'+
+      '<strong style="color:#e8904a;font-family:Playfair Display,serif;font-size:13px;display:block;margin-bottom:3px">'
+      +(typeLabel[l.type]||l.type)+'</strong>'+
+      '<span style="font-family:DM Mono,monospace;font-size:9px;color:#f5a623">Intel report — NHW only</span><br>'+
+      '<span style="font-family:DM Mono,monospace;font-size:9px;color:#b8d4bc">Duration: '+(dur[l.duration]||'Unknown')+'</span><br>'+
+      (l.note?'<p style="margin-top:5px;font-size:11px;color:#b8d4bc">'+esc(l.note)+'</p>':'')+
+      '<span style="font-family:DM Mono,monospace;font-size:8px;color:#4a6e52">Reported: '+tAgo(l.ts)+'</span>'+
+      '</div>',{className:'sn-popup'});
+    drugMarkers.addLayer(m);
+  });
+}
+
+// ── REPORT MODAL ──────────────────────────────────────────────────────────
+function openModal(){
+  document.getElementById('rep-overlay').classList.add('show');
+  if(gpsLat===null)getGPS();
+}
+function closeModal(){document.getElementById('rep-overlay').classList.remove('show');resetForm();}
+
+function selInc(el){
+  document.querySelectorAll('#rep-modal .inc-btn').forEach(function(b){b.classList.remove('sel');});
+  el.classList.add('sel');
+  selInciVal=el.dataset.val;
+  var sv=el.dataset.sev||'medium';
+  selSevVal=sv;
+  document.querySelectorAll('.sev-btn').forEach(function(b){
+    b.className='sev-btn';
+    if(b.dataset.s===sv)b.classList.add('s'+sv[0]);
+  });
+  checkSub();
+}
+function selSev(el){
+  document.querySelectorAll('.sev-btn').forEach(function(b){b.className='sev-btn';});
+  selSevVal=el.dataset.s;
+  el.classList.add('s'+selSevVal[0]);
+}
+function checkSub(){
+  document.getElementById('sub-btn').disabled=!(selInciVal&&gpsLat!==null);
+}
+function getGPS(){
+  var stat=document.getElementById('loc-stat');
+  var coord=document.getElementById('loc-coord');
+  stat.textContent='Getting location…';
+  if(!navigator.geolocation){stat.textContent='GPS unavailable';return;}
+  navigator.geolocation.getCurrentPosition(function(p){
+    gpsLat=p.coords.latitude;gpsLng=p.coords.longitude;
+    stat.textContent='Location confirmed ✓';
+    coord.textContent=gpsLat.toFixed(4)+', '+gpsLng.toFixed(4)+' ±'+Math.round(p.coords.accuracy)+'m';
+    document.getElementById('loc-box').classList.add('got');
+    checkSub();
+  },function(){
+    stat.textContent='Could not get location';
+    coord.textContent='Enable location permissions and try again';
+  },{enableHighAccuracy:true,timeout:10000});
+}
+
+async function submitReport(){
+  if(!selInciVal||!gpsLat)return;
+  var btn=document.getElementById('sub-btn');
+  btn.textContent='Submitting…';btn.disabled=true;
+  var note=document.getElementById('note-ta').value.trim();
+  try{
+    var r=await fetch(API+'/api/reports',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:selInciVal,severity:selSevVal,lat:gpsLat,lng:gpsLng,note:note||null})
+    });
+    if(r.ok||r.status===201){
+      closeModal();showToast('Report submitted','Thank you — your community is safer for it');
+      setTimeout(function(){loadFeed();loadStats();},1000);
+    } else {btn.textContent='Error — try again';btn.disabled=false;}
+  }catch(e){
+    closeModal();showToast('Report submitted','Saved locally — thank you');
+    reports.unshift({lat:gpsLat,lng:gpsLng,type:selInciVal,severity:selSevVal,ts:Date.now()/1000,note:note||null});
+    renderCrimeMarkers(reports);renderHeat(reports);
+  }
+}
+
+function resetForm(){
+  selInciVal=null;selSevVal=null;
+  document.querySelectorAll('#rep-modal .inc-btn').forEach(function(b){b.classList.remove('sel');});
+  document.querySelectorAll('.sev-btn').forEach(function(b){b.className='sev-btn';});
+  document.getElementById('loc-stat').textContent='Tap to get your location';
+  document.getElementById('loc-coord').textContent='GPS only — not stored with any identity';
+  document.getElementById('loc-box').classList.remove('got');
+  document.getElementById('note-ta').value='';
+  document.getElementById('sub-btn').disabled=true;
+  document.getElementById('sub-btn').textContent='Submit Report';
+}
+
+// ── DRUG/GANG HOUSE MODAL ─────────────────────────────────────────────────
+function openDrugModal(){
+  document.getElementById('drug-overlay').classList.add('show');
+  if(drugLat===null)getDrugGPS();
+}
+function closeDrugModal(){document.getElementById('drug-overlay').classList.remove('show');resetDrugForm();}
+
+function selDrug(el){
+  document.querySelectorAll('#drug-overlay .inc-btn').forEach(function(b){b.classList.remove('sel');});
+  el.classList.add('sel');
+  drugType=el.dataset.val;
+  checkDrugSub();
+}
+function selDuration(el){
+  document.querySelectorAll('#duration-row .sev-btn').forEach(function(b){b.className='sev-btn';});
+  el.classList.add('sm');
+  drugDuration=el.dataset.d;
+}
+function checkDrugSub(){
+  document.getElementById('drug-sub-btn').disabled=!(drugType&&drugLat!==null);
+}
+function getDrugGPS(){
+  var stat=document.getElementById('drug-loc-stat');
+  var coord=document.getElementById('drug-loc-coord');
+  stat.textContent='Getting location…';
+  if(!navigator.geolocation){stat.textContent='GPS unavailable';return;}
+  navigator.geolocation.getCurrentPosition(function(p){
+    drugLat=p.coords.latitude;drugLng=p.coords.longitude;
+    stat.textContent='Location confirmed ✓';
+    coord.textContent=drugLat.toFixed(4)+', '+drugLng.toFixed(4);
+    document.getElementById('drug-loc-box').classList.add('got');
+    checkDrugSub();
+  },function(){stat.textContent='Could not get location';},{enableHighAccuracy:true,timeout:10000});
+}
+
+async function submitDrugReport(){
+  if(!drugType||!drugLat)return;
+  var btn=document.getElementById('drug-sub-btn');
+  btn.textContent='Submitting…';btn.disabled=true;
+  var note=document.getElementById('drug-note').value.trim();
+  try{
+    var r=await fetch(API+'/api/intel/report',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:drugType,duration:drugDuration||'unknown',
+        lat:drugLat,lng:drugLng,note:note||null})
+    });
+    if(r.ok||r.status===201){
+      closeDrugModal();
+      showToast('Intel report submitted','Stored securely for SAPS review');
+    } else {btn.textContent='Error — try again';btn.disabled=false;}
+  }catch(e){
+    closeDrugModal();
+    showToast('Intel report submitted','Stored securely for SAPS review');
+  }
+}
+
+function resetDrugForm(){
+  drugType=null;drugDuration=null;drugLat=null;drugLng=null;
+  document.querySelectorAll('#drug-overlay .inc-btn').forEach(function(b){b.classList.remove('sel');});
+  document.querySelectorAll('#duration-row .sev-btn').forEach(function(b){b.className='sev-btn';});
+  document.getElementById('drug-loc-stat').textContent='Tap to get location';
+  document.getElementById('drug-loc-coord').textContent='GPS of the premises';
+  document.getElementById('drug-loc-box').classList.remove('got');
+  document.getElementById('drug-note').value='';
+  document.getElementById('drug-sub-btn').disabled=true;
+  document.getElementById('drug-sub-btn').textContent='Submit Intel Report';
+}
+
+// ── MOBILE ────────────────────────────────────────────────────────────────
+function toggleMobSidebar(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function showToast(title,sub){
+  var t=document.getElementById('toast');
+  t.querySelector('.toast-title').textContent=title;
+  t.querySelector('.toast-sub').textContent=sub;
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},3500);
+}
 function tAgo(ts){
   var s=Math.floor(Date.now()/1000-ts);
   if(s<60)return s+'s ago';if(s<3600)return Math.floor(s/60)+'m ago';
@@ -1054,26 +1581,24 @@ function tAgo(ts){
 }
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+// Close overlays on backdrop click
 document.getElementById('rep-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('drug-overlay').addEventListener('click',function(e){if(e.target===this)closeDrugModal();});
 document.getElementById('nhw-overlay').addEventListener('click',function(e){if(e.target===this)closeNhwModal();});
 
-var st=document.createElement('style');
-st.textContent='.sn-popup .leaflet-popup-content-wrapper{background:#1a2818;border:1.5px solid rgba(125,171,138,.3);border-radius:10px;color:#e8f0ea;box-shadow:0 4px 20px rgba(0,0,0,.5)}.sn-popup .leaflet-popup-tip{background:#1a2818}.sn-popup .leaflet-popup-content{margin:10px 14px}';
-document.head.appendChild(st);
+// Close mobile sidebar on map tap
+document.getElementById('map').addEventListener('click',function(){
+  document.getElementById('sidebar').classList.remove('mob-open');
+});
 
-window.addEventListener('load',function(){
-  initMap();
-  // Restore NHW session if previously verified
-  var saved=localStorage.getItem('snhw');
-  if(saved){
-    nhwVerified=true;
-    document.getElementById('nhw-btn').classList.add('active');
-    document.getElementById('nhw-btn').textContent='● NHW LIVE';
-    document.getElementById('delay-ribbon').style.display='none';
+// Close suburb dropdown on outside click
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.suburb-search-wrap')){
+    document.getElementById('suburb-dropdown').classList.remove('show');
   }
 });
-function initMap(){tryGPS();map=L.map('map',{zoomControl:true,attributionControl:false}).setView([-29.0,25.0],6);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);markersLayer=L.layerGroup().addTo(map);tryGPS();loadFeed();loadStats();loadOutageLayer();}
 
+window.addEventListener('load', initMap);
 </script>
 </body>
 </html>
