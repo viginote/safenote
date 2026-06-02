@@ -213,9 +213,21 @@ def require_nhw(authorization: Optional[str] = Header(None)):
     if not result:
         raise HTTPException(status_code=401, detail="Invalid NHW token")
 
-def require_admin(authorization: Optional[str] = Header(None)):
-    if not authorization or \
-       authorization.replace("Bearer ", "").strip() != ADMIN_SECRET:
+def require_admin(request: Request, authorization: Optional[str] = Header(None), x_admin_secret: Optional[str] = Header(None)):
+    """
+    Admin guard. Accepts either:
+    - Authorization: Bearer <ADMIN_SECRET>
+    - X-Admin-Secret: <ADMIN_SECRET>
+    - admin_secret query param for file downloads only / fallback testing
+    """
+    supplied = None
+    if authorization:
+        supplied = authorization.replace("Bearer ", "").strip()
+    if not supplied and x_admin_secret:
+        supplied = x_admin_secret.strip()
+    if not supplied:
+        supplied = request.query_params.get("admin_secret")
+    if not supplied or supplied != ADMIN_SECRET:
         raise HTTPException(status_code=401, detail="Admin token required")
 
 def haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -951,6 +963,43 @@ async def nhw_export_csv(
     )
 
 
+
+
+# ── ADMIN AUTH / DIAGNOSTICS ─────────────────────────────────────────────────
+
+class AdminLoginIn(BaseModel):
+    secret: str
+
+@app.post("/api/admin/login")
+async def admin_login(body: AdminLoginIn):
+    """Verify ADMIN_SECRET before loading the Admin Hub."""
+    supplied = (body.secret or "").strip()
+    configured = bool(ADMIN_SECRET)
+    using_default = ADMIN_SECRET == "admin-secret-change-me"
+    if supplied != ADMIN_SECRET:
+        raise HTTPException(status_code=401, detail={
+            "ok": False,
+            "reason": "ADMIN_SECRET mismatch",
+            "configured": configured,
+            "using_default": using_default,
+            "hint": "Check Render Environment variable ADMIN_SECRET and redeploy the backend."
+        })
+    return {
+        "ok": True,
+        "configured": configured,
+        "using_default": using_default,
+        "message": "Admin secret verified"
+    }
+
+@app.get("/api/admin/status")
+async def admin_status():
+    """Safe diagnostic: does not reveal the secret."""
+    return {
+        "admin_secret_configured": bool(ADMIN_SECRET),
+        "using_default_secret": ADMIN_SECRET == "admin-secret-change-me",
+        "service": "SafeNote",
+        "admin_routes_loaded": True
+    }
 
 # ── ADMIN HUB ROUTES ─────────────────────────────────────────────────────────
 
