@@ -1030,52 +1030,199 @@ function clearSuburb(){
   renderCrimeMarkers(reports);
 }
 
+// ── SUBURB BOUNDARY SYSTEM ───────────────────────────────────────────────
+// Uses the backend proxy /api/suburb/boundary to avoid browser CORS issues
+// with Nominatim. Falls back to a centre-point circle if no polygon found.
+
+var _suburbCache = {};  // cache fetched boundaries
+
 async function fetchSuburbBoundary(name){
-  // Use Nominatim geocoding + Overpass for suburb polygon
+  // Clear any existing boundary
   if(suburbBoundary){map.removeLayer(suburbBoundary);suburbBoundary=null;}
+
+  // Show loading indicator on suburb bar
+  document.getElementById('sbar-name').textContent = name + ' — loading…';
+
+  // Check cache first
+  if(_suburbCache[name]){
+    drawSuburbBoundary(_suburbCache[name], name);
+    return;
+  }
+
+  // Try backend proxy first (avoids CORS issues with Nominatim from browser)
+  var loaded = false;
   try{
-    // Step 1: Nominatim to get OSM relation ID
-    var nomUrl='https://nominatim.openstreetmap.org/search?q='
-      +encodeURIComponent(name+', Western Cape, South Africa')
-      +'&format=json&limit=1&polygon_geojson=1';
-    var r=await fetch(nomUrl,{headers:{'User-Agent':'SafeNote-WC/1.0'}});
-    var d=await r.json();
-    if(!d.length)return;
-    var geo=d[0].geojson;
-    if(!geo)return;
-    // Zoom to bounds
-    var bounds=d[0].boundingbox;
-    if(bounds){
-      map.fitBounds([
-        [parseFloat(bounds[0]),parseFloat(bounds[2])],
-        [parseFloat(bounds[1]),parseFloat(bounds[3])]
-      ],{padding:[30,30]});
-    }
-    // Draw boundary
-    suburbBoundary=L.geoJSON(geo,{
-      style:{
-        color:'#7dab8a',weight:2.5,opacity:.9,
-        fillColor:'#7dab8a',fillOpacity:.06,
-        dashArray:'none'
+    var r = await fetch(API+'/api/suburb/boundary?name='+encodeURIComponent(name),
+      {signal: AbortSignal.timeout(8000)});
+    if(r.ok){
+      var d = await r.json();
+      if(d.geojson && d.geojson.coordinates){
+        _suburbCache[name] = d;
+        drawSuburbBoundary(d, name);
+        loaded = true;
       }
-    }).addTo(map);
-    // Update suburb stats
-    updateSuburbStats(name, d[0].lat, d[0].lon);
-  }catch(e){console.warn('Boundary fetch failed:',e);}
+    }
+  }catch(e){ /* fall through to direct Nominatim */ }
+
+  // Direct Nominatim fallback (works when not blocked by CORS)
+  if(!loaded){
+    try{
+      var url = 'https://nominatim.openstreetmap.org/search'
+        +'?q='+encodeURIComponent(name+', Western Cape, South Africa')
+        +'&format=json&limit=3&polygon_geojson=1&addressdetails=1';
+      var r2 = await fetch(url, {
+        headers:{
+          'User-Agent':'SafeNote-WC-CommunityApp/1.0',
+          'Accept':'application/json'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+      var results = await r2.json();
+
+      // Filter to best WC match — prefer suburb/neighbourhood types
+      var best = null;
+      var preferTypes = ['suburb','neighbourhood','quarter','residential','town','village','city'];
+      for(var i=0;i<results.length;i++){
+        var res = results[i];
+        // Must be in Western Cape
+        var addr = res.address||{};
+        if(addr.state && addr.state.toLowerCase().indexOf('western cape')<0) continue;
+        if(!best) best = res;
+        if(preferTypes.indexOf(res.type)>=0){ best=res; break; }
+      }
+
+      if(best && best.geojson){
+        var bounds = best.boundingbox;
+        var data = {
+          geojson: best.geojson,
+          lat: parseFloat(best.lat),
+          lng: parseFloat(best.lon),
+          bbox: bounds ? [
+            [parseFloat(bounds[0]),parseFloat(bounds[2])],
+            [parseFloat(bounds[1]),parseFloat(bounds[3])]
+          ] : null
+        };
+        _suburbCache[name] = data;
+        drawSuburbBoundary(data, name);
+        loaded = true;
+      }
+    }catch(e2){ console.warn('Nominatim fetch failed:', e2); }
+  }
+
+  // Final fallback — if we still have nothing, use WC_SUBURBS coords
+  if(!loaded){
+    var preset = WC_SUBURB_COORDS[name];
+    if(preset){
+      var fakeBbox = [
+        [preset[0]-0.015, preset[1]-0.02],
+        [preset[0]+0.015, preset[1]+0.02]
+      ];
+      // Draw a dashed circle around the approximate centre
+      if(suburbBoundary) map.removeLayer(suburbBoundary);
+      suburbBoundary = L.circle([preset[0],preset[1]], {
+        radius: 1200,
+        color:'#7dab8a', weight:2, opacity:.7,
+        fillColor:'#7dab8a', fillOpacity:.05,
+        dashArray:'8 5'
+      }).addTo(map);
+      map.fitBounds(fakeBbox, {padding:[40,40]});
+      document.getElementById('sbar-name').textContent = name;
+      updateSuburbStats(name, preset[0], preset[1]);
+    } else {
+      document.getElementById('sbar-name').textContent = name + ' — boundary unavailable';
+    }
+  }
+}
+
+function drawSuburbBoundary(data, name){
+  if(suburbBoundary){map.removeLayer(suburbBoundary);suburbBoundary=null;}
+
+  // Draw GeoJSON polygon with teal outline
+  suburbBoundary = L.geoJSON(data.geojson, {
+    style: function(){
+      return {
+        color:'#7dab8a',
+        weight: 2.5,
+        opacity: 0.9,
+        fillColor:'#7dab8a',
+        fillOpacity: 0.07,
+        dashArray: null
+      };
+    }
+  }).addTo(map);
+
+  // Zoom map to fit the boundary
+  if(data.bbox){
+    map.fitBounds(data.bbox, {padding:[30,30], maxZoom:16});
+  } else {
+    try{
+      map.fitBounds(suburbBoundary.getBounds(), {padding:[30,30], maxZoom:16});
+    }catch(e){
+      if(data.lat && data.lng) map.setView([data.lat,data.lng], 14);
+    }
+  }
+
+  document.getElementById('sbar-name').textContent = name;
+  updateSuburbStats(name, data.lat||map.getCenter().lat, data.lng||map.getCenter().lng);
 }
 
 function updateSuburbStats(name, lat, lng){
   var now=Date.now()/1000;
   var todayCut=now-86400, weekCut=now-604800;
+  // Filter reports within ~2km of suburb centre
   var near=reports.filter(function(r){
     var dlat=r.lat-parseFloat(lat);
     var dlng=r.lng-parseFloat(lng);
-    return Math.sqrt(dlat*dlat+dlng*dlng)<0.05; // ~5km rough filter
+    return Math.sqrt(dlat*dlat+dlng*dlng)<0.03;
   });
-  document.getElementById('sbar-today').textContent=near.filter(function(r){return r.ts>=todayCut;}).length;
-  document.getElementById('sbar-week').textContent=near.filter(function(r){return r.ts>=weekCut;}).length;
-  document.getElementById('sbar-drug').textContent=near.filter(function(r){return r.type==='drug_dealing'||r.type==='gang_activity';}).length;
+  document.getElementById('sbar-today').textContent=
+    near.filter(function(r){return r.ts>=todayCut;}).length;
+  document.getElementById('sbar-week').textContent=
+    near.filter(function(r){return r.ts>=weekCut;}).length;
+  document.getElementById('sbar-drug').textContent=
+    near.filter(function(r){
+      return r.type==='drug_dealing'||r.type==='gang_activity';
+    }).length;
 }
+
+// Pre-seeded WC suburb coordinates — fallback if Nominatim fails
+var WC_SUBURB_COORDS = {
+  'Athlone':[-33.9603,18.5083],'Bellville':[-33.9001,18.6297],
+  'Bishop Lavis':[-33.9239,18.5831],'Bloubergstrand':[-33.8063,18.4711],
+  'Bo-Kaap':[-33.9235,18.4130],'Bonteheuwel':[-33.9559,18.5631],
+  'Brackenfell':[-33.8708,18.6849],'Brooklyn':[-33.9062,18.5008],
+  'Cape Town CBD':[-33.9249,18.4241],'Century City':[-33.8917,18.5128],
+  'Claremont':[-33.9860,18.4678],'Constantia':[-34.0307,18.4432],
+  'Crawford':[-33.9769,18.5065],'Delft':[-33.9820,18.6302],
+  'De Waterkant':[-33.9208,18.4181],'Durbanville':[-33.8283,18.6543],
+  'Eersteriver':[-34.0298,18.7025],'Elsies River':[-33.9396,18.5618],
+  'Fishoek':[-34.1387,18.4316],'Franschhoek':[-33.9100,19.1200],
+  'Gardens':[-33.9384,18.4235],'Goodwood':[-33.9108,18.5495],
+  'Grassy Park':[-34.0333,18.5000],'Green Point':[-33.9088,18.4069],
+  'Gugulethu':[-33.9897,18.5797],'Hanover Park':[-33.9872,18.5349],
+  'Heideveld':[-33.9709,18.5572],'Hermanus':[-34.4187,19.2345],
+  'Hout Bay':[-34.0416,18.3642],'Kalk Bay':[-34.1287,18.4397],
+  'Khayelitsha':[-34.0357,18.6731],'Kenilworth':[-33.9987,18.4831],
+  'Kraaifontein':[-33.8455,18.7213],'Kuils River':[-33.9350,18.7028],
+  'Langa':[-33.9491,18.5255],'Lansdowne':[-33.9972,18.5051],
+  'Lavender Hill':[-34.0667,18.5000],'Macassar':[-34.0667,18.7667],
+  'Manenberg':[-33.9847,18.5596],'Milnerton':[-33.8700,18.4900],
+  'Mitchell's Plain':[-34.0487,18.6182],'Mowbray':[-33.9539,18.4735],
+  'Muizenberg':[-34.1090,18.4688],'Newlands':[-33.9809,18.4684],
+  'Nyanga':[-33.9997,18.5827],'Observatory':[-33.9374,18.4652],
+  'Ottery':[-34.0122,18.5087],'Paarl':[-33.7239,18.9619],
+  'Parow':[-33.9006,18.5939],'Philippi':[-34.0197,18.5942],
+  'Plumstead':[-34.0165,18.4838],'Retreat':[-34.0500,18.4903],
+  'Rondebosch':[-33.9613,18.4772],'Rosebank':[-33.9548,18.4706],
+  'Salt River':[-33.9346,18.4703],'Sea Point':[-33.9188,18.3836],
+  'Simon's Town':[-34.1858,18.4272],'Somerset West':[-34.0756,18.8465],
+  'Strand':[-34.1166,18.8333],'Stellenbosch':[-33.9321,18.8602],
+  'Steenberg':[-34.0647,18.4836],'Strandfontein':[-34.0833,18.5500],
+  'Tableview':[-33.8372,18.4897],'Tokai':[-34.0606,18.4639],
+  'Vredehoek':[-33.9326,18.4322],'Wellington':[-33.6444,19.0070],
+  'Woodstock':[-33.9297,18.4453],'Worcester':[-33.6464,19.4483],
+  'Wynberg':[-34.0045,18.4699]
+};
 
 function filterReportsBySuburb(name){
   // Just zoom — boundary and stats handle the focus
