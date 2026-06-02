@@ -70,30 +70,22 @@ ESKOM_CACHE_TTL = 1800  # 30 minutes
 
 # ── VALID INCIDENT TYPES ──────────────────────────────────────────────────────
 VALID_TYPES = {
-    # Violent
-    "murder", "shooting", "stabbing", "attempted_murder",
-    # Robbery
-    "hijacking", "armed_robbery", "mugging", "house_robbery",
-    # Property
-    "burglary", "vehicle_theft", "theft", "vandalism",
-    # GBV
-    "gbv", "domestic", "sexual_assault", "child_abuse",
-    # Suspicious
-    "suspicious_person", "suspicious_vehicle", "loitering",
-    "drone_surveillance", "casing", "following",
-    # Drugs / Gangs
-    "drug_dealing", "gang_activity", "illegal_firearm", "extortion",
-    # Infrastructure
-    "cable_theft", "illegal_connection", "manhole_theft",
-    "road_blockage", "water_cut", "vandalism",
-    # Community
-    "fire", "missing_person", "illegal_dumping", "protest_violence",
-    "farm_attack", "mob_justice", "xenophobia", "other",
-    # ── POWER OUTAGE TYPES ──
-    "power_loadshedding",   # scheduled load-shedding
-    "power_fault",          # unplanned fault / trip
-    "power_partial",        # partial outage — some streets have power
-    "power_restored",       # power came back — closes the cluster
+    "murder","shooting","stabbing","attempted_murder",
+    "hijacking","armed_robbery","mugging","house_robbery","atm_robbery",
+    "burglary","vehicle_theft","theft","vandalism",
+    "gbv","domestic","sexual_assault","child_abuse",
+    "suspicious_person","suspicious_vehicle","loitering",
+    "drone_surveillance","casing","following",
+    "drug_dealing","gang_activity","illegal_firearm","extortion",
+    "cable_theft","illegal_connection","manhole_theft","road_blockage","water_cut",
+    "fire","missing_person","illegal_dumping","protest_violence",
+    "farm_attack","mob_justice","xenophobia","other",
+    "power_loadshedding","power_fault","power_partial","power_restored",
+}
+
+VALID_INTEL_TYPES = {
+    "drug_house","drug_distribution","gang_house",
+    "weapons_cache","stolen_goods","chop_shop",
 }
 
 POWER_TYPES = {
@@ -149,6 +141,17 @@ def init_db():
             source      TEXT,
             scraped_at  INTEGER
         );
+        CREATE TABLE IF NOT EXISTS intel_locations (
+            id          TEXT PRIMARY KEY,
+            type        TEXT NOT NULL,
+            duration    TEXT,
+            lat         REAL NOT NULL,
+            lng         REAL NOT NULL,
+            note        TEXT,
+            ts          INTEGER NOT NULL,
+            ip_hash     TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_intel_geo ON intel_locations(lat, lng);
     """)
     con.commit()
     con.close()
@@ -656,6 +659,91 @@ async def revoke_nhw_token(token: str, _=Depends(require_admin), db=Depends(get_
     db.execute("DELETE FROM nhw_tokens WHERE token=?", (token,))
     db.commit()
     return {"revoked": token}
+
+
+# ── INTEL LOCATION MODEL ─────────────────────────────────────────────────────
+
+class IntelIn(BaseModel):
+    type:     str
+    duration: Optional[str] = "unknown"
+    lat:      float = Field(..., ge=-90, le=90)
+    lng:      float = Field(..., ge=-180, le=180)
+    note:     Optional[str] = None
+
+    @validator("type")
+    def valid_type(cls, v):
+        if v not in VALID_INTEL_TYPES:
+            raise ValueError(f"Invalid intel type: {v}")
+        return v
+
+    @validator("note")
+    def clean_note(cls, v):
+        if v is None: return None
+        v = v.strip()[:300]
+        return v if v else None
+
+    @validator("lat")
+    def check_lat(cls, v):
+        if not (-35.5 <= v <= -31.0):
+            raise ValueError("Outside Western Cape bounds")
+        return round(v, 5)
+
+    @validator("lng")
+    def check_lng(cls, v):
+        if not (17.8 <= v <= 22.0):
+            raise ValueError("Outside Western Cape bounds")
+        return round(v, 5)
+
+
+# ── INTEL ROUTES ──────────────────────────────────────────────────────────────
+
+@app.post("/api/intel/report", status_code=201)
+async def submit_intel(report: IntelIn, request: Request, db=Depends(get_db)):
+    """
+    Anonymous intel report — drug houses, gang houses etc.
+    Stored separately, never shown on public map.
+    Rate-limit: 3 per hour per IP (stricter — these are serious reports).
+    """
+    now = int(time.time())
+    h   = ip_hash(request)
+
+    recent = db.execute(
+        "SELECT COUNT(*) FROM intel_locations WHERE ip_hash=? AND ts>?",
+        (h, now - 3600)
+    ).fetchone()[0]
+    if recent >= 3:
+        raise HTTPException(status_code=429,
+            detail="Too many intel reports. Please try again later.")
+
+    report_id = str(uuid.uuid4())
+    db.execute(
+        "INSERT INTO intel_locations(id,type,duration,lat,lng,note,ts,ip_hash) VALUES(?,?,?,?,?,?,?,?)",
+        (report_id, report.type, report.duration,
+         report.lat, report.lng, report.note, now, h)
+    )
+    db.commit()
+    return {"id": report_id, "message": "Intel report received. Stored securely."}
+
+
+@app.get("/api/intel/locations")
+async def get_intel_locations(_=Depends(require_nhw), db=Depends(get_db)):
+    """
+    NHW/CPF and admin only — never public.
+    Returns all active intel location markers for the map.
+    """
+    rows = db.execute(
+        "SELECT type,duration,lat,lng,note,ts FROM intel_locations ORDER BY ts DESC LIMIT 200"
+    ).fetchall()
+    return {"locations": [row_to_dict(r) for r in rows]}
+
+
+@app.get("/api/admin/intel")
+async def admin_intel(_=Depends(require_admin), db=Depends(get_db)):
+    """Full intel export for SAPS packages — admin only."""
+    rows = db.execute(
+        "SELECT id,type,duration,round(lat,3) as lat,round(lng,3) as lng,note,ts FROM intel_locations ORDER BY ts DESC"
+    ).fetchall()
+    return {"locations": [row_to_dict(r) for r in rows], "total": len(rows)}
 
 
 # ── NHW TOKEN VERIFY (public — used by frontend) ─────────────────────────────
