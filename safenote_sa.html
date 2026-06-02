@@ -965,10 +965,10 @@ function initMap(){
   outageMarkers = L.layerGroup().addTo(map);
   drugMarkers  = L.layerGroup(); // NOT added — NHW only
 
-  // Restore NHW session
+  // Restore NHW session safely — never trust localStorage without API verification
   try{
     var saved = localStorage.getItem('snhw');
-    if(saved){ nhwVerified=true; activateNhwUI(); }
+    if(saved){ restoreNhwSession(saved); }
   }catch(e){}
 
   tryGPS();
@@ -1434,7 +1434,8 @@ function drawEskomZones(){
 }
 
 // ── NHW AUTH ──────────────────────────────────────────────────────────────
-var NHW_CODES=['NHW-PILOT1','NHW-PILOT2','NHW-PILOT3'];
+// Security rule: no hardcoded NHW access codes in the frontend.
+// All NHW codes must be verified against /api/nhw/verify before access is granted.
 
 function openNhwAuth(){
   if(nhwVerified){
@@ -1447,24 +1448,64 @@ function closeNhwModal(){
   document.getElementById('nhw-overlay').classList.remove('show');
   document.getElementById('nhw-err').style.display='none';
 }
+function normaliseNhwCode(code){
+  return (code||'').trim().toUpperCase().replace(/\s/g,'');
+}
+function validNhwFormat(code){
+  return /^NHW-[A-Z0-9]{6,12}$/.test(code);
+}
 function verifyNhw(){
-  var code=document.getElementById('nhw-inp').value.trim().toUpperCase().replace(/\s/g,'');
-  if(NHW_CODES.indexOf(code)>=0){
-    grantNhwAccess(code);
-  } else if(code.length>=6){
-    fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code:code})})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(d.valid)grantNhwAccess(code);
-      else document.getElementById('nhw-err').style.display='block';
-    }).catch(function(){
-      if(code.startsWith('NHW-'))grantNhwAccess(code);
-      else document.getElementById('nhw-err').style.display='block';
-    });
-  } else {
+  var code=normaliseNhwCode(document.getElementById('nhw-inp').value);
+  if(!validNhwFormat(code)){
     document.getElementById('nhw-err').style.display='block';
+    return;
   }
+
+  fetch(API+'/api/nhw/verify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({code:code})
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('NHW verification failed');
+    return r.json();
+  })
+  .then(function(d){
+    if(d.valid===true){
+      grantNhwAccess(code);
+    } else {
+      document.getElementById('nhw-err').style.display='block';
+    }
+  })
+  .catch(function(){
+    document.getElementById('nhw-err').style.display='block';
+  });
+}
+function restoreNhwSession(code){
+  code=normaliseNhwCode(code);
+  if(!validNhwFormat(code)){
+    try{localStorage.removeItem('snhw');}catch(e){}
+    return;
+  }
+  fetch(API+'/api/nhw/verify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({code:code})
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('NHW restore failed');
+    return r.json();
+  })
+  .then(function(d){
+    if(d.valid===true){
+      grantNhwAccess(code);
+    } else {
+      revokeNhwAccess();
+    }
+  })
+  .catch(function(){
+    revokeNhwAccess();
+  });
 }
 function grantNhwAccess(code){
   nhwVerified=true;
@@ -1473,6 +1514,22 @@ function grantNhwAccess(code){
   activateNhwUI();
   loadLiveFeed();
   loadDrugMarkers();
+}
+function revokeNhwAccess(){
+  nhwVerified=false;
+  try{localStorage.removeItem('snhw');}catch(e){}
+  var btn=document.getElementById('nhw-btn');
+  if(btn){btn.classList.remove('active');btn.textContent='NHW Access';}
+  var ribbon=document.getElementById('delay-ribbon');
+  if(ribbon){ribbon.style.display='block';}
+  var panel=document.getElementById('nhw-live-panel');
+  if(panel){panel.classList.remove('show');}
+  if(drugMarkers){drugMarkers.clearLayers(); if(map.hasLayer(drugMarkers)) map.removeLayer(drugMarkers);}
+  layerStates.drugs=false;
+  var drugBtn=document.getElementById('layer-drugs');
+  if(drugBtn){drugBtn.classList.remove('on');}
+  var drugCount=document.getElementById('lc-drugs');
+  if(drugCount){drugCount.textContent='0';}
 }
 function activateNhwUI(){
   document.getElementById('nhw-btn').classList.add('active');
@@ -1488,12 +1545,22 @@ function activateNhwUI(){
 
 function loadLiveFeed(){
   var tok='';try{tok=localStorage.getItem('snhw')||'';}catch(e){}
+  if(!tok){revokeNhwAccess();return;}
   fetch(API+'/api/reports/live',{
-    headers:tok?{'Authorization':'Bearer '+tok}:{},
-    credentials:'include'})
-  .then(function(r){return r.json();})
+    headers:{'Authorization':'Bearer '+tok}
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('NHW auth failed');
+    return r.json();
+  })
   .then(function(d){renderNhwFeed(d.reports||[]);})
-  .catch(function(){renderNhwFeed(reports.slice(0,15));});
+  .catch(function(){
+    revokeNhwAccess();
+    var list=document.getElementById('nhw-live-list');
+    if(list){
+      list.innerHTML='<div style="padding:16px 12px;font-family:DM Mono,monospace;font-size:10px;color:var(--text4)">NHW access expired or invalid. Please verify again.</div>';
+    }
+  });
 }
 
 function renderNhwFeed(rpts){
@@ -1521,14 +1588,26 @@ function renderNhwFeed(rpts){
 function loadDrugMarkers(){
   // Drug/gang house markers — NHW only, from separate endpoint
   var tok='';try{tok=localStorage.getItem('snhw')||'';}catch(e){}
+  if(!tok){
+    drugMarkers.clearLayers();
+    document.getElementById('lc-drugs').textContent='0';
+    return;
+  }
   fetch(API+'/api/intel/locations',{
-    headers:tok?{'Authorization':'Bearer '+tok}:{},
-    credentials:'include'})
-  .then(function(r){return r.json();})
+    headers:{'Authorization':'Bearer '+tok}
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('NHW auth failed');
+    return r.json();
+  })
   .then(function(d){
     renderDrugMarkers(d.locations||[]);
     document.getElementById('lc-drugs').textContent=(d.locations||[]).length;
-  }).catch(function(){});
+  })
+  .catch(function(){
+    drugMarkers.clearLayers();
+    document.getElementById('lc-drugs').textContent='0';
+  });
 }
 
 function renderDrugMarkers(locs){
