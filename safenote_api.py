@@ -40,7 +40,8 @@ from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-import sqlite3, uuid, time, os, hashlib, io, csv, math, re
+import sqlite3, uuid, time, os, hashlib, io, csv, math, re, urllib.parse
+
 import httpx
 from datetime import datetime, timezone
 
@@ -745,6 +746,78 @@ async def admin_intel(_=Depends(require_admin), db=Depends(get_db)):
     ).fetchall()
     return {"locations": [row_to_dict(r) for r in rows], "total": len(rows)}
 
+
+
+# ── SUBURB BOUNDARY PROXY ─────────────────────────────────────────────────────
+# Calls Nominatim server-side — avoids browser CORS issues entirely.
+# Results cached in memory for the life of the process.
+
+_suburb_boundary_cache: dict = {}
+
+@app.get("/api/suburb/boundary")
+async def suburb_boundary(name: str = Query(..., min_length=2, max_length=80)):
+    """
+    Fetch suburb GeoJSON boundary from Nominatim, server-side.
+    Cached in memory. Returns {geojson, lat, lng, bbox} or 404.
+    """
+    key = name.lower().strip()
+    if key in _suburb_boundary_cache:
+        return _suburb_boundary_cache[key]
+
+    url = (
+        "https://nominatim.openstreetmap.org/search"
+        "?q=" + urllib.parse.quote(f"{name}, Western Cape, South Africa", safe="")
+        + "&format=json&limit=5&polygon_geojson=1&addressdetails=1"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            r = await client.get(url, headers={
+                "User-Agent": "SafeNote-WC-CommunityApp/1.0 (community safety platform)",
+                "Accept": "application/json",
+                "Accept-Language": "en"
+            })
+            results = r.json()
+
+        # Pick best match — must be in Western Cape
+        best = None
+        prefer = {"suburb","neighbourhood","quarter","residential","town","village"}
+        for res in results:
+            addr = res.get("address", {})
+            state = addr.get("state", "").lower()
+            if "western cape" not in state and "wes-kaap" not in state:
+                continue
+            if best is None:
+                best = res
+            if res.get("type") in prefer:
+                best = res
+                break
+
+        if not best or not best.get("geojson"):
+            raise HTTPException(status_code=404,
+                detail=f"No boundary found for '{name}' in Western Cape")
+
+        bounds = best.get("boundingbox")
+        data = {
+            "name":   name,
+            "geojson": best["geojson"],
+            "lat":    float(best["lat"]),
+            "lng":    float(best["lon"]),
+            "bbox": [
+                [float(bounds[0]), float(bounds[2])],
+                [float(bounds[1]), float(bounds[3])]
+            ] if bounds else None,
+            "type": best.get("type"),
+            "display_name": best.get("display_name","")
+        }
+        _suburb_boundary_cache[key] = data
+        return data
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503,
+            detail=f"Boundary service unavailable: {str(e)}")
 
 # ── NHW TOKEN VERIFY (public — used by frontend) ─────────────────────────────
 
