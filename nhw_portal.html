@@ -40,6 +40,20 @@
   border-radius:14px;padding:14px;color:var(--muted);font-size:13px;line-height:1.6
 }
 
+
+/* SafeNote NHW operational boundary / risk shading */
+.nhw-map-tools{
+  display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:12px
+}
+.boundary-pill{
+  display:inline-block;border:1px solid rgba(240,112,112,.35);color:#f07070;
+  border-radius:999px;padding:5px 9px;font:700 9px 'DM Mono',monospace;
+  text-transform:uppercase;letter-spacing:.8px
+}
+.legend-risk{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.legend-risk span{font:700 9px 'DM Mono',monospace;color:var(--muted);display:flex;align-items:center;gap:5px}
+.legend-risk i{width:10px;height:10px;border-radius:50%;display:inline-block}
+
 </style>
 </head>
 <body>
@@ -75,7 +89,22 @@
       <div class="card kpi span2"><div class="label">Period total</div><div class="val" id="k-total">0</div><div class="sub">selected range</div></div>
       <div class="card kpi span2"><div class="label">Intel locations</div><div class="val" id="k-intel">0</div><div class="sub">NHW-only layer</div></div>
       <div class="card kpi span2"><div class="label">Hotspots</div><div class="val" id="k-hotspots">0</div><div class="sub">repeat cells</div></div>
-      <div class="card span4" id="opsmap"><div class="section-title"><h3>Live Map + Heatmap</h3><span>NHW only · exact internal view</span></div><div id="map"></div></div>
+      <div class="card span4" id="opsmap">
+        <div class="section-title"><h3>Live Map + Heatmap</h3><span>NHW only · exact internal view</span></div>
+        <div class="nhw-map-tools">
+          <input id="portal-suburb-search" placeholder="Search suburb / patrol area…" onkeydown="if(event.key==='Enter'){portalSelectSuburb(this.value)}" />
+          <button class="action primary" onclick="portalSelectSuburb(document.getElementById('portal-suburb-search').value)">Outline</button>
+          <button class="action" onclick="toggleRiskLayer()">Risk Layer</button>
+        </div>
+        <div class="legend-risk">
+          <span><i style="background:#7dab8a"></i>Low</span>
+          <span><i style="background:#d4a832"></i>Medium</span>
+          <span><i style="background:#e8904a"></i>High</span>
+          <span><i style="background:#f07070"></i>Critical</span>
+        </div>
+        <div style="height:10px"></div>
+        <div id="map"></div>
+      </div>
       <div class="card span2">
         <div class="section-title"><h3>Top Hotspots</h3><span>rounded cells</span></div>
         <div id="hotspots-list" style="display:grid;gap:10px"></div>
