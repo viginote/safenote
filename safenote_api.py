@@ -129,11 +129,6 @@ def init_db():
             label       TEXT,
             created_at  INTEGER
         );
-        INSERT OR IGNORE INTO nhw_tokens(token,label,created_at) VALUES
-            ('NHW-PILOT1','Pilot NHW Group 1',strftime('%s','now')),
-            ('NHW-PILOT2','Pilot NHW Group 2',strftime('%s','now')),
-            ('NHW-PILOT3','Pilot NHW Group 3',strftime('%s','now'));
-
         CREATE TABLE IF NOT EXISTS eskom_cache (
             id          INTEGER PRIMARY KEY CHECK (id=1),
             stage       INTEGER DEFAULT 0,
@@ -648,7 +643,7 @@ async def list_nhw_tokens(_=Depends(require_admin), db=Depends(get_db)):
 @app.post("/api/admin/nhw-tokens")
 async def create_nhw_token(label: str, _=Depends(require_admin), db=Depends(get_db)):
     """Create a new NHW access token for a CPF group."""
-    token = "NHW-" + uuid.uuid4().hex[:6].upper()
+    token = "NHW-" + uuid.uuid4().hex[:10].upper()
     db.execute("INSERT INTO nhw_tokens(token,label,created_at) VALUES(?,?,?)",
                (token, label, int(time.time())))
     db.commit()
