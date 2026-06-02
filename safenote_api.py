@@ -658,6 +658,24 @@ async def revoke_nhw_token(token: str, _=Depends(require_admin), db=Depends(get_
     return {"revoked": token}
 
 
+# ── NHW TOKEN VERIFY (public — used by frontend) ─────────────────────────────
+
+class NhwVerifyIn(BaseModel):
+    code: str
+
+@app.post("/api/nhw/verify")
+async def nhw_verify(body: NhwVerifyIn, db=Depends(get_db)):
+    """
+    Frontend calls this to verify an NHW access code without exposing
+    the full token list. Returns {valid: true/false} only.
+    """
+    code = body.code.strip().upper()
+    result = db.execute(
+        "SELECT 1 FROM nhw_tokens WHERE token=?", (code,)
+    ).fetchone()
+    return {"valid": result is not None}
+
+
 # ── HEALTH ────────────────────────────────────────────────────────────────────
 
 @app.get("/api/health")
