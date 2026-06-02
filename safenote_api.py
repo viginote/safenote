@@ -823,17 +823,17 @@ class NhwVerifyIn(BaseModel):
 async def nhw_verify(body: NhwVerifyIn, db=Depends(get_db)):
     """
     Frontend calls this to verify an NHW access code without exposing
-    the full token list. Returns {valid: true/false} only.
+    the full token list. Returns validity and the group label.
     """
     code = body.code.strip().upper()
     result = db.execute(
-        "SELECT 1 FROM nhw_tokens WHERE token=?", (code,)
+        "SELECT label FROM nhw_tokens WHERE token=?", (code,)
     ).fetchone()
-    return {"valid": result is not None}
+    return {"valid": result is not None, "label": result["label"] if result else None}
 
 
 
-# ── NHW / CPF PORTAL ROUTES ──────────────────────────────────────────────────
+# ── NHW PORTAL ROUTES ────────────────────────────────────────────────────────
 
 @app.get("/api/nhw/analytics")
 async def nhw_analytics(
@@ -842,8 +842,8 @@ async def nhw_analytics(
     db=Depends(get_db)
 ):
     """
-    NHW/CPF dashboard analytics.
-    Returns summary cards, daily trend, incident type counts and hotspot cells.
+    Analytics for verified NHW/CPF portal.
+    Returns KPI summary, daily trend, incident-type breakdown and hotspots.
     """
     now = int(time.time())
     since = now - (days * 86400)
@@ -856,53 +856,45 @@ async def nhw_analytics(
         "period_total": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (since,)).fetchone()[0],
         "critical": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='critical'", (since,)).fetchone()[0],
         "high": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='high'", (since,)).fetchone()[0],
-        "medium": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='medium'", (since,)).fetchone()[0],
-        "low": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='low'", (since,)).fetchone()[0],
         "intel": db.execute("SELECT COUNT(*) FROM intel_locations WHERE ts>?", (since,)).fetchone()[0],
     }
 
-    by_type_rows = db.execute(
-        """SELECT type, COUNT(*) as count
+    trend_rows = db.execute(
+        """SELECT date(ts,'unixepoch') AS day, COUNT(*) AS count
            FROM reports
-           WHERE ts > ?
+           WHERE ts>?
+           GROUP BY date(ts,'unixepoch')
+           ORDER BY day ASC""",
+        (since,)
+    ).fetchall()
+
+    by_type_rows = db.execute(
+        """SELECT type, COUNT(*) AS count
+           FROM reports
+           WHERE ts>?
            GROUP BY type
            ORDER BY count DESC
            LIMIT 12""",
         (since,)
     ).fetchall()
 
-    trend_rows = db.execute(
-        """SELECT strftime('%Y-%m-%d', ts, 'unixepoch') as day,
-                  COUNT(*) as count
-           FROM reports
-           WHERE ts > ?
-           GROUP BY day
-           ORDER BY day ASC""",
-        (since,)
-    ).fetchall()
-
     hotspot_rows = db.execute(
-        """SELECT round(lat,3) as lat,
-                  round(lng,3) as lng,
-                  COUNT(*) as count,
-                  MAX(CASE severity WHEN 'critical' THEN 4 WHEN 'high' THEN 3
-                      WHEN 'medium' THEN 2 ELSE 1 END) as max_sev
+        """SELECT round(lat,3) AS lat, round(lng,3) AS lng, COUNT(*) AS count
            FROM reports
-           WHERE ts > ? AND type NOT LIKE 'power_%'
+           WHERE ts>? AND type NOT LIKE 'power_%'
            GROUP BY round(lat,3), round(lng,3)
-           HAVING count >= 1
+           HAVING COUNT(*) >= 1
            ORDER BY count DESC
-           LIMIT 20""",
+           LIMIT 10""",
         (since,)
     ).fetchall()
 
     return {
-        "days": days,
         "summary": summary,
-        "by_type": [row_to_dict(r) for r in by_type_rows],
         "trend": [row_to_dict(r) for r in trend_rows],
+        "by_type": [row_to_dict(r) for r in by_type_rows],
         "hotspots": [row_to_dict(r) for r in hotspot_rows],
-        "generated_at": now,
+        "days": days,
     }
 
 
@@ -913,63 +905,33 @@ async def nhw_export_csv(
     db=Depends(get_db)
 ):
     """
-    NHW/CPF CSV export for the selected reporting period.
-    Coordinates are rounded to 3 decimals for safer external sharing.
+    NHW CSV export for verified community structures.
+    Coordinates are rounded to 4 decimals for operational planning.
     """
     since = int(time.time()) - (days * 86400)
     rows = db.execute(
-        """SELECT type,severity,round(lat,3) as lat,round(lng,3) as lng,note,ts
+        """SELECT type,severity,round(lat,4) AS lat,round(lng,4) AS lng,note,ts
            FROM reports
-           WHERE ts > ?
+           WHERE ts>?
            ORDER BY ts DESC""",
         (since,)
     ).fetchall()
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["timestamp_utc", "type", "severity", "latitude", "longitude", "note"])
+    writer.writerow(["timestamp_utc","type","severity","latitude","longitude","note"])
     for r in rows:
         writer.writerow([
             datetime.fromtimestamp(r["ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
             r["type"], r["severity"], r["lat"], r["lng"], r["note"] or ""
         ])
     output.seek(0)
-    fname = f"safenote_nhw_export_{days}d_{datetime.now().strftime('%Y%m%d')}.csv"
+    fname = f"safenote_nhw_export_{datetime.now().strftime('%Y%m%d')}.csv"
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={fname}"}
     )
-
-
-# ── ADMIN TEST-DATA RESET ROUTES ──────────────────────────────────────────────
-
-@app.delete("/api/admin/reports/all")
-async def admin_clear_reports(_=Depends(require_admin), db=Depends(get_db)):
-    """Clear incident reports only. Keeps NHW tokens and intel locations."""
-    db.execute("DELETE FROM reports")
-    db.commit()
-    return {"cleared": "reports"}
-
-
-@app.delete("/api/admin/intel/all")
-async def admin_clear_intel(_=Depends(require_admin), db=Depends(get_db)):
-    """Clear intel locations only. Keeps incident reports and NHW tokens."""
-    db.execute("DELETE FROM intel_locations")
-    db.commit()
-    return {"cleared": "intel_locations"}
-
-
-@app.delete("/api/admin/reset")
-async def admin_reset_test_data(_=Depends(require_admin), db=Depends(get_db)):
-    """
-    Clear all test report data before NHW pilot testing.
-    Keeps NHW tokens so community access codes are not lost.
-    """
-    db.execute("DELETE FROM reports")
-    db.execute("DELETE FROM intel_locations")
-    db.commit()
-    return {"cleared": ["reports", "intel_locations"], "kept": ["nhw_tokens"]}
 
 
 # ── HEALTH ────────────────────────────────────────────────────────────────────
@@ -983,14 +945,15 @@ async def health():
 # ── SERVE APP ─────────────────────────────────────────────────────────────────
 
 HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "safenote_sa.html")
-NHW_FILE  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhw_portal.html")
+
+NHW_HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhw_portal.html")
 
 @app.get("/nhw", include_in_schema=False)
 async def serve_nhw_portal():
-    if not os.path.exists(NHW_FILE):
+    if not os.path.exists(NHW_HTML_FILE):
         raise HTTPException(status_code=404,
             detail="nhw_portal.html not found. Ensure it is in the same directory as safenote_api.py.")
-    return FileResponse(NHW_FILE, media_type="text/html")
+    return FileResponse(NHW_HTML_FILE, media_type="text/html")
 
 
 @app.get("/", include_in_schema=False)
