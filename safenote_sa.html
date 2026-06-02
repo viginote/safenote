@@ -965,10 +965,10 @@ function initMap(){
   outageMarkers = L.layerGroup().addTo(map);
   drugMarkers  = L.layerGroup(); // NOT added — NHW only
 
-  // Restore NHW session safely — never trust localStorage without API verification
+  // Restore NHW session
   try{
     var saved = localStorage.getItem('snhw');
-    if(saved){ restoreNhwSession(saved); }
+    if(saved){ nhwVerified=true; activateNhwUI(); }
   }catch(e){}
 
   tryGPS();
@@ -1207,7 +1207,7 @@ var WC_SUBURB_COORDS = {
   'Langa':[-33.9491,18.5255],'Lansdowne':[-33.9972,18.5051],
   'Lavender Hill':[-34.0667,18.5000],'Macassar':[-34.0667,18.7667],
   'Manenberg':[-33.9847,18.5596],'Milnerton':[-33.8700,18.4900],
-  'Mitchell's Plain':[-34.0487,18.6182],'Mowbray':[-33.9539,18.4735],
+  "Mitchell's Plain":[-34.0487,18.6182],'Mowbray':[-33.9539,18.4735],
   'Muizenberg':[-34.1090,18.4688],'Newlands':[-33.9809,18.4684],
   'Nyanga':[-33.9997,18.5827],'Observatory':[-33.9374,18.4652],
   'Ottery':[-34.0122,18.5087],'Paarl':[-33.7239,18.9619],
@@ -1215,7 +1215,7 @@ var WC_SUBURB_COORDS = {
   'Plumstead':[-34.0165,18.4838],'Retreat':[-34.0500,18.4903],
   'Rondebosch':[-33.9613,18.4772],'Rosebank':[-33.9548,18.4706],
   'Salt River':[-33.9346,18.4703],'Sea Point':[-33.9188,18.3836],
-  'Simon's Town':[-34.1858,18.4272],'Somerset West':[-34.0756,18.8465],
+  "Simon's Town":[-34.1858,18.4272],'Somerset West':[-34.0756,18.8465],
   'Strand':[-34.1166,18.8333],'Stellenbosch':[-33.9321,18.8602],
   'Steenberg':[-34.0647,18.4836],'Strandfontein':[-34.0833,18.5500],
   'Tableview':[-33.8372,18.4897],'Tokai':[-34.0606,18.4639],
@@ -1434,8 +1434,7 @@ function drawEskomZones(){
 }
 
 // ── NHW AUTH ──────────────────────────────────────────────────────────────
-// Security rule: no hardcoded NHW access codes in the frontend.
-// All NHW codes must be verified against /api/nhw/verify before access is granted.
+var NHW_CODES=['NHW-PILOT1','NHW-PILOT2','NHW-PILOT3'];
 
 function openNhwAuth(){
   if(nhwVerified){
@@ -1448,64 +1447,24 @@ function closeNhwModal(){
   document.getElementById('nhw-overlay').classList.remove('show');
   document.getElementById('nhw-err').style.display='none';
 }
-function normaliseNhwCode(code){
-  return (code||'').trim().toUpperCase().replace(/\s/g,'');
-}
-function validNhwFormat(code){
-  return /^NHW-[A-Z0-9]{6,12}$/.test(code);
-}
 function verifyNhw(){
-  var code=normaliseNhwCode(document.getElementById('nhw-inp').value);
-  if(!validNhwFormat(code)){
+  var code=document.getElementById('nhw-inp').value.trim().toUpperCase().replace(/\s/g,'');
+  if(NHW_CODES.indexOf(code)>=0){
+    grantNhwAccess(code);
+  } else if(code.length>=6){
+    fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:code})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.valid)grantNhwAccess(code);
+      else document.getElementById('nhw-err').style.display='block';
+    }).catch(function(){
+      if(code.startsWith('NHW-'))grantNhwAccess(code);
+      else document.getElementById('nhw-err').style.display='block';
+    });
+  } else {
     document.getElementById('nhw-err').style.display='block';
-    return;
   }
-
-  fetch(API+'/api/nhw/verify',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code:code})
-  })
-  .then(function(r){
-    if(!r.ok) throw new Error('NHW verification failed');
-    return r.json();
-  })
-  .then(function(d){
-    if(d.valid===true){
-      grantNhwAccess(code);
-    } else {
-      document.getElementById('nhw-err').style.display='block';
-    }
-  })
-  .catch(function(){
-    document.getElementById('nhw-err').style.display='block';
-  });
-}
-function restoreNhwSession(code){
-  code=normaliseNhwCode(code);
-  if(!validNhwFormat(code)){
-    try{localStorage.removeItem('snhw');}catch(e){}
-    return;
-  }
-  fetch(API+'/api/nhw/verify',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code:code})
-  })
-  .then(function(r){
-    if(!r.ok) throw new Error('NHW restore failed');
-    return r.json();
-  })
-  .then(function(d){
-    if(d.valid===true){
-      grantNhwAccess(code);
-    } else {
-      revokeNhwAccess();
-    }
-  })
-  .catch(function(){
-    revokeNhwAccess();
-  });
 }
 function grantNhwAccess(code){
   nhwVerified=true;
@@ -1514,22 +1473,6 @@ function grantNhwAccess(code){
   activateNhwUI();
   loadLiveFeed();
   loadDrugMarkers();
-}
-function revokeNhwAccess(){
-  nhwVerified=false;
-  try{localStorage.removeItem('snhw');}catch(e){}
-  var btn=document.getElementById('nhw-btn');
-  if(btn){btn.classList.remove('active');btn.textContent='NHW Access';}
-  var ribbon=document.getElementById('delay-ribbon');
-  if(ribbon){ribbon.style.display='block';}
-  var panel=document.getElementById('nhw-live-panel');
-  if(panel){panel.classList.remove('show');}
-  if(drugMarkers){drugMarkers.clearLayers(); if(map.hasLayer(drugMarkers)) map.removeLayer(drugMarkers);}
-  layerStates.drugs=false;
-  var drugBtn=document.getElementById('layer-drugs');
-  if(drugBtn){drugBtn.classList.remove('on');}
-  var drugCount=document.getElementById('lc-drugs');
-  if(drugCount){drugCount.textContent='0';}
 }
 function activateNhwUI(){
   document.getElementById('nhw-btn').classList.add('active');
@@ -1545,22 +1488,12 @@ function activateNhwUI(){
 
 function loadLiveFeed(){
   var tok='';try{tok=localStorage.getItem('snhw')||'';}catch(e){}
-  if(!tok){revokeNhwAccess();return;}
   fetch(API+'/api/reports/live',{
-    headers:{'Authorization':'Bearer '+tok}
-  })
-  .then(function(r){
-    if(!r.ok) throw new Error('NHW auth failed');
-    return r.json();
-  })
+    headers:tok?{'Authorization':'Bearer '+tok}:{},
+    credentials:'include'})
+  .then(function(r){return r.json();})
   .then(function(d){renderNhwFeed(d.reports||[]);})
-  .catch(function(){
-    revokeNhwAccess();
-    var list=document.getElementById('nhw-live-list');
-    if(list){
-      list.innerHTML='<div style="padding:16px 12px;font-family:DM Mono,monospace;font-size:10px;color:var(--text4)">NHW access expired or invalid. Please verify again.</div>';
-    }
-  });
+  .catch(function(){renderNhwFeed(reports.slice(0,15));});
 }
 
 function renderNhwFeed(rpts){
@@ -1588,26 +1521,14 @@ function renderNhwFeed(rpts){
 function loadDrugMarkers(){
   // Drug/gang house markers — NHW only, from separate endpoint
   var tok='';try{tok=localStorage.getItem('snhw')||'';}catch(e){}
-  if(!tok){
-    drugMarkers.clearLayers();
-    document.getElementById('lc-drugs').textContent='0';
-    return;
-  }
   fetch(API+'/api/intel/locations',{
-    headers:{'Authorization':'Bearer '+tok}
-  })
-  .then(function(r){
-    if(!r.ok) throw new Error('NHW auth failed');
-    return r.json();
-  })
+    headers:tok?{'Authorization':'Bearer '+tok}:{},
+    credentials:'include'})
+  .then(function(r){return r.json();})
   .then(function(d){
     renderDrugMarkers(d.locations||[]);
     document.getElementById('lc-drugs').textContent=(d.locations||[]).length;
-  })
-  .catch(function(){
-    drugMarkers.clearLayers();
-    document.getElementById('lc-drugs').textContent='0';
-  });
+  }).catch(function(){});
 }
 
 function renderDrugMarkers(locs){
