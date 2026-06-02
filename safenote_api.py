@@ -934,6 +934,110 @@ async def nhw_export_csv(
     )
 
 
+
+# ── ADMIN HUB ROUTES ─────────────────────────────────────────────────────────
+
+@app.get("/api/admin/overview")
+async def admin_overview(
+    days: int = Query(30, ge=1, le=365),
+    _=Depends(require_admin),
+    db=Depends(get_db)
+):
+    now = int(time.time())
+    since = now - (days * 86400)
+    today_s = now - 86400
+    week_s = now - 604800
+
+    return {
+        "today": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (today_s,)).fetchone()[0],
+        "week": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (week_s,)).fetchone()[0],
+        "period_total": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (since,)).fetchone()[0],
+        "critical": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='critical'", (since,)).fetchone()[0],
+        "high": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='high'", (since,)).fetchone()[0],
+        "intel_total": db.execute("SELECT COUNT(*) FROM intel_locations").fetchone()[0],
+        "nhw_tokens": db.execute("SELECT COUNT(*) FROM nhw_tokens").fetchone()[0],
+        "days": days,
+    }
+
+
+@app.get("/api/admin/export-download")
+async def admin_export_download(admin_secret: str = Query(...), db=Depends(get_db)):
+    if admin_secret != ADMIN_SECRET:
+        raise HTTPException(status_code=401, detail="Admin token required")
+    rows = db.execute(
+        """SELECT type,severity,round(lat,3) as lat,round(lng,3) as lng,note,ts
+           FROM reports ORDER BY ts DESC"""
+    ).fetchall()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["timestamp_utc","type","severity","latitude","longitude","note"])
+    for r in rows:
+        writer.writerow([
+            datetime.fromtimestamp(r["ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
+            r["type"], r["severity"], r["lat"], r["lng"], r["note"] or ""
+        ])
+    output.seek(0)
+    fname = f"safenote_admin_export_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={fname}"}
+    )
+
+
+@app.get("/api/admin/nhw-export-download")
+async def admin_nhw_export_download(
+    days: int = Query(30, ge=1, le=365),
+    admin_secret: str = Query(...),
+    db=Depends(get_db)
+):
+    if admin_secret != ADMIN_SECRET:
+        raise HTTPException(status_code=401, detail="Admin token required")
+    since = int(time.time()) - (days * 86400)
+    rows = db.execute(
+        """SELECT type,severity,round(lat,4) as lat,round(lng,4) as lng,note,ts
+           FROM reports WHERE ts>? ORDER BY ts DESC""",
+        (since,)
+    ).fetchall()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["timestamp_utc","type","severity","latitude","longitude","note"])
+    for r in rows:
+        writer.writerow([
+            datetime.fromtimestamp(r["ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
+            r["type"], r["severity"], r["lat"], r["lng"], r["note"] or ""
+        ])
+    output.seek(0)
+    fname = f"safenote_nhw_export_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={fname}"}
+    )
+
+
+@app.delete("/api/admin/reports/all")
+async def admin_clear_reports(_=Depends(require_admin), db=Depends(get_db)):
+    db.execute("DELETE FROM reports")
+    db.commit()
+    return {"cleared": "reports"}
+
+
+@app.delete("/api/admin/intel/all")
+async def admin_clear_intel(_=Depends(require_admin), db=Depends(get_db)):
+    db.execute("DELETE FROM intel_locations")
+    db.commit()
+    return {"cleared": "intel_locations"}
+
+
+@app.delete("/api/admin/reset")
+async def admin_full_reset(_=Depends(require_admin), db=Depends(get_db)):
+    db.execute("DELETE FROM reports")
+    db.execute("DELETE FROM intel_locations")
+    db.commit()
+    return {"cleared": ["reports", "intel_locations"]}
+
+
 # ── HEALTH ────────────────────────────────────────────────────────────────────
 
 @app.get("/api/health")
@@ -945,6 +1049,7 @@ async def health():
 # ── SERVE APP ─────────────────────────────────────────────────────────────────
 
 HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "safenote_sa.html")
+ADMIN_HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin_hub.html")
 
 NHW_HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhw_portal.html")
 
@@ -954,6 +1059,14 @@ async def serve_nhw_portal():
         raise HTTPException(status_code=404,
             detail="nhw_portal.html not found. Ensure it is in the same directory as safenote_api.py.")
     return FileResponse(NHW_HTML_FILE, media_type="text/html")
+
+
+@app.get("/admin", include_in_schema=False)
+async def serve_admin_hub():
+    if not os.path.exists(ADMIN_HTML_FILE):
+        raise HTTPException(status_code=404,
+            detail="admin_hub.html not found. Ensure it is in the same directory as safenote_api.py.")
+    return FileResponse(ADMIN_HTML_FILE, media_type="text/html")
 
 
 @app.get("/", include_in_schema=False)
