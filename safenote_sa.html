@@ -965,10 +965,10 @@ function initMap(){
   outageMarkers = L.layerGroup().addTo(map);
   drugMarkers  = L.layerGroup(); // NOT added — NHW only
 
-  // Restore NHW session
+  // Restore NHW session safely — never trust localStorage without API verification
   try{
     var saved = localStorage.getItem('snhw');
-    if(saved){ nhwVerified=true; activateNhwUI(); }
+    if(saved){ restoreNhwSession(saved); }
   }catch(e){}
 
   tryGPS();
@@ -1007,6 +1007,18 @@ function searchSuburbs(q){
       +'\')">'+s+', Western Cape</div>';
   }).join('');
   dd.classList.add('show');
+}
+
+function runSuburbSearch(){
+  var inp=document.getElementById('suburb-search');
+  var q=(inp.value||'').trim();
+  if(!q)return;
+  var exact=WC_SUBURBS.find(function(s){return s.toLowerCase()===q.toLowerCase();});
+  if(exact){selectSuburb(exact);return;}
+  var first=WC_SUBURBS.find(function(s){return s.toLowerCase().indexOf(q.toLowerCase())>=0;});
+  if(first){selectSuburb(first);return;}
+  // If it is not in the preset list, still try geocoding the typed area name.
+  selectSuburb(q);
 }
 
 function selectSuburb(name){
@@ -1121,8 +1133,8 @@ async function fetchSuburbBoundary(name){
       if(suburbBoundary) map.removeLayer(suburbBoundary);
       suburbBoundary = L.circle([preset[0],preset[1]], {
         radius: 1200,
-        color:'#7dab8a', weight:2, opacity:.7,
-        fillColor:'#7dab8a', fillOpacity:.05,
+        color:'#f07070', weight:3, opacity:.95,
+        fillColor:'#f07070', fillOpacity:.06,
         dashArray:'8 5'
       }).addTo(map);
       map.fitBounds(fakeBbox, {padding:[40,40]});
@@ -1137,15 +1149,15 @@ async function fetchSuburbBoundary(name){
 function drawSuburbBoundary(data, name){
   if(suburbBoundary){map.removeLayer(suburbBoundary);suburbBoundary=null;}
 
-  // Draw GeoJSON polygon with teal outline
+  // Draw GeoJSON polygon with red outline
   suburbBoundary = L.geoJSON(data.geojson, {
     style: function(){
       return {
-        color:'#7dab8a',
-        weight: 2.5,
-        opacity: 0.9,
-        fillColor:'#7dab8a',
-        fillOpacity: 0.07,
+        color:'#f07070',
+        weight: 3,
+        opacity: 0.95,
+        fillColor:'#f07070',
+        fillOpacity: 0.06,
         dashArray: null
       };
     }
@@ -1260,7 +1272,10 @@ function toggleLayer(name, btn){
 // ── LOAD DATA ─────────────────────────────────────────────────────────────
 function loadFeed(){
   fetch(API+'/api/reports/public')
-  .then(function(r){return r.json();})
+  .then(function(r){
+    if(!r.ok) throw new Error('Public feed failed');
+    return r.json();
+  })
   .then(function(d){
     reports=d.reports||[];
     renderCrimeMarkers(reports);
@@ -1268,34 +1283,15 @@ function loadFeed(){
     renderPatrolLayer(reports);
     document.getElementById('lc-crimes').textContent=reports.length;
   })
-  .catch(demoData);
-}
-
-function demoData(){
-  reports=[
-    {lat:-33.9249,lng:18.4241,type:'hijacking',severity:'critical',ts:Date.now()/1000-3600},
-    {lat:-33.9650,lng:18.4950,type:'shooting',severity:'critical',ts:Date.now()/1000-7200},
-    {lat:-33.8800,lng:18.5100,type:'burglary',severity:'medium',ts:Date.now()/1000-1800},
-    {lat:-33.9500,lng:18.4600,type:'suspicious_vehicle',severity:'low',ts:Date.now()/1000-900},
-    {lat:-33.9100,lng:18.4400,type:'armed_robbery',severity:'high',ts:Date.now()/1000-5400},
-    {lat:-33.9950,lng:18.5200,type:'gbv',severity:'high',ts:Date.now()/1000-10800},
-    {lat:-34.0200,lng:18.4700,type:'drug_dealing',severity:'medium',ts:Date.now()/1000-14400},
-    {lat:-33.8500,lng:18.6300,type:'cable_theft',severity:'medium',ts:Date.now()/1000-2700},
-    {lat:-34.0500,lng:18.5000,type:'suspicious_person',severity:'low',ts:Date.now()/1000-600},
-    {lat:-33.9300,lng:18.4800,type:'vehicle_theft',severity:'medium',ts:Date.now()/1000-18000},
-    {lat:-33.9750,lng:18.5500,type:'gang_activity',severity:'high',ts:Date.now()/1000-21600},
-    {lat:-34.1000,lng:18.4600,type:'fire',severity:'high',ts:Date.now()/1000-4500},
-    {lat:-33.8700,lng:18.5700,type:'missing_person',severity:'high',ts:Date.now()/1000-32400},
-    {lat:-33.9400,lng:18.3800,type:'house_robbery',severity:'critical',ts:Date.now()/1000-900},
-  ];
-  renderCrimeMarkers(reports);
-  renderHeat(reports);
-  renderPatrolLayer(reports);
-  document.getElementById('lc-crimes').textContent=reports.length;
-  document.getElementById('s-today').textContent='3';
-  document.getElementById('s-week').textContent='14';
-  document.getElementById('s-areas').textContent='5';
-  document.getElementById('s-total').textContent='14';
+  .catch(function(){
+    // Production-safe: never show fake crime pins.
+    reports=[];
+    renderCrimeMarkers(reports);
+    renderHeat(reports);
+    renderPatrolLayer(reports);
+    document.getElementById('lc-crimes').textContent='0';
+    showToast('Map data unavailable','No demo incident pins are shown.');
+  });
 }
 
 function renderCrimeMarkers(rpts){
@@ -1434,7 +1430,8 @@ function drawEskomZones(){
 }
 
 // ── NHW AUTH ──────────────────────────────────────────────────────────────
-var NHW_CODES=['NHW-PILOT1','NHW-PILOT2','NHW-PILOT3'];
+// Security rule: no hardcoded NHW access codes in the frontend.
+// All NHW codes must be verified against /api/nhw/verify before access is granted.
 
 function openNhwAuth(){
   if(nhwVerified){
@@ -1447,24 +1444,64 @@ function closeNhwModal(){
   document.getElementById('nhw-overlay').classList.remove('show');
   document.getElementById('nhw-err').style.display='none';
 }
+function normaliseNhwCode(code){
+  return (code||'').trim().toUpperCase().replace(/\s/g,'');
+}
+function validNhwFormat(code){
+  return /^NHW-[A-Z0-9]{6,12}$/.test(code);
+}
 function verifyNhw(){
-  var code=document.getElementById('nhw-inp').value.trim().toUpperCase().replace(/\s/g,'');
-  if(NHW_CODES.indexOf(code)>=0){
-    grantNhwAccess(code);
-  } else if(code.length>=6){
-    fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code:code})})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(d.valid)grantNhwAccess(code);
-      else document.getElementById('nhw-err').style.display='block';
-    }).catch(function(){
-      if(code.startsWith('NHW-'))grantNhwAccess(code);
-      else document.getElementById('nhw-err').style.display='block';
-    });
-  } else {
+  var code=normaliseNhwCode(document.getElementById('nhw-inp').value);
+  if(!validNhwFormat(code)){
     document.getElementById('nhw-err').style.display='block';
+    return;
   }
+
+  fetch(API+'/api/nhw/verify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({code:code})
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('NHW verification failed');
+    return r.json();
+  })
+  .then(function(d){
+    if(d.valid===true){
+      grantNhwAccess(code);
+    } else {
+      document.getElementById('nhw-err').style.display='block';
+    }
+  })
+  .catch(function(){
+    document.getElementById('nhw-err').style.display='block';
+  });
+}
+function restoreNhwSession(code){
+  code=normaliseNhwCode(code);
+  if(!validNhwFormat(code)){
+    try{localStorage.removeItem('snhw');}catch(e){}
+    return;
+  }
+  fetch(API+'/api/nhw/verify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({code:code})
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('NHW restore failed');
+    return r.json();
+  })
+  .then(function(d){
+    if(d.valid===true){
+      grantNhwAccess(code);
+    } else {
+      revokeNhwAccess();
+    }
+  })
+  .catch(function(){
+    revokeNhwAccess();
+  });
 }
 function grantNhwAccess(code){
   nhwVerified=true;
@@ -1473,6 +1510,22 @@ function grantNhwAccess(code){
   activateNhwUI();
   loadLiveFeed();
   loadDrugMarkers();
+}
+function revokeNhwAccess(){
+  nhwVerified=false;
+  try{localStorage.removeItem('snhw');}catch(e){}
+  var btn=document.getElementById('nhw-btn');
+  if(btn){btn.classList.remove('active');btn.textContent='NHW Access';}
+  var ribbon=document.getElementById('delay-ribbon');
+  if(ribbon){ribbon.style.display='block';}
+  var panel=document.getElementById('nhw-live-panel');
+  if(panel){panel.classList.remove('show');}
+  if(drugMarkers){drugMarkers.clearLayers(); if(map.hasLayer(drugMarkers)) map.removeLayer(drugMarkers);}
+  layerStates.drugs=false;
+  var drugBtn=document.getElementById('layer-drugs');
+  if(drugBtn){drugBtn.classList.remove('on');}
+  var drugCount=document.getElementById('lc-drugs');
+  if(drugCount){drugCount.textContent='0';}
 }
 function activateNhwUI(){
   document.getElementById('nhw-btn').classList.add('active');
@@ -1488,12 +1541,22 @@ function activateNhwUI(){
 
 function loadLiveFeed(){
   var tok='';try{tok=localStorage.getItem('snhw')||'';}catch(e){}
+  if(!tok){revokeNhwAccess();return;}
   fetch(API+'/api/reports/live',{
-    headers:tok?{'Authorization':'Bearer '+tok}:{},
-    credentials:'include'})
-  .then(function(r){return r.json();})
+    headers:{'Authorization':'Bearer '+tok}
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('NHW auth failed');
+    return r.json();
+  })
   .then(function(d){renderNhwFeed(d.reports||[]);})
-  .catch(function(){renderNhwFeed(reports.slice(0,15));});
+  .catch(function(){
+    revokeNhwAccess();
+    var list=document.getElementById('nhw-live-list');
+    if(list){
+      list.innerHTML='<div style="padding:16px 12px;font-family:DM Mono,monospace;font-size:10px;color:var(--text4)">NHW access expired or invalid. Please verify again.</div>';
+    }
+  });
 }
 
 function renderNhwFeed(rpts){
@@ -1521,14 +1584,26 @@ function renderNhwFeed(rpts){
 function loadDrugMarkers(){
   // Drug/gang house markers — NHW only, from separate endpoint
   var tok='';try{tok=localStorage.getItem('snhw')||'';}catch(e){}
+  if(!tok){
+    drugMarkers.clearLayers();
+    document.getElementById('lc-drugs').textContent='0';
+    return;
+  }
   fetch(API+'/api/intel/locations',{
-    headers:tok?{'Authorization':'Bearer '+tok}:{},
-    credentials:'include'})
-  .then(function(r){return r.json();})
+    headers:{'Authorization':'Bearer '+tok}
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('NHW auth failed');
+    return r.json();
+  })
   .then(function(d){
     renderDrugMarkers(d.locations||[]);
     document.getElementById('lc-drugs').textContent=(d.locations||[]).length;
-  }).catch(function(){});
+  })
+  .catch(function(){
+    drugMarkers.clearLayers();
+    document.getElementById('lc-drugs').textContent='0';
+  });
 }
 
 function renderDrugMarkers(locs){
@@ -1608,23 +1683,30 @@ function getGPS(){
 }
 
 async function submitReport(){
-  if(!selInciVal||!gpsLat)return;
+  if(!selInciVal||gpsLat===null||gpsLng===null)return;
+  if(!selSevVal) selSevVal='medium';
   var btn=document.getElementById('sub-btn');
   btn.textContent='Submitting…';btn.disabled=true;
   var note=document.getElementById('note-ta').value.trim();
   try{
     var r=await fetch(API+'/api/reports',{
-      method:'POST',headers:{'Content-Type':'application/json'},
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({type:selInciVal,severity:selSevVal,lat:gpsLat,lng:gpsLng,note:note||null})
     });
     if(r.ok||r.status===201){
-      closeModal();showToast('Report submitted','Thank you — your community is safer for it');
-      setTimeout(function(){loadFeed();loadStats();},1000);
-    } else {btn.textContent='Error — try again';btn.disabled=false;}
+      closeModal();
+      showToast('Report submitted','Recorded successfully. It will appear after the public delay.');
+      setTimeout(function(){loadFeed();loadStats();loadOutageLayer();},1000);
+    } else {
+      var msg='Server rejected report';
+      try{var err=await r.json(); msg=err.detail||msg;}catch(e){}
+      btn.textContent='Error — try again';btn.disabled=false;
+      showToast('Report not recorded', String(msg).slice(0,80));
+    }
   }catch(e){
-    closeModal();showToast('Report submitted','Saved locally — thank you');
-    reports.unshift({lat:gpsLat,lng:gpsLng,type:selInciVal,severity:selSevVal,ts:Date.now()/1000,note:note||null});
-    renderCrimeMarkers(reports);renderHeat(reports);
+    btn.textContent='Error — try again';btn.disabled=false;
+    showToast('Report not recorded','Connection/API error. No local fake report was added.');
   }
 }
 
@@ -1736,6 +1818,14 @@ document.getElementById('nhw-overlay').addEventListener('click',function(e){if(e
 // Close mobile sidebar on map tap
 document.getElementById('map').addEventListener('click',function(){
   document.getElementById('sidebar').classList.remove('mob-open');
+});
+
+// Press Enter in suburb search to zoom/outline the typed location.
+document.getElementById('suburb-search').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    e.preventDefault();
+    runSuburbSearch();
+  }
 });
 
 // Close suburb dropdown on outside click
