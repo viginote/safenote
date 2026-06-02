@@ -867,6 +867,39 @@ html,body{height:100%;background:var(--cream);color:var(--text);
 }
 .boundary-note.show{display:block}
 
+
+/* SafeNote public search boundary fix */
+.suburb-boundary-red{
+  stroke:#f07070!important;
+  stroke-width:3!important;
+  fill:rgba(240,112,112,.08)!important;
+}
+.suburb-approx-circle{
+  stroke:#f07070!important;
+  stroke-width:3!important;
+  stroke-dasharray:8 6!important;
+  fill:rgba(240,112,112,.10)!important;
+}
+.boundary-note{
+  position:absolute;
+  top:52px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:999;
+  background:rgba(12,20,12,.95);
+  border:1px solid rgba(240,112,112,.45);
+  color:#f07070;
+  border-radius:999px;
+  padding:7px 14px;
+  font:700 10px 'DM Mono',monospace;
+  letter-spacing:.5px;
+  display:none;
+  backdrop-filter:blur(10px);
+  white-space:nowrap;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+.boundary-note.show{display:block}
+
 </style>
 </head>
 <body>
@@ -925,7 +958,7 @@ html,body{height:100%;background:var(--cream);color:var(--text);
       <input class="suburb-search" id="suburb-search"
         type="text" placeholder="Search Western Cape suburb…"
         autocomplete="off" autocorrect="off" spellcheck="false"
-        oninput="searchSuburbs(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburb(this.value)}">
+        oninput="searchSuburbs(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburb(this.value)}" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburb(this.value)}">
       <span class="suburb-search-icon">&#x1F50D;</span>
       <div class="suburb-dropdown" id="suburb-dropdown"></div>
     </div>
@@ -2356,5 +2389,177 @@ async function drawApproximateSuburbCircle(name){
 }
 
 </script>
+
+<script>
+/* SafeNote public suburb boundary override.
+   This intentionally overrides older selectSuburb/drawSuburbBoundary logic.
+   Rule: public search should show a red polygon if available, otherwise a red approximate operational circle.
+   It should not leave only a blue pin as the selected-area result.
+*/
+(function(){
+  function showBoundaryNote(msg, keep){
+    var note=document.getElementById('boundary-note');
+    if(!note) return;
+    note.textContent=msg;
+    note.classList.add('show');
+    if(!keep){ setTimeout(function(){note.classList.remove('show')}, 3200); }
+  }
+
+  function clearKnownBlueSearchMarkers(){
+    try{
+      if(window.searchMarker && window.map){ map.removeLayer(window.searchMarker); window.searchMarker=null; }
+    }catch(e){}
+    try{
+      if(window.selectedMarker && window.map){ map.removeLayer(window.selectedMarker); window.selectedMarker=null; }
+    }catch(e){}
+    try{
+      if(window.locationMarker && window.map && window.locationMarker.options && window.locationMarker.options.title==='suburb-search'){
+        map.removeLayer(window.locationMarker); window.locationMarker=null;
+      }
+    }catch(e){}
+  }
+
+  window.selectSuburb = async function(name){
+    name=(name||'').trim();
+    if(!name) return;
+
+    var dd=document.getElementById('suburb-dropdown');
+    if(dd) dd.classList.remove('show');
+
+    var search=document.getElementById('suburb-search');
+    if(search) search.value=name;
+
+    window.activeSuburb=name;
+
+    var asName=document.getElementById('as-name');
+    if(asName) asName.textContent=name;
+
+    var activeSuburbEl=document.getElementById('active-suburb');
+    if(activeSuburbEl) activeSuburbEl.classList.add('show');
+
+    var bar=document.getElementById('suburb-bar');
+    var barName=document.getElementById('sbar-name');
+    if(barName) barName.textContent=name;
+    if(bar) bar.classList.add('show');
+
+    await window.drawSuburbBoundary(name);
+
+    if(typeof updateSuburbStats==='function'){
+      try{ updateSuburbStats(name); }catch(e){}
+    }
+  };
+
+  window.drawSuburbBoundary = async function(name){
+    clearKnownBlueSearchMarkers();
+
+    if(window.suburbLayer && window.map){
+      try{ map.removeLayer(window.suburbLayer); }catch(e){}
+      window.suburbLayer=null;
+    }
+
+    try{
+      var r=await fetch(API + '/api/suburb/boundary?name=' + encodeURIComponent(name));
+      if(!r.ok) throw new Error('boundary endpoint failed');
+      var d=await r.json();
+
+      if(d && d.geojson){
+        window.suburbLayer=L.geoJSON(d.geojson,{
+          className:'suburb-boundary-red',
+          style:function(){
+            return {
+              color:'#f07070',
+              weight:3,
+              opacity:1,
+              fillColor:'#f07070',
+              fillOpacity:.08
+            };
+          }
+        }).addTo(map);
+
+        try{
+          map.fitBounds(window.suburbLayer.getBounds(),{padding:[28,28],maxZoom:15});
+        }catch(e){
+          if(d.lat && d.lng) map.setView([d.lat,d.lng],13);
+        }
+
+        showBoundaryNote('Boundary shown: '+name,false);
+        return;
+      }
+
+      if(d && d.lat && d.lng){
+        var radius=d.fallback_radius_m || 1800;
+        window.suburbLayer=L.circle([d.lat,d.lng],{
+          radius:radius,
+          color:'#f07070',
+          weight:3,
+          opacity:1,
+          fillColor:'#f07070',
+          fillOpacity:.10,
+          dashArray:'8 6',
+          className:'suburb-approx-circle'
+        }).addTo(map);
+        map.fitBounds(window.suburbLayer.getBounds(),{padding:[28,28],maxZoom:14});
+        showBoundaryNote('Approximate area boundary: '+name,true);
+        return;
+      }
+
+      throw new Error('no usable boundary data');
+    }catch(err){
+      console.warn('Boundary unavailable, using approximate geocode circle',err);
+      await drawPublicApproxCircle(name);
+    }
+  };
+
+  async function drawPublicApproxCircle(name){
+    clearKnownBlueSearchMarkers();
+    if(window.suburbLayer && window.map){
+      try{ map.removeLayer(window.suburbLayer); }catch(e){}
+      window.suburbLayer=null;
+    }
+
+    try{
+      var url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+
+        encodeURIComponent(name+', Western Cape, South Africa');
+      var r=await fetch(url);
+      var arr=await r.json();
+
+      if(!arr || !arr.length) throw new Error('no geocode result');
+
+      var lat=parseFloat(arr[0].lat);
+      var lng=parseFloat(arr[0].lon);
+
+      window.suburbLayer=L.circle([lat,lng],{
+        radius:1800,
+        color:'#f07070',
+        weight:3,
+        opacity:1,
+        fillColor:'#f07070',
+        fillOpacity:.10,
+        dashArray:'8 6',
+        className:'suburb-approx-circle'
+      }).addTo(map);
+
+      map.fitBounds(window.suburbLayer.getBounds(),{padding:[28,28],maxZoom:14});
+      showBoundaryNote('Approximate area boundary: '+name,true);
+    }catch(e){
+      showBoundaryNote('Boundary unavailable: '+name,false);
+    }
+  }
+
+  var oldClear=window.clearSuburb;
+  window.clearSuburb=function(){
+    try{
+      if(window.suburbLayer && window.map){ map.removeLayer(window.suburbLayer); window.suburbLayer=null; }
+      clearKnownBlueSearchMarkers();
+      var note=document.getElementById('boundary-note');
+      if(note) note.classList.remove('show');
+    }catch(e){}
+    if(typeof oldClear==='function'){
+      try{ oldClear(); }catch(e){}
+    }
+  };
+})();
+</script>
+
 </body>
 </html>
