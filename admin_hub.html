@@ -93,5 +93,103 @@ function clearIntel(){adminDelete("/api/admin/intel/all","Clear all intel report
 function fullReset(){adminDelete("/api/admin/reset","FULL RESET: clear reports and intel?")}
 window.addEventListener("load",init);
 </script>
+
+<script>
+/* SafeNote Admin Status Table Fix v2
+   Final override: fixes column alignment and makes Status a clickable dropdown.
+*/
+(function(){
+  function adminLabel(x){
+    return String(x || "new").replaceAll("_"," ").replace(/\b\w/g,function(m){return m.toUpperCase()});
+  }
+
+  window.statusDropdown = function(rep){
+    const statuses = ["new","reviewed","verified","duplicate","false_report","archived"];
+    const sel = document.createElement("select");
+    sel.className = "status-select";
+    const current = rep.status || "new";
+
+    statuses.forEach(function(s){
+      const o = document.createElement("option");
+      o.value = s;
+      o.textContent = adminLabel(s);
+      if(s === current) o.selected = true;
+      sel.appendChild(o);
+    });
+
+    sel.addEventListener("change", function(){
+      window.updateReportStatus(rep.id, sel.value);
+    });
+
+    return sel;
+  };
+
+  window.updateReportStatus = async function(id, status){
+    if(!id){
+      toast("Missing report ID");
+      return;
+    }
+
+    const r = await fetch(API + "/api/admin/reports/" + encodeURIComponent(id) + "/status", {
+      method: "PATCH",
+      headers: Object.assign({"Content-Type":"application/json"}, headers()),
+      body: JSON.stringify({status: status})
+    });
+
+    if(!r.ok){
+      let detail = "";
+      try{ detail = JSON.stringify(await r.json()); }catch(e){}
+      console.error("Status update failed", r.status, detail);
+      toast("Status update failed");
+      return;
+    }
+
+    toast("Report marked " + adminLabel(status));
+    await loadReports();
+    try{ await loadOverview(); }catch(e){}
+  };
+
+  window.loadReports = async function(){
+    const days = document.getElementById("days").value;
+    const limit = document.getElementById("report-limit").value;
+    const type = document.getElementById("type-filter").value;
+    const sev = document.getElementById("sev-filter").value;
+
+    let url = API + "/api/admin/reports?days=" + days + "&limit=" + limit;
+    if(type) url += "&type_filter=" + encodeURIComponent(type);
+    if(sev) url += "&severity_filter=" + encodeURIComponent(sev);
+
+    const r = await fetch(url, {headers: headers()});
+    if(!r.ok) throw new Error("reports");
+
+    const d = await r.json();
+    const rows = d.reports || [];
+    document.getElementById("reports-count").textContent = (d.total || rows.length) + " records";
+
+    const body = document.getElementById("reports-body");
+    body.innerHTML = "";
+
+    if(!rows.length){
+      body.innerHTML = '<tr><td colspan="6"><div class="empty">No reports yet for this filter.</div></td></tr>';
+      return;
+    }
+
+    rows.forEach(function(rep){
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td><td></td>";
+
+      tr.children[0].textContent = fmtTime(rep.ts);
+      tr.children[1].textContent = label(rep.type);
+      tr.children[2].innerHTML = '<span class="pill sev-' + rep.severity + '">' + rep.severity + '</span>';
+      tr.children[3].appendChild(statusDropdown(rep));
+      tr.children[4].textContent = Number(rep.lat).toFixed(5) + ", " + Number(rep.lng).toFixed(5);
+      tr.children[5].textContent = rep.note || "—";
+
+      body.appendChild(tr);
+    });
+  };
+})();
+</script>
+
 </body>
 </html>
