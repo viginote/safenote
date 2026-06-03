@@ -41,19 +41,8 @@
 }
 
 
-/* SafeNote NHW operational boundary / risk shading */
-.nhw-map-tools{
-  display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:12px
-}
-.boundary-pill{
-  display:inline-block;border:1px solid rgba(240,112,112,.35);color:#f07070;
-  border-radius:999px;padding:5px 9px;font:700 9px 'DM Mono',monospace;
-  text-transform:uppercase;letter-spacing:.8px
-}
-.legend-risk{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.legend-risk span{font:700 9px 'DM Mono',monospace;color:var(--muted);display:flex;align-items:center;gap:5px}
-.legend-risk i{width:10px;height:10px;border-radius:50%;display:inline-block}
-
+.status-pill{display:inline-block;border-radius:999px;padding:4px 8px;font:700 9px 'DM Mono',monospace;text-transform:uppercase}
+.st-new{background:rgba(106,180,212,.14);color:#6ab4d4}.st-reviewed{background:rgba(212,168,50,.16);color:#d4a832}.st-verified{background:rgba(125,171,138,.14);color:#7dab8a}.st-duplicate{background:rgba(155,89,182,.16);color:#9b59b6}.st-false_report{background:rgba(240,112,112,.14);color:#f07070}.st-archived{background:rgba(157,185,159,.12);color:#9db99f}
 </style>
 </head>
 <body>
@@ -89,22 +78,7 @@
       <div class="card kpi span2"><div class="label">Period total</div><div class="val" id="k-total">0</div><div class="sub">selected range</div></div>
       <div class="card kpi span2"><div class="label">Intel locations</div><div class="val" id="k-intel">0</div><div class="sub">NHW-only layer</div></div>
       <div class="card kpi span2"><div class="label">Hotspots</div><div class="val" id="k-hotspots">0</div><div class="sub">repeat cells</div></div>
-      <div class="card span4" id="opsmap">
-        <div class="section-title"><h3>Live Map + Heatmap</h3><span>NHW only · exact internal view</span></div>
-        <div class="nhw-map-tools">
-          <input id="portal-suburb-search" placeholder="Search suburb / patrol area…" onkeydown="if(event.key==='Enter'){portalSelectSuburb(this.value)}" />
-          <button class="action primary" onclick="portalSelectSuburb(document.getElementById('portal-suburb-search').value)">Outline</button>
-          <button class="action" onclick="toggleRiskLayer()">Risk Layer</button>
-        </div>
-        <div class="legend-risk">
-          <span><i style="background:#7dab8a"></i>Low</span>
-          <span><i style="background:#d4a832"></i>Medium</span>
-          <span><i style="background:#e8904a"></i>High</span>
-          <span><i style="background:#f07070"></i>Critical</span>
-        </div>
-        <div style="height:10px"></div>
-        <div id="map"></div>
-      </div>
+      <div class="card span4" id="opsmap"><div class="section-title"><h3>Live Map + Heatmap</h3><span>NHW only · exact internal view</span></div><div id="map"></div></div>
       <div class="card span2">
         <div class="section-title"><h3>Top Hotspots</h3><span>rounded cells</span></div>
         <div id="hotspots-list" style="display:grid;gap:10px"></div>
@@ -115,7 +89,7 @@
       </div>
       <div class="card span4" id="analytics"><div class="section-title"><h3>Incident Trend</h3><span>daily count</span></div><canvas id="trendChart" height="210"></canvas></div>
       <div class="card span4"><div class="section-title"><h3>Types</h3><span>top 12</span></div><canvas id="typeChart" height="210"></canvas></div>
-      <div class="card span6" id="incidents"><div class="section-title"><h3>Live Incident Feed</h3><span id="feed-count">0 records</span></div><div class="table-wrap"><table class="inc-table"><thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Coordinates</th><th>Note</th></tr></thead><tbody id="feed-body"></tbody></table></div></div>
+      <div class="card span6" id="incidents"><div class="section-title"><h3>Live Incident Feed</h3><span id="feed-count">0 records</span></div><div class="table-wrap"><table class="inc-table"><thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Status</th><th>Coordinates</th><th>Note</th></tr></thead><tbody id="feed-body"></tbody></table></div></div>
     </div>
   </main>
 </div>
@@ -139,7 +113,7 @@ function renderTrendDelta(trend){const sub=document.querySelector('#k-week').clo
 function renderTypeSummary(rows,total){const el=document.getElementById('type-summary');el.innerHTML='';if(!rows.length){el.innerHTML='<div class="empty-state">No incident types yet. Once testers submit reports, this section will show the most reported categories.</div>';return}rows.slice(0,5).forEach((x,i)=>{const pct=total?Math.round((x.count/total)*100):0;const div=document.createElement('div');div.className='mini-row';div.innerHTML='<b>'+(i+1)+'. '+label(x.type)+'</b><span>'+x.count+' · '+pct+'%</span>';el.appendChild(div)})}
 function renderHotspots(rows){const el=document.getElementById('hotspots-list');el.innerHTML='';if(!rows.length){el.innerHTML='<div class="empty-state">No hotspots yet. When real reports come in, repeat areas will appear here for patrol planning.</div>';return}rows.slice(0,8).forEach((h,i)=>{const div=document.createElement('div');div.className='mini-row';div.innerHTML='<b>#'+(i+1)+' · '+h.count+' reports</b><span>'+Number(h.lat).toFixed(3)+', '+Number(h.lng).toFixed(3)+'</span>';div.onclick=()=>map.setView([h.lat,h.lng],14);el.appendChild(div)})}
 function renderCharts(d){const trendLabels=(d.trend||[]).map(x=>x.day),trendData=(d.trend||[]).map(x=>x.count);if(trendChart)trendChart.destroy();trendChart=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:trendLabels,datasets:[{label:'Incidents',data:trendData,tension:.35}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#9db99f'}},y:{ticks:{color:'#9db99f'},beginAtZero:true}}}});const typeLabels=(d.by_type||[]).map(x=>label(x.type)),typeData=(d.by_type||[]).map(x=>x.count);if(typeChart)typeChart.destroy();typeChart=new Chart(document.getElementById('typeChart'),{type:'bar',data:{labels:typeLabels,datasets:[{label:'Count',data:typeData}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#9db99f'}},y:{ticks:{color:'#9db99f'},beginAtZero:true}}}})}
-async function loadFeed(){const r=await fetch(API+'/api/reports/live',{headers:authHeaders()});if(!r.ok)throw new Error('feed');const d=await r.json();const rows=d.reports||[];document.getElementById('feed-count').textContent=rows.length+' records';const body=document.getElementById('feed-body');body.innerHTML='';markers.clearLayers();const heatPts=[];if(!rows.length){body.innerHTML='<tr><td colspan="5"><div class="empty-state">No live reports yet. This is normal before testers begin logging incidents in the Western Cape.</div></td></tr>'}rows.forEach(rep=>{const tr=document.createElement('tr');tr.innerHTML='<td>'+fmtTime(rep.ts)+'</td><td>'+label(rep.type)+'</td><td><span class="pill sev-'+rep.severity+'">'+rep.severity+'</span></td><td>'+Number(rep.lat).toFixed(5)+', '+Number(rep.lng).toFixed(5)+'</td><td>'+(rep.note||'—')+'</td>';body.appendChild(tr);const c=TYPE_COLOR[rep.type]||COLORS[rep.severity]||'#7dab8a';const icon=L.divIcon({className:'',html:'<div class="marker-dot" style="background:'+c+'"></div>',iconSize:[18,18],iconAnchor:[9,9]});L.marker([rep.lat,rep.lng],{icon}).bindPopup('<b>'+label(rep.type)+'</b><br>'+rep.severity+'<br>'+(rep.note||'')).addTo(markers);heatPts.push([rep.lat,rep.lng,rep.severity==='critical'?1:rep.severity==='high'?.75:rep.severity==='medium'?.5:.25])});if(heat)map.removeLayer(heat);heat=L.heatLayer(heatPts,{radius:28,blur:22,maxZoom:17}).addTo(map);if(rows.length){map.fitBounds(rows.map(r=>[r.lat,r.lng]),{padding:[25,25],maxZoom:13})}}
+async function loadFeed(){const r=await fetch(API+'/api/reports/live',{headers:authHeaders()});if(!r.ok)throw new Error('feed');const d=await r.json();const rows=d.reports||[];document.getElementById('feed-count').textContent=rows.length+' records';const body=document.getElementById('feed-body');body.innerHTML='';markers.clearLayers();const heatPts=[];if(!rows.length){body.innerHTML='<tr><td colspan="6"><div class="empty-state">No live reports yet. This is normal before testers begin logging incidents in the Western Cape.</div></td></tr>'}rows.forEach(rep=>{const tr=document.createElement('tr');tr.innerHTML='<td>'+fmtTime(rep.ts)+'</td><td>'+label(rep.type)+'</td><td><span class="pill sev-'+rep.severity+'">'+rep.severity+'</span></td><td><span class="status-pill st-'+(rep.status||'new')+'">'+label(rep.status||'new')+'</span></td><td>'+Number(rep.lat).toFixed(5)+', '+Number(rep.lng).toFixed(5)+'</td><td>'+(rep.note||'—')+'</td>';body.appendChild(tr);const c=TYPE_COLOR[rep.type]||COLORS[rep.severity]||'#7dab8a';const icon=L.divIcon({className:'',html:'<div class="marker-dot" style="background:'+c+'"></div>',iconSize:[18,18],iconAnchor:[9,9]});L.marker([rep.lat,rep.lng],{icon}).bindPopup('<b>'+label(rep.type)+'</b><br>'+rep.severity+'<br>'+(rep.note||'')).addTo(markers);heatPts.push([rep.lat,rep.lng,rep.severity==='critical'?1:rep.severity==='high'?.75:rep.severity==='medium'?.5:.25])});if(heat)map.removeLayer(heat);heat=L.heatLayer(heatPts,{radius:28,blur:22,maxZoom:17}).addTo(map);if(rows.length){map.fitBounds(rows.map(r=>[r.lat,r.lng]),{padding:[25,25],maxZoom:13})}}
 async function loadIntel(){try{const r=await fetch(API+'/api/intel/locations',{headers:authHeaders()});if(!r.ok)return;const d=await r.json();(d.locations||[]).forEach(x=>{const icon=L.divIcon({className:'',html:'<div class="marker-dot" style="background:#e8904a;border:3px solid #fff"></div>',iconSize:[20,20],iconAnchor:[10,10]});L.marker([x.lat,x.lng],{icon}).bindPopup('<b>Intel: '+label(x.type)+'</b><br>'+label(x.duration)+'<br>'+(x.note||'')).addTo(markers)})}catch(e){}}
 function downloadExport(){if(!token){toast('Verify NHW access first');return}const days=document.getElementById('days').value;fetch(API+'/api/nhw/export?days='+days,{headers:authHeaders()}).then(r=>{if(!r.ok)throw new Error();return r.blob()}).then(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='safenote_nhw_export.csv';a.click();URL.revokeObjectURL(a.href)}).catch(()=>toast('Export failed'))}
 window.addEventListener('load',()=>{const saved=localStorage.getItem('safenote_nhw_token');if(saved){document.getElementById('token').value=saved;setAuthStatus(false,'Saved token found. Verifying access...');verifyAndLoad()}else{setAuthStatus(false,'Not verified. Enter an NHW access code to unlock the live dashboard.');initMap()}});
