@@ -43,9 +43,17 @@
 
 .status-pill{display:inline-block;border-radius:999px;padding:4px 8px;font:700 9px 'DM Mono',monospace;text-transform:uppercase}
 .st-new{background:rgba(106,180,212,.14);color:#6ab4d4}.st-reviewed{background:rgba(212,168,50,.16);color:#d4a832}.st-verified{background:rgba(125,171,138,.14);color:#7dab8a}.st-duplicate{background:rgba(155,89,182,.16);color:#9b59b6}.st-false_report{background:rgba(240,112,112,.14);color:#f07070}.st-archived{background:rgba(157,185,159,.12);color:#9db99f}
+
+/* Phase 1A: lock NHW dashboard until valid access code */
+body.nhw-locked .main{display:none!important}
+body.nhw-locked .nav{display:none!important}
+body.nhw-locked .side > button.action{display:none!important}
+body.nhw-locked .login{margin-top:18px}
+body.nhw-locked .side{max-width:430px;margin:0 auto;border-right:none;min-height:100vh}
+
 </style>
 </head>
-<body>
+<body class="nhw-locked">
 <div class="app">
   <aside class="side">
     <div class="brand"><div class="logo">SN</div><div><h1>SafeNote</h1><p>NHW / CPF Portal</p></div></div>
@@ -105,8 +113,34 @@ function fmtTime(ts){return new Date(ts*1000).toLocaleString([], {dateStyle:'med
 function label(x){return String(x||'').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase())}
 function scrollToId(id){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'})}
 function initMap(){if(map)return;map=L.map('map',{zoomControl:true}).setView([-33.9249,18.4241],10);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);markers=L.layerGroup().addTo(map)}
-async function verifyAndLoad(){token=document.getElementById('token').value.trim().toUpperCase().replace(/\s/g,'');if(!/^NHW-[A-Z0-9]{6,16}$/.test(token)){setAuthStatus(false,'Invalid code format. Use the NHW access code issued by SafeNote.');toast('Invalid NHW code format');return}try{const r=await fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:token})});const d=await r.json();if(!d.valid){setAuthStatus(false,'Access code not valid. Contact the SafeNote admin.');toast('Access code not valid');return}localStorage.setItem('safenote_nhw_token',token);const label=d.label||'Verified NHW / CPF Group';setAuthStatus(true,'Verified access: '+label+' · Last sync pending · Token active');toast('NHW access verified');refreshAll()}catch(e){setAuthStatus(false,'Could not verify access code. Check API connection.');toast('Verification failed')}}
-function logout(){localStorage.removeItem('safenote_nhw_token');token='';setAuthStatus(false,'Not verified. Enter an NHW access code to unlock the live dashboard.');toast('Token cleared')}
+async function verifyAndLoad(){
+  token=document.getElementById('token').value.trim().toUpperCase().replace(/\s/g,'');
+  if(!/^NHW-[A-Z0-9]{6,16}$/.test(token)){
+    setAuthStatus(false,'Invalid code format. Use the NHW access code issued by SafeNote.');
+    toast('Invalid NHW code format');return
+  }
+  try{
+    const r=await fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:token})});
+    const d=await r.json();
+    if(!d.valid){setAuthStatus(false,'Access code not valid. Contact the SafeNote admin.');toast('Access code not valid');return}
+    localStorage.setItem('safenote_nhw_token',token);
+    document.body.classList.remove('nhw-locked');
+    const label=d.label||'Verified NHW / CPF Group';
+    setAuthStatus(true,'Verified access: '+label+' · Last sync pending · Token active');
+    toast('NHW access verified');
+    refreshAll()
+  }catch(e){setAuthStatus(false,'Could not verify access code. Check API connection.');toast('Verification failed')}
+}
+function logout(){
+  try{localStorage.removeItem('safenote_nhw_token');}catch(e){}
+  token='';
+  try{if(markers)markers.clearLayers();}catch(e){}
+  try{if(heat&&map)map.removeLayer(heat);heat=null;}catch(e){}
+  try{document.getElementById('feed-body').innerHTML='';document.getElementById('feed-count').textContent='0 records';}catch(e){}
+  setAuthStatus(false,'Not verified. Enter an NHW access code to unlock the live dashboard.');
+  toast('Token cleared');
+  setTimeout(()=>location.reload(),350);
+}
 async function refreshAll(){if(!token){toast('Verify NHW access first');return}initMap();try{await Promise.all([loadAnalytics(),loadFeed(),loadIntel()]);const now=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});const current=document.getElementById('auth-status').textContent.split(' · ')[0];setAuthStatus(true,current+' · Last sync: '+now+' · Token active');toast('Live data refreshed')}catch(e){console.error(e);setAuthStatus(false,'Access problem. Token may be invalid or the API is unavailable.');toast('Could not load portal data. Check token/API.')}}
 async function loadAnalytics(){const days=document.getElementById('days').value;const r=await fetch(API+'/api/nhw/analytics?days='+days,{headers:authHeaders()});if(!r.ok)throw new Error('analytics');const d=await r.json();const s=d.summary||{};document.getElementById('k-today').textContent=s.today||0;document.getElementById('k-week').textContent=s.week||0;document.getElementById('k-total').textContent=s.period_total||0;document.getElementById('k-risk').textContent=(s.critical||0)+(s.high||0);document.getElementById('k-intel').textContent=s.intel||0;document.getElementById('k-hotspots').textContent=(d.hotspots||[]).length;renderHotspots(d.hotspots||[]);renderTypeSummary(d.by_type||[], s.period_total||0);renderCharts(d);renderTrendDelta(d.trend||[])}
 function renderTrendDelta(trend){const sub=document.querySelector('#k-week').closest('.kpi').querySelector('.sub');if(!trend||trend.length<2){sub.innerHTML='all incident types<div class="delta flat">Trend pending</div>';return}const last=trend[trend.length-1].count||0;const prev=trend[trend.length-2].count||0;let cls='flat',txt='No change from previous day';if(last>prev){cls='up';txt='▲ +'+(last-prev)+' from previous day'}else if(last<prev){cls='down';txt='▼ '+(prev-last)+' fewer than previous day'}sub.innerHTML='all incident types<div class="delta '+cls+'">'+txt+'</div>'}
@@ -116,7 +150,12 @@ function renderCharts(d){const trendLabels=(d.trend||[]).map(x=>x.day),trendData
 async function loadFeed(){const r=await fetch(API+'/api/reports/live',{headers:authHeaders()});if(!r.ok)throw new Error('feed');const d=await r.json();const rows=d.reports||[];document.getElementById('feed-count').textContent=rows.length+' records';const body=document.getElementById('feed-body');body.innerHTML='';markers.clearLayers();const heatPts=[];if(!rows.length){body.innerHTML='<tr><td colspan="6"><div class="empty-state">No live reports yet. This is normal before testers begin logging incidents in the Western Cape.</div></td></tr>'}rows.forEach(rep=>{const tr=document.createElement('tr');tr.innerHTML='<td>'+fmtTime(rep.ts)+'</td><td>'+label(rep.type)+'</td><td><span class="pill sev-'+rep.severity+'">'+rep.severity+'</span></td><td><span class="status-pill st-'+(rep.status||'new')+'">'+label(rep.status||'new')+'</span></td><td>'+Number(rep.lat).toFixed(5)+', '+Number(rep.lng).toFixed(5)+'</td><td>'+(rep.note||'—')+'</td>';body.appendChild(tr);const c=TYPE_COLOR[rep.type]||COLORS[rep.severity]||'#7dab8a';const icon=L.divIcon({className:'',html:'<div class="marker-dot" style="background:'+c+'"></div>',iconSize:[18,18],iconAnchor:[9,9]});L.marker([rep.lat,rep.lng],{icon}).bindPopup('<b>'+label(rep.type)+'</b><br>'+rep.severity+'<br>'+(rep.note||'')).addTo(markers);heatPts.push([rep.lat,rep.lng,rep.severity==='critical'?1:rep.severity==='high'?.75:rep.severity==='medium'?.5:.25])});if(heat)map.removeLayer(heat);heat=L.heatLayer(heatPts,{radius:28,blur:22,maxZoom:17}).addTo(map);if(rows.length){map.fitBounds(rows.map(r=>[r.lat,r.lng]),{padding:[25,25],maxZoom:13})}}
 async function loadIntel(){try{const r=await fetch(API+'/api/intel/locations',{headers:authHeaders()});if(!r.ok)return;const d=await r.json();(d.locations||[]).forEach(x=>{const icon=L.divIcon({className:'',html:'<div class="marker-dot" style="background:#e8904a;border:3px solid #fff"></div>',iconSize:[20,20],iconAnchor:[10,10]});L.marker([x.lat,x.lng],{icon}).bindPopup('<b>Intel: '+label(x.type)+'</b><br>'+label(x.duration)+'<br>'+(x.note||'')).addTo(markers)})}catch(e){}}
 function downloadExport(){if(!token){toast('Verify NHW access first');return}const days=document.getElementById('days').value;fetch(API+'/api/nhw/export?days='+days,{headers:authHeaders()}).then(r=>{if(!r.ok)throw new Error();return r.blob()}).then(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='safenote_nhw_export.csv';a.click();URL.revokeObjectURL(a.href)}).catch(()=>toast('Export failed'))}
-window.addEventListener('load',()=>{const saved=localStorage.getItem('safenote_nhw_token');if(saved){document.getElementById('token').value=saved;setAuthStatus(false,'Saved token found. Verifying access...');verifyAndLoad()}else{setAuthStatus(false,'Not verified. Enter an NHW access code to unlock the live dashboard.');initMap()}});
+window.addEventListener('load',()=>{
+  document.body.classList.add('nhw-locked');
+  const saved=localStorage.getItem('safenote_nhw_token');
+  if(saved){document.getElementById('token').value=saved;setAuthStatus(false,'Saved token found. Verifying access...');verifyAndLoad()}
+  else{setAuthStatus(false,'Not verified. Enter an NHW access code to unlock the live dashboard.')}
+});
 </script>
 </body>
 </html>
