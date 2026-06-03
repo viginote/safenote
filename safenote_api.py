@@ -94,20 +94,19 @@ POWER_TYPES = {
 }
 
 VALID_SEVERITIES = {"low", "medium", "high", "critical"}
+VALID_REPORT_STATUSES = {"new","reviewed","verified","duplicate","false_report","archived"}
 
 # ── DATABASE ──────────────────────────────────────────────────────────────────
 def get_db():
-    con = sqlite3.connect(DB_PATH, check_same_thread=False)
+    con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
-    con.execute('PRAGMA busy_timeout=5000')
     try:
         yield con
     finally:
         con.close()
 
 def init_db():
-    con = sqlite3.connect(DB_PATH, check_same_thread=False)
-    con.execute('PRAGMA busy_timeout=5000')
+    con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
     cur.executescript("""
         CREATE TABLE IF NOT EXISTS reports (
@@ -120,7 +119,8 @@ def init_db():
             note        TEXT,
             ts          INTEGER NOT NULL,
             created_at  INTEGER NOT NULL,
-            ip_hash     TEXT
+            ip_hash     TEXT,
+            status      TEXT DEFAULT 'new'
         );
         CREATE INDEX IF NOT EXISTS idx_reports_ts   ON reports(ts);
         CREATE INDEX IF NOT EXISTS idx_reports_geo  ON reports(lat, lng);
@@ -151,6 +151,11 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS idx_intel_geo ON intel_locations(lat, lng);
     """)
+    existing_cols = [r[1] for r in cur.execute("PRAGMA table_info(reports)").fetchall()]
+    if "status" not in existing_cols:
+        cur.execute("ALTER TABLE reports ADD COLUMN status TEXT DEFAULT 'new'")
+    cur.execute("UPDATE reports SET status='new' WHERE status IS NULL OR status=''")
+
     con.commit()
     con.close()
 
@@ -207,7 +212,7 @@ def require_nhw(authorization: Optional[str] = Header(None)):
     if not authorization:
         raise HTTPException(status_code=401, detail="NHW token required")
     token = authorization.replace("Bearer ", "").strip()
-    con = sqlite3.connect(DB_PATH, check_same_thread=False)
+    con = sqlite3.connect(DB_PATH)
     result = con.execute(
         "SELECT 1 FROM nhw_tokens WHERE token=?", (token,)
     ).fetchone()
@@ -215,10 +220,9 @@ def require_nhw(authorization: Optional[str] = Header(None)):
     if not result:
         raise HTTPException(status_code=401, detail="Invalid NHW token")
 
-def require_admin(authorization: Optional[str] = Header(None), x_admin_secret: Optional[str] = Header(None)):
-    auth_ok = authorization and authorization.replace("Bearer ", "").strip() == ADMIN_SECRET
-    header_ok = x_admin_secret and x_admin_secret.strip() == ADMIN_SECRET
-    if not auth_ok and not header_ok:
+def require_admin(authorization: Optional[str] = Header(None)):
+    if not authorization or \
+       authorization.replace("Bearer ", "").strip() != ADMIN_SECRET:
         raise HTTPException(status_code=401, detail="Admin token required")
 
 def haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -382,10 +386,10 @@ async def submit_report(report: ReportIn, request: Request, db=Depends(get_db)):
     token     = report.token or str(uuid.uuid4())
 
     db.execute(
-        """INSERT INTO reports(id,token,type,severity,lat,lng,note,ts,created_at,ip_hash)
-           VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        """INSERT INTO reports(id,token,type,severity,lat,lng,note,ts,created_at,ip_hash,status)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
         (report_id, token, report.type, report.severity,
-         report.lat, report.lng, report.note, now, now, h)
+         report.lat, report.lng, report.note, now, now, h, "new")
     )
     db.commit()
 
@@ -415,8 +419,8 @@ async def public_feed(db=Depends(get_db)):
     """Delayed public feed — 24h lag to prevent criminal use of real-time data."""
     cutoff = int(time.time()) - PUBLIC_DELAY_S
     rows = db.execute(
-        """SELECT type,severity,lat,lng,note,ts FROM reports
-           WHERE ts <= ? AND type NOT IN
+        """SELECT type,severity,lat,lng,note,ts,status FROM reports
+           WHERE ts <= ? AND COALESCE(status,'new') NOT IN ('false_report','archived') AND type NOT IN
              ('power_loadshedding','power_fault','power_partial','power_restored')
            ORDER BY ts DESC LIMIT 500""",
         (cutoff,)
@@ -429,7 +433,8 @@ async def public_feed(db=Depends(get_db)):
 async def live_feed(_=Depends(require_nhw), db=Depends(get_db)):
     """Real-time feed for verified NHW/CPF members — no delay, all types."""
     rows = db.execute(
-        """SELECT type,severity,lat,lng,note,ts FROM reports
+        """SELECT id,type,severity,lat,lng,note,ts,status FROM reports
+           WHERE COALESCE(status,'new') != 'archived'
            ORDER BY ts DESC LIMIT 100"""
     ).fetchall()
     return {"reports": [row_to_dict(r) for r in rows], "live": True}
@@ -600,7 +605,7 @@ async def admin_all_reports(
     if severity_filter:
         where.append("severity=?"); params.append(severity_filter)
 
-    sql   = (f"SELECT id,type,severity,lat,lng,note,ts FROM reports "
+    sql   = (f"SELECT id,type,severity,lat,lng,note,ts,status FROM reports "
              f"WHERE {' AND '.join(where)} ORDER BY ts DESC LIMIT ? OFFSET ?")
     count_sql = f"SELECT COUNT(*) FROM reports WHERE {' AND '.join(where)}"
     rows  = db.execute(sql, params + [limit, offset]).fetchall()
@@ -614,17 +619,17 @@ async def admin_all_reports(
 async def admin_export_csv(_=Depends(require_admin), db=Depends(get_db)):
     """CSV export — anonymised, suitable for funding applications."""
     rows = db.execute(
-        """SELECT type,severity,round(lat,3) as lat,round(lng,3) as lng,note,ts
+        """SELECT type,severity,round(lat,3) as lat,round(lng,3) as lng,note,ts,status
            FROM reports ORDER BY ts DESC"""
     ).fetchall()
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["timestamp_utc","type","severity","latitude","longitude","note"])
+    writer.writerow(["timestamp_utc","type","severity","status","latitude","longitude","note"])
     for r in rows:
         writer.writerow([
             datetime.fromtimestamp(r["ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
-            r["type"], r["severity"], r["lat"], r["lng"], r["note"] or ""
+            r["type"], r["severity"], r["status"] or "new", r["lat"], r["lng"], r["note"] or ""
         ])
     output.seek(0)
     fname = f"safenote_export_{datetime.now().strftime('%Y%m%d')}.csv"
@@ -791,24 +796,9 @@ async def suburb_boundary(name: str = Query(..., min_length=2, max_length=80)):
                 best = res
                 break
 
-        if not best:
+        if not best or not best.get("geojson"):
             raise HTTPException(status_code=404,
-                detail=f"No location found for '{name}' in Western Cape")
-
-        if not best.get("geojson"):
-            data = {
-                "name": name,
-                "geojson": None,
-                "lat": float(best["lat"]),
-                "lng": float(best["lon"]),
-                "bbox": None,
-                "type": best.get("type"),
-                "display_name": best.get("display_name",""),
-                "approximate": True,
-                "fallback_radius_m": 1800
-            }
-            _suburb_boundary_cache[key] = data
-            return data
+                detail=f"No boundary found for '{name}' in Western Cape")
 
         bounds = best.get("boundingbox")
         data = {
@@ -821,9 +811,7 @@ async def suburb_boundary(name: str = Query(..., min_length=2, max_length=80)):
                 [float(bounds[1]), float(bounds[3])]
             ] if bounds else None,
             "type": best.get("type"),
-            "display_name": best.get("display_name",""),
-            "approximate": False,
-            "fallback_radius_m": None
+            "display_name": best.get("display_name","")
         }
         _suburb_boundary_cache[key] = data
         return data
@@ -843,308 +831,37 @@ class NhwVerifyIn(BaseModel):
 async def nhw_verify(body: NhwVerifyIn, db=Depends(get_db)):
     """
     Frontend calls this to verify an NHW access code without exposing
-    the full token list. Returns validity and the group label.
+    the full token list. Returns {valid: true/false} only.
     """
     code = body.code.strip().upper()
     result = db.execute(
-        "SELECT label FROM nhw_tokens WHERE token=?", (code,)
+        "SELECT 1 FROM nhw_tokens WHERE token=?", (code,)
     ).fetchone()
-    return {"valid": result is not None, "label": result["label"] if result else None}
+    return {"valid": result is not None}
 
 
 
-# ── NHW PORTAL ROUTES ────────────────────────────────────────────────────────
+# ── REPORT STATUS / DATA QUALITY ROUTES ──────────────────────────────────────
+class ReportStatusIn(BaseModel):
+    status: str
 
-@app.get("/api/nhw/analytics")
-async def nhw_analytics(
-    days: int = Query(30, ge=1, le=365),
-    _=Depends(require_nhw),
-    db=Depends(get_db)
-):
-    """
-    Analytics for verified NHW/CPF portal.
-    Returns KPI summary, daily trend, incident-type breakdown and hotspots.
-    """
-    now = int(time.time())
-    since = now - (days * 86400)
-    today_s = now - 86400
-    week_s = now - 604800
+    @validator("status")
+    def valid_status(cls, v):
+        if v not in VALID_REPORT_STATUSES:
+            raise ValueError("Invalid report status")
+        return v
 
-    summary = {
-        "today": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (today_s,)).fetchone()[0],
-        "week": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (week_s,)).fetchone()[0],
-        "period_total": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (since,)).fetchone()[0],
-        "critical": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='critical'", (since,)).fetchone()[0],
-        "high": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='high'", (since,)).fetchone()[0],
-        "intel": db.execute("SELECT COUNT(*) FROM intel_locations WHERE ts>?", (since,)).fetchone()[0],
-    }
-
-    trend_rows = db.execute(
-        """SELECT date(ts,'unixepoch') AS day, COUNT(*) AS count
-           FROM reports
-           WHERE ts>?
-           GROUP BY date(ts,'unixepoch')
-           ORDER BY day ASC""",
-        (since,)
-    ).fetchall()
-
-    by_type_rows = db.execute(
-        """SELECT type, COUNT(*) AS count
-           FROM reports
-           WHERE ts>?
-           GROUP BY type
-           ORDER BY count DESC
-           LIMIT 12""",
-        (since,)
-    ).fetchall()
-
-    hotspot_rows = db.execute(
-        """SELECT round(lat,3) AS lat, round(lng,3) AS lng, COUNT(*) AS count
-           FROM reports
-           WHERE ts>? AND type NOT LIKE 'power_%'
-           GROUP BY round(lat,3), round(lng,3)
-           HAVING COUNT(*) >= 1
-           ORDER BY count DESC
-           LIMIT 10""",
-        (since,)
-    ).fetchall()
-
-    return {
-        "summary": summary,
-        "trend": [row_to_dict(r) for r in trend_rows],
-        "by_type": [row_to_dict(r) for r in by_type_rows],
-        "hotspots": [row_to_dict(r) for r in hotspot_rows],
-        "days": days,
-    }
-
-
-@app.get("/api/nhw/export")
-async def nhw_export_csv(
-    days: int = Query(30, ge=1, le=365),
-    _=Depends(require_nhw),
-    db=Depends(get_db)
-):
-    """
-    NHW CSV export for verified community structures.
-    Coordinates are rounded to 4 decimals for operational planning.
-    """
-    since = int(time.time()) - (days * 86400)
-    rows = db.execute(
-        """SELECT type,severity,round(lat,4) AS lat,round(lng,4) AS lng,note,ts
-           FROM reports
-           WHERE ts>?
-           ORDER BY ts DESC""",
-        (since,)
-    ).fetchall()
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp_utc","type","severity","latitude","longitude","note"])
-    for r in rows:
-        writer.writerow([
-            datetime.fromtimestamp(r["ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
-            r["type"], r["severity"], r["lat"], r["lng"], r["note"] or ""
-        ])
-    output.seek(0)
-    fname = f"safenote_nhw_export_{datetime.now().strftime('%Y%m%d')}.csv"
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={fname}"}
-    )
-
-
-
-# ── ADMIN HUB ROUTES ─────────────────────────────────────────────────────────
-
-@app.get("/api/admin/overview")
-async def admin_overview(
-    days: int = Query(30, ge=1, le=365),
-    _=Depends(require_admin),
-    db=Depends(get_db)
-):
-    now = int(time.time())
-    since = now - (days * 86400)
-    today_s = now - 86400
-    week_s = now - 604800
-
-    return {
-        "today": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (today_s,)).fetchone()[0],
-        "week": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (week_s,)).fetchone()[0],
-        "period_total": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (since,)).fetchone()[0],
-        "critical": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='critical'", (since,)).fetchone()[0],
-        "high": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='high'", (since,)).fetchone()[0],
-        "intel_total": db.execute("SELECT COUNT(*) FROM intel_locations").fetchone()[0],
-        "nhw_tokens": db.execute("SELECT COUNT(*) FROM nhw_tokens").fetchone()[0],
-        "days": days,
-    }
-
-
-@app.get("/api/admin/export-download")
-async def admin_export_download(admin_secret: str = Query(...), db=Depends(get_db)):
-    if admin_secret != ADMIN_SECRET:
-        raise HTTPException(status_code=401, detail="Admin token required")
-    rows = db.execute(
-        """SELECT type,severity,round(lat,3) as lat,round(lng,3) as lng,note,ts
-           FROM reports ORDER BY ts DESC"""
-    ).fetchall()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp_utc","type","severity","latitude","longitude","note"])
-    for r in rows:
-        writer.writerow([
-            datetime.fromtimestamp(r["ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
-            r["type"], r["severity"], r["lat"], r["lng"], r["note"] or ""
-        ])
-    output.seek(0)
-    fname = f"safenote_admin_export_{datetime.now().strftime('%Y%m%d')}.csv"
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={fname}"}
-    )
-
-
-@app.get("/api/admin/nhw-export-download")
-async def admin_nhw_export_download(
-    days: int = Query(30, ge=1, le=365),
-    admin_secret: str = Query(...),
-    db=Depends(get_db)
-):
-    if admin_secret != ADMIN_SECRET:
-        raise HTTPException(status_code=401, detail="Admin token required")
-    since = int(time.time()) - (days * 86400)
-    rows = db.execute(
-        """SELECT type,severity,round(lat,4) as lat,round(lng,4) as lng,note,ts
-           FROM reports WHERE ts>? ORDER BY ts DESC""",
-        (since,)
-    ).fetchall()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["timestamp_utc","type","severity","latitude","longitude","note"])
-    for r in rows:
-        writer.writerow([
-            datetime.fromtimestamp(r["ts"], tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
-            r["type"], r["severity"], r["lat"], r["lng"], r["note"] or ""
-        ])
-    output.seek(0)
-    fname = f"safenote_nhw_export_{datetime.now().strftime('%Y%m%d')}.csv"
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={fname}"}
-    )
-
-
-@app.delete("/api/admin/reports/all")
-async def admin_clear_reports(_=Depends(require_admin), db=Depends(get_db)):
-    db.execute("DELETE FROM reports")
+@app.patch("/api/admin/reports/{report_id}/status")
+async def update_report_status(report_id: str, body: ReportStatusIn, _=Depends(require_admin), db=Depends(get_db)):
+    cur = db.execute("UPDATE reports SET status=? WHERE id=?", (body.status, report_id))
     db.commit()
-    return {"cleared": "reports"}
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return {"id": report_id, "status": body.status}
 
-
-@app.delete("/api/admin/intel/all")
-async def admin_clear_intel(_=Depends(require_admin), db=Depends(get_db)):
-    db.execute("DELETE FROM intel_locations")
-    db.commit()
-    return {"cleared": "intel_locations"}
-
-
-@app.delete("/api/admin/reset")
-async def admin_full_reset(_=Depends(require_admin), db=Depends(get_db)):
-    db.execute("DELETE FROM reports")
-    db.execute("DELETE FROM intel_locations")
-    db.commit()
-    return {"cleared": ["reports", "intel_locations"]}
-
-
-
-# ── NHW AREA RISK / PATROL PLANNING ROUTES ───────────────────────────────────
-
-@app.get("/api/nhw/area-risk")
-async def nhw_area_risk(
-    days: int = Query(30, ge=1, le=365),
-    _=Depends(require_nhw),
-    db=Depends(get_db)
-):
-    """
-    Returns grid cells for NHW map shading.
-    Risk score is based on report volume and max severity in each rounded area cell.
-    This is groundwork for patrol planning and colour-coded operational zones.
-    """
-    since = int(time.time()) - (days * 86400)
-    rows = db.execute(
-        """SELECT round(lat,2) AS lat, round(lng,2) AS lng,
-                  COUNT(*) AS count,
-                  MAX(CASE severity WHEN 'critical' THEN 4 WHEN 'high' THEN 3
-                      WHEN 'medium' THEN 2 ELSE 1 END) AS max_sev
-           FROM reports
-           WHERE ts>? AND type NOT LIKE 'power_%'
-           GROUP BY round(lat,2), round(lng,2)
-           ORDER BY count DESC
-           LIMIT 300""",
-        (since,)
-    ).fetchall()
-
-    cells = []
-    for r in rows:
-        count = r["count"]
-        max_sev = r["max_sev"] or 1
-        score = count * max_sev
-        if score >= 16:
-            level = "critical"
-            color = "#f07070"
-        elif score >= 9:
-            level = "high"
-            color = "#e8904a"
-        elif score >= 4:
-            level = "medium"
-            color = "#d4a832"
-        else:
-            level = "low"
-            color = "#7dab8a"
-        cells.append({
-            "lat": r["lat"],
-            "lng": r["lng"],
-            "count": count,
-            "max_severity": max_sev,
-            "score": score,
-            "level": level,
-            "color": color,
-        })
-
-    return {"cells": cells, "days": days}
-
-
-# ── ADMIN AUTH DEBUG / LOGIN ROUTES ──────────────────────────────────────────
-
-class AdminLoginIn(BaseModel):
-    secret: Optional[str] = None
-
-def admin_secret_from_request(authorization: Optional[str] = None, x_admin_secret: Optional[str] = None, body_secret: Optional[str] = None):
-    if body_secret and body_secret.strip() == ADMIN_SECRET:
-        return True
-    if x_admin_secret and x_admin_secret.strip() == ADMIN_SECRET:
-        return True
-    if authorization and authorization.replace("Bearer ", "").strip() == ADMIN_SECRET:
-        return True
-    return False
-
-@app.get("/api/admin/status")
-async def admin_status():
-    return {
-        "admin_secret_configured": bool(ADMIN_SECRET),
-        "using_default_secret": ADMIN_SECRET == "admin-secret-change-me",
-        "service": "SafeNote",
-        "admin_routes_loaded": True,
-    }
-
-@app.post("/api/admin/login")
-async def admin_login(body: AdminLoginIn, authorization: Optional[str] = Header(None), x_admin_secret: Optional[str] = Header(None)):
-    ok = admin_secret_from_request(authorization=authorization, x_admin_secret=x_admin_secret, body_secret=body.secret)
-    if not ok:
-        raise HTTPException(status_code=401, detail="Invalid admin secret")
-    return {"ok": True, "message": "Admin authenticated"}
+@app.get("/api/admin/report-statuses")
+async def report_statuses(_=Depends(require_admin)):
+    return {"statuses": sorted(list(VALID_REPORT_STATUSES))}
 
 
 # ── HEALTH ────────────────────────────────────────────────────────────────────
@@ -1158,25 +875,6 @@ async def health():
 # ── SERVE APP ─────────────────────────────────────────────────────────────────
 
 HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "safenote_sa.html")
-ADMIN_HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin_hub.html")
-
-NHW_HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhw_portal.html")
-
-@app.get("/nhw", include_in_schema=False)
-async def serve_nhw_portal():
-    if not os.path.exists(NHW_HTML_FILE):
-        raise HTTPException(status_code=404,
-            detail="nhw_portal.html not found. Ensure it is in the same directory as safenote_api.py.")
-    return FileResponse(NHW_HTML_FILE, media_type="text/html")
-
-
-@app.get("/admin", include_in_schema=False)
-async def serve_admin_hub():
-    if not os.path.exists(ADMIN_HTML_FILE):
-        raise HTTPException(status_code=404,
-            detail="admin_hub.html not found. Ensure it is in the same directory as safenote_api.py.")
-    return FileResponse(ADMIN_HTML_FILE, media_type="text/html")
-
 
 @app.get("/", include_in_schema=False)
 async def serve_app():
