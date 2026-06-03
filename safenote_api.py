@@ -46,6 +46,7 @@ import httpx
 from datetime import datetime, timezone
 
 app = FastAPI(title="SafeNote API", version="1.1.0")
+# Phase 1A note: Eskom UI is disabled in frontend; backend power routes remain for compatibility.
 
 app.add_middleware(
     CORSMiddleware,
