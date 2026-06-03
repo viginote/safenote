@@ -867,13 +867,6 @@ html,body{height:100%;background:var(--cream);color:var(--text);
 }
 .boundary-note.show{display:block}
 
-
-/* SafeNote public map single-boundary search fix */
-.suburb-boundary-red{stroke:#f07070!important;stroke-width:3!important;fill:rgba(240,112,112,.08)!important}
-.suburb-approx-circle{stroke:#f07070!important;stroke-width:3!important;stroke-dasharray:8 6!important;fill:rgba(240,112,112,.10)!important}
-.boundary-note{position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(12,20,12,.95);border:1px solid rgba(240,112,112,.45);color:#f07070;border-radius:999px;padding:7px 14px;font:700 10px 'DM Mono',monospace;letter-spacing:.5px;display:none;backdrop-filter:blur(10px);white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-.boundary-note.show{display:block}
-
 </style>
 </head>
 <body>
@@ -932,7 +925,7 @@ html,body{height:100%;background:var(--cream);color:var(--text);
       <input class="suburb-search" id="suburb-search"
         type="text" placeholder="Search Western Cape suburb…"
         autocomplete="off" autocorrect="off" spellcheck="false"
-        oninput="searchSuburbs(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburb(this.value)}" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburb(this.value)}">
+        oninput="searchSuburbs(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburb(this.value)}">
       <span class="suburb-search-icon">&#x1F50D;</span>
       <div class="suburb-dropdown" id="suburb-dropdown"></div>
     </div>
@@ -2363,152 +2356,5 @@ async function drawApproximateSuburbCircle(name){
 }
 
 </script>
-
-<script>
-(function(){
-  window.__safeNoteSearchLayers = window.__safeNoteSearchLayers || [];
-
-  function removeLayerSafe(layer){
-    try{ if(layer && window.map && map.hasLayer(layer)){ map.removeLayer(layer); } }catch(e){}
-  }
-
-  function clearAllSearchLayers(){
-    try{ (window.__safeNoteSearchLayers || []).forEach(removeLayerSafe); }catch(e){}
-    window.__safeNoteSearchLayers = [];
-
-    ["suburbLayer","suburbBoundary","suburbGeoJsonLayer","selectedSuburbLayer","boundaryLayer","searchBoundaryLayer","approxCircle","selectedAreaCircle","searchMarker","selectedMarker","suburbMarker"].forEach(function(k){
-      try{ if(window[k]){ removeLayerSafe(window[k]); window[k]=null; } }catch(e){}
-    });
-
-    try{
-      map.eachLayer(function(layer){
-        if(layer instanceof L.Marker){
-          var isSearch = layer.options && (layer.options.safeNoteSearch===true || layer.options.title==="suburb-search" || layer.options.alt==="suburb-search" || layer.options.searchResult===true);
-          var iconClass = "";
-          try{ iconClass = layer._icon ? (layer._icon.className || "") : ""; }catch(e){}
-          var looksDefaultBlue = iconClass.indexOf("leaflet-marker-icon") >= 0 && iconClass.indexOf("custom") < 0 && iconClass.indexOf("incident") < 0;
-          if(isSearch || looksDefaultBlue){ removeLayerSafe(layer); }
-        }
-      });
-    }catch(e){}
-  }
-
-  function addSearchLayer(layer){
-    window.__safeNoteSearchLayers.push(layer);
-    return layer;
-  }
-
-  function showBoundaryNote(msg, keep){
-    var note=document.getElementById("boundary-note");
-    if(!note) return;
-    note.textContent=msg;
-    note.classList.add("show");
-    if(!keep){ setTimeout(function(){ note.classList.remove("show"); }, 3200); }
-  }
-
-  async function drawApproxCircle(name, lat, lng, radius){
-    clearAllSearchLayers();
-    var circle=L.circle([lat,lng],{
-      radius:radius || 1800,
-      color:"#f07070",
-      weight:3,
-      opacity:1,
-      fillColor:"#f07070",
-      fillOpacity:.10,
-      dashArray:"8 6",
-      className:"suburb-approx-circle",
-      safeNoteSearch:true
-    }).addTo(map);
-    window.suburbLayer=addSearchLayer(circle);
-    map.fitBounds(circle.getBounds(),{padding:[28,28],maxZoom:14});
-    showBoundaryNote("Approximate area boundary: "+name,true);
-  }
-
-  window.selectSuburb = async function(name){
-    name=(name||"").trim();
-    if(!name) return;
-
-    clearAllSearchLayers();
-
-    var dd=document.getElementById("suburb-dropdown");
-    if(dd) dd.classList.remove("show");
-
-    var search=document.getElementById("suburb-search");
-    if(search) search.value=name;
-
-    window.activeSuburb=name;
-
-    var asName=document.getElementById("as-name");
-    if(asName) asName.textContent=name;
-
-    var activeSuburbEl=document.getElementById("active-suburb");
-    if(activeSuburbEl) activeSuburbEl.classList.add("show");
-
-    var bar=document.getElementById("suburb-bar");
-    var barName=document.getElementById("sbar-name");
-    if(barName) barName.textContent=name;
-    if(bar) bar.classList.add("show");
-
-    await window.drawSuburbBoundary(name);
-
-    if(typeof updateSuburbStats==="function"){
-      try{ updateSuburbStats(name); }catch(e){}
-    }
-  };
-
-  window.drawSuburbBoundary = async function(name){
-    clearAllSearchLayers();
-    try{
-      var r=await fetch(API+"/api/suburb/boundary?name="+encodeURIComponent(name));
-      if(!r.ok) throw new Error("boundary endpoint failed");
-      var d=await r.json();
-
-      if(d && d.geojson){
-        var polygon=L.geoJSON(d.geojson,{
-          className:"suburb-boundary-red",
-          style:function(){return {color:"#f07070",weight:3,opacity:1,fillColor:"#f07070",fillOpacity:.08};}
-        }).addTo(map);
-        window.suburbLayer=addSearchLayer(polygon);
-        try{ map.fitBounds(polygon.getBounds(),{padding:[28,28],maxZoom:15}); }
-        catch(e){ if(d.lat&&d.lng) map.setView([d.lat,d.lng],13); }
-        showBoundaryNote("Boundary shown: "+name,false);
-        return;
-      }
-
-      if(d && d.lat && d.lng){
-        await drawApproxCircle(name,d.lat,d.lng,d.fallback_radius_m||1800);
-        return;
-      }
-      throw new Error("no usable boundary data");
-    }catch(err){
-      try{
-        var url="https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(name+", Western Cape, South Africa");
-        var gr=await fetch(url);
-        var arr=await gr.json();
-        if(!arr || !arr.length) throw new Error("no geocode result");
-        await drawApproxCircle(name,parseFloat(arr[0].lat),parseFloat(arr[0].lon),1800);
-      }catch(e){
-        clearAllSearchLayers();
-        showBoundaryNote("Boundary unavailable: "+name,false);
-      }
-    }
-  };
-
-  var oldClear=window.clearSuburb;
-  window.clearSuburb=function(){
-    clearAllSearchLayers();
-    var note=document.getElementById("boundary-note");
-    if(note) note.classList.remove("show");
-    window.activeSuburb=null;
-    var activeSuburbEl=document.getElementById("active-suburb");
-    if(activeSuburbEl) activeSuburbEl.classList.remove("show");
-    var bar=document.getElementById("suburb-bar");
-    if(bar) bar.classList.remove("show");
-    if(typeof oldClear==="function"){ try{ oldClear(); }catch(e){} }
-    clearAllSearchLayers();
-  };
-})();
-</script>
-
 </body>
 </html>
