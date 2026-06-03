@@ -900,6 +900,12 @@ html,body{height:100%;background:var(--cream);color:var(--text);
 }
 .boundary-note.show{display:block}
 
+
+/* Phase 1A public cleanup */
+#eskom-btn,#eskom-badge,#layer-patrol{display:none!important}
+.map-legend{display:block!important;visibility:visible!important;opacity:1!important;z-index:900!important;bottom:60px!important;left:8px!important}
+@media(max-width:700px){.map-legend{display:block!important;max-width:150px!important;bottom:72px!important;left:8px!important}}
+
 </style>
 </head>
 <body>
@@ -1322,7 +1328,7 @@ var selInciVal=null, selSevVal=null, gpsLat=null, gpsLng=null;
 var drugType=null, drugDuration=null, drugLat=null, drugLng=null;
 var nhwVerified=false, eskomOn=false, eskomZones=null;
 var reports=[], _outageData=[];
-var layerStates={crimes:true,heat:true,power:true,drugs:false,patrol:true};
+var layerStates={crimes:true,heat:true,power:true,drugs:false,patrol:false};
 var activeSuburb=null, suburbBoundary=null;
 
 // ── WC SUBURBS (commonly searched) ──────────────────────────────────────────
@@ -2558,6 +2564,37 @@ async function drawApproximateSuburbCircle(name){
       try{ oldClear(); }catch(e){}
     }
   };
+})();
+</script>
+
+
+<script>
+/* Phase 1A public map overrides */
+(function(){
+  window.renderPatrolLayer=function(){try{if(window.patrolLayer)patrolLayer.clearLayers();}catch(e){}};
+  const oldToggleLayer=window.toggleLayer;
+  window.toggleLayer=function(name,btn){
+    if(name==='patrol'){try{if(window.patrolLayer)patrolLayer.clearLayers();}catch(e){};return;}
+    if(typeof oldToggleLayer==='function')return oldToggleLayer(name,btn);
+  };
+  window.toggleEskom=function(){return false};
+  window.drawEskomZones=function(){return false};
+  window.verifyNhw=function(){
+    var code=(document.getElementById('nhw-inp').value||'').trim().toUpperCase().replace(/\s/g,'');
+    if(!/^NHW-[A-Z0-9]{6,16}$/.test(code)){document.getElementById('nhw-err').style.display='block';return;}
+    fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code})})
+    .then(function(r){if(!r.ok)throw new Error('verify failed');return r.json();})
+    .then(function(d){
+      if(d.valid===true){try{localStorage.setItem('safenote_nhw_token',code);}catch(e){};window.location.href='/nhw';}
+      else{document.getElementById('nhw-err').style.display='block';}
+    }).catch(function(){document.getElementById('nhw-err').style.display='block';});
+  };
+  window.addEventListener('load',function(){
+    try{var l=document.querySelector('.map-legend');if(l){l.style.display='block';l.style.visibility='visible';l.style.opacity='1';}}catch(e){}
+    try{var p=document.getElementById('layer-patrol');if(p)p.remove();}catch(e){}
+    try{var e=document.getElementById('eskom-btn');if(e)e.remove();}catch(e){}
+    try{var eb=document.getElementById('eskom-badge');if(eb)eb.remove();}catch(e){}
+  });
 })();
 </script>
 
