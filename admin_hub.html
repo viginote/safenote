@@ -7,191 +7,58 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#081008;--panel:#111c10;--panel2:#172617;--line:rgba(125,171,138,.22);
-  --line2:rgba(125,171,138,.38);--text:#edf5ef;--muted:#9db99f;--green:#7dab8a;
-  --gold:#d4a832;--orange:#e8904a;--red:#f07070;--blue:#6ab4d4;--shadow:0 18px 60px rgba(0,0,0,.36)
-}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
-body{overflow:hidden}
-.app{display:grid;grid-template-columns:300px 1fr;height:100vh}
-.side{background:#0d180d;border-right:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
-.brand{display:flex;gap:12px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line)}
-.logo{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--green);display:grid;place-items:center;background:#182618;color:var(--green);font:900 13px 'DM Mono',monospace}
-.brand h1{font:900 22px 'Playfair Display',serif;margin:0}.brand p{font:500 9px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.8px;text-transform:uppercase;margin:2px 0 0}
-.status{border:1px solid var(--line);background:rgba(125,171,138,.07);border-radius:14px;padding:12px;font:500 11px 'DM Mono',monospace;color:var(--green);line-height:1.7}
-.status.bad{border-color:rgba(240,112,112,.35);background:rgba(240,112,112,.07);color:var(--red)}
-.nav button,.action{width:100%;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:12px 13px;text-align:left;cursor:pointer;font:700 12px 'DM Sans',sans-serif;display:flex;justify-content:space-between;align-items:center}
-.nav button:hover,.nav button.on,.action:hover{border-color:var(--green);background:rgba(125,171,138,.08);color:var(--text)}
-.action.primary{background:var(--green);color:#071007;border-color:var(--green);font-weight:900}
-.action.danger{border-color:rgba(240,112,112,.35);color:var(--red)}
-.login{margin-top:auto;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
-label{font:500 8px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:7px}
-input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#091209;color:var(--text);font:500 13px 'DM Sans',sans-serif;outline:none}
-input:focus,select:focus,textarea:focus{border-color:var(--green)}
-.login input{font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:10px}
-.main{height:100vh;overflow-y:auto;padding:22px}
-.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}
-.title h2{font:900 34px 'Playfair Display',serif;margin:0}.title p{margin:5px 0 0;color:var(--muted)}
-.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
-.kpi{min-height:106px}.kpi .label{font:500 8px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}.kpi .val{font:900 34px 'Playfair Display',serif;margin-top:6px}.kpi .sub{font-size:12px;color:var(--muted)}
-.span2{grid-column:span 2}.span3{grid-column:span 3}.span4{grid-column:span 4}.span6{grid-column:span 6}
-.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.section-title h3{font:900 20px 'Playfair Display',serif;margin:0}.section-title span{font:500 10px 'DM Mono',monospace;color:var(--muted)}
-.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
-.table-wrap{overflow:auto;max-height:460px}.tbl{width:100%;border-collapse:collapse;font-size:12px}.tbl th{text-align:left;color:var(--muted);font:500 9px 'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;border-bottom:1px solid var(--line);padding:10px}.tbl td{border-bottom:1px solid rgba(125,171,138,.12);padding:10px;vertical-align:top}
-.pill{display:inline-block;border-radius:999px;padding:4px 8px;font:700 9px 'DM Mono',monospace;text-transform:uppercase}.sev-critical{background:rgba(240,112,112,.14);color:var(--red)}.sev-high{background:rgba(232,144,74,.14);color:var(--orange)}.sev-medium{background:rgba(212,168,50,.16);color:var(--gold)}.sev-low{background:rgba(125,171,138,.14);color:var(--green)}
-.mini-list{display:grid;gap:10px}.mini-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:12px;padding:11px}.mini-row b{font-size:12px}.mini-row span{font:600 10px 'DM Mono',monospace;color:var(--muted)}
-.token{font-family:'DM Mono',monospace;color:var(--green);word-break:break-all}
-.btn-small{border:1px solid var(--line2);background:transparent;color:var(--green);border-radius:9px;padding:7px 10px;cursor:pointer;font:700 11px 'DM Sans',sans-serif;margin-right:5px}.btn-small:hover{background:rgba(125,171,138,.1)}.btn-small.red{color:var(--red);border-color:rgba(240,112,112,.35)}
-.empty{border:1px dashed var(--line2);background:rgba(125,171,138,.04);border-radius:14px;padding:14px;color:var(--muted);font-size:13px;line-height:1.6}
-.toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:13px 15px;color:var(--text);box-shadow:var(--shadow);transform:translateY(120px);transition:.25s;z-index:2000}.toast.show{transform:translateY(0)}
-.hide{display:none!important}
-@media(max-width:950px){body{overflow:auto}.app{display:block;height:auto}.side{height:auto}.main{height:auto;overflow:visible}.grid{grid-template-columns:1fr}.span2,.span3,.span4,.span6{grid-column:span 1}.top{display:block}.row{grid-template-columns:1fr}.table-wrap{max-height:none}}
+:root{--bg:#081008;--panel:#111c10;--panel2:#172617;--line:rgba(125,171,138,.22);--line2:rgba(125,171,138,.38);--text:#edf5ef;--muted:#9db99f;--green:#7dab8a;--gold:#d4a832;--orange:#e8904a;--red:#f07070;--shadow:0 18px 60px rgba(0,0,0,.36)}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}body{overflow:hidden}.app{display:grid;grid-template-columns:300px 1fr;height:100vh}.side{background:#0d180d;border-right:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}.brand{display:flex;gap:12px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line)}.logo{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--green);display:grid;place-items:center;background:#182618;color:var(--green);font:900 13px 'DM Mono',monospace}.brand h1{font:900 22px 'Playfair Display',serif;margin:0}.brand p{font:500 9px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.8px;text-transform:uppercase;margin:2px 0 0}.status{border:1px solid var(--line);background:rgba(125,171,138,.07);border-radius:14px;padding:12px;font:500 11px 'DM Mono',monospace;color:var(--green);line-height:1.7}.status.bad{border-color:rgba(240,112,112,.35);background:rgba(240,112,112,.07);color:var(--red)}.nav button,.action{width:100%;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:12px 13px;text-align:left;cursor:pointer;font:700 12px 'DM Sans',sans-serif;display:flex;justify-content:space-between;align-items:center}.nav button:hover,.nav button.on,.action:hover{border-color:var(--green);background:rgba(125,171,138,.08);color:var(--text)}.action.primary{background:var(--green);color:#071007;border-color:var(--green);font-weight:900}.action.danger{border-color:rgba(240,112,112,.35);color:var(--red)}.login{margin-top:auto;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:14px;box-shadow:var(--shadow)}label{font:500 8px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:7px}input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#091209;color:var(--text);font:500 13px 'DM Sans',sans-serif;outline:none}input:focus,select:focus{border-color:var(--green)}.login input{font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:10px}.main{height:100vh;overflow-y:auto;padding:22px}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}.title h2{font:900 34px 'Playfair Display',serif;margin:0}.title p{margin:5px 0 0;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}.kpi{min-height:106px}.kpi .label{font:500 8px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}.kpi .val{font:900 34px 'Playfair Display',serif;margin-top:6px}.kpi .sub{font-size:12px;color:var(--muted)}.span2{grid-column:span 2}.span3{grid-column:span 3}.span6{grid-column:span 6}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.section-title h3{font:900 20px 'Playfair Display',serif;margin:0}.section-title span{font:500 10px 'DM Mono',monospace;color:var(--muted)}.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}.table-wrap{overflow:auto;max-height:460px}.tbl{width:100%;border-collapse:collapse;font-size:12px}.tbl th{text-align:left;color:var(--muted);font:500 9px 'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;border-bottom:1px solid var(--line);padding:10px}.tbl td{border-bottom:1px solid rgba(125,171,138,.12);padding:10px;vertical-align:top}.pill{display:inline-block;border-radius:999px;padding:4px 8px;font:700 9px 'DM Mono',monospace;text-transform:uppercase}.sev-critical{background:rgba(240,112,112,.14);color:var(--red)}.sev-high{background:rgba(232,144,74,.14);color:var(--orange)}.sev-medium{background:rgba(212,168,50,.16);color:var(--gold)}.sev-low{background:rgba(125,171,138,.14);color:var(--green)}.mini-list{display:grid;gap:10px}.mini-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:12px;padding:11px}.mini-row b{font-size:12px}.mini-row span{font:600 10px 'DM Mono',monospace;color:var(--muted)}.token{font-family:'DM Mono',monospace;color:var(--green);word-break:break-all}.btn-small{border:1px solid var(--line2);background:transparent;color:var(--green);border-radius:9px;padding:7px 10px;cursor:pointer;font:700 11px 'DM Sans',sans-serif;margin-right:5px}.btn-small.red{color:var(--red);border-color:rgba(240,112,112,.35)}.empty{border:1px dashed var(--line2);background:rgba(125,171,138,.04);border-radius:14px;padding:14px;color:var(--muted);font-size:13px;line-height:1.6}.toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:13px 15px;color:var(--text);box-shadow:var(--shadow);transform:translateY(120px);transition:.25s;z-index:2000}.toast.show{transform:translateY(0)}.hide{display:none!important}@media(max-width:950px){body{overflow:auto}.app{display:block;height:auto}.side{height:auto}.main{height:auto;overflow:visible}.grid{grid-template-columns:1fr}.span2,.span3,.span6{grid-column:span 1}.top{display:block}.row{grid-template-columns:1fr}.table-wrap{max-height:none}}
 
-.status-pill{display:inline-block;border-radius:999px;padding:4px 8px;font:700 9px 'DM Mono',monospace;text-transform:uppercase}
-.status-select{min-width:130px;padding:7px;border-radius:9px;background:#091209;color:var(--text);border:1px solid var(--line);font-size:11px}
-.st-new{background:rgba(106,180,212,.14);color:#6ab4d4}.st-reviewed{background:rgba(212,168,50,.16);color:#d4a832}.st-verified{background:rgba(125,171,138,.14);color:#7dab8a}.st-duplicate{background:rgba(155,89,182,.16);color:#9b59b6}.st-false_report{background:rgba(240,112,112,.14);color:#f07070}.st-archived{background:rgba(157,185,159,.12);color:#9db99f}
+.status-select{min-width:132px;padding:7px;border-radius:9px;background:#091209;color:var(--text);border:1px solid var(--line);font-size:11px}
 </style>
 </head>
 <body>
 <div class="app">
-  <aside class="side">
-    <div class="brand"><div class="logo">SN</div><div><h1>SafeNote</h1><p>Admin Hub</p></div></div>
-    <div class="status bad" id="auth-status">Locked. Enter admin secret to access the SafeNote Admin Hub.</div>
-    <div class="nav">
-      <button class="on" onclick="scrollToId('overview')">Overview <span>↗</span></button>
-      <button onclick="scrollToId('nhw-manager')">NHW Manager <span>↗</span></button>
-      <button onclick="scrollToId('reports')">Reports <span>↗</span></button>
-      <button onclick="scrollToId('tools')">Tools <span>↗</span></button>
-    </div>
-    <button class="action primary" onclick="refreshAll()">Refresh admin data</button>
-    <button class="action" onclick="window.open('/nhw','_blank')">Open NHW portal</button>
-    <button class="action" onclick="window.open('/','_blank')">Open public map</button>
-    <button class="action danger" onclick="logout()">Log out / clear secret</button>
-    <div class="login">
-      <label>Admin Secret</label>
-      <input id="admin-secret" type="password" placeholder="ADMIN_SECRET" autocomplete="off" />
-      <button class="action primary" onclick="login()">Unlock Admin Hub</button>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="top" id="overview">
-      <div class="title"><h2>SafeNote Admin Hub</h2><p>Manage NHW access, reports, exports and testing data from one secure control room.</p></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <select id="days" onchange="refreshAll()"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option></select>
-      </div>
-    </div>
-
-    <div class="grid">
-      <div class="card kpi span2"><div class="label">Reports Today</div><div class="val" id="k-today">0</div><div class="sub">public submissions</div></div>
-      <div class="card kpi span2"><div class="label">Reports This Week</div><div class="val" id="k-week">0</div><div class="sub">all incident types</div></div>
-      <div class="card kpi span2"><div class="label">Period Total</div><div class="val" id="k-period">0</div><div class="sub">selected range</div></div>
-      <div class="card kpi span2"><div class="label">NHW Groups</div><div class="val" id="k-nhw">0</div><div class="sub">active access codes</div></div>
-      <div class="card kpi span2"><div class="label">Intel Reports</div><div class="val" id="k-intel">0</div><div class="sub">sensitive layer</div></div>
-      <div class="card kpi span2"><div class="label">High / Critical</div><div class="val" id="k-risk">0</div><div class="sub">priority reports</div></div>
-
-      <div class="card span3" id="nhw-manager">
-        <div class="section-title"><h3>NHW / CPF Manager</h3><span>Create and revoke access</span></div>
-        <div class="row">
-          <div>
-            <label>Group / Area Label</label>
-            <input id="nhw-label" placeholder="e.g. Kensington NHW Test" />
-          </div>
-          <button class="action primary" onclick="createNhwToken()">Generate Code</button>
-        </div>
-        <div style="height:14px"></div>
-        <div id="new-token-box" class="empty hide"></div>
-        <div style="height:14px"></div>
-        <div class="table-wrap">
-          <table class="tbl">
-            <thead><tr><th>Label</th><th>Access Code</th><th>Created</th><th>Actions</th></tr></thead>
-            <tbody id="tokens-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card span3">
-        <div class="section-title"><h3>Admin Shortcuts</h3><span>Operational tools</span></div>
-        <div class="mini-list">
-          <div class="mini-row"><b>NHW test code</b><span>Create above, then give it to a tester</span></div>
-          <div class="mini-row"><b>Public reports</b><span>Users submit through /app</span></div>
-          <div class="mini-row"><b>NHW portal</b><span>Testers view live data through /nhw</span></div>
-          <div class="mini-row"><b>Reset data</b><span>Use only before real pilot begins</span></div>
-        </div>
-      </div>
-
-      <div class="card span6" id="reports">
-        <div class="section-title"><h3>Incident Manager</h3><span id="reports-count">0 records</span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:12px">
-          <select id="type-filter"><option value="">All types</option></select>
-          <select id="sev-filter"><option value="">All severities</option><option>low</option><option>medium</option><option>high</option><option>critical</option></select>
-          <select id="report-limit"><option value="100">100 records</option><option value="250">250 records</option><option value="500">500 records</option></select>
-          <button class="action primary" onclick="loadReports()">Filter</button>
-        </div>
-        <div class="table-wrap">
-          <table class="tbl">
-            <thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Status</th><th>Coordinates</th><th>Note</th></tr></thead>
-            <tbody id="reports-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card span3" id="tools">
-        <div class="section-title"><h3>Exports</h3><span>CSV downloads</span></div>
-        <button class="action primary" onclick="downloadAdminExport()">Download admin CSV</button>
-        <div style="height:10px"></div>
-        <button class="action" onclick="downloadNhwExport()">Download NHW CSV</button>
-      </div>
-
-      <div class="card span3">
-        <div class="section-title"><h3>Testing Controls</h3><span>Use with care</span></div>
-        <div class="empty">These actions are for test cleanup before onboarding real NHW groups. They require your admin secret.</div>
-        <div style="height:12px"></div>
-        <button class="action danger" onclick="clearReports()">Clear incident reports only</button>
-        <div style="height:10px"></div>
-        <button class="action danger" onclick="clearIntel()">Clear intel reports only</button>
-        <div style="height:10px"></div>
-        <button class="action danger" onclick="fullReset()">Full reset: reports + intel</button>
-      </div>
-    </div>
-  </main>
-</div>
-
-<div class="toast" id="toast">Ready</div>
-
+<aside class="side">
+<div class="brand"><div class="logo">SN</div><div><h1>SafeNote</h1><p>Admin Hub</p></div></div>
+<div class="status bad" id="auth-status">Locked. Enter admin secret to access the SafeNote Admin Hub.</div>
+<div class="nav"><button class="on" onclick="scrollToId('overview')">Overview <span>↗</span></button><button onclick="scrollToId('nhw-manager')">NHW Manager <span>↗</span></button><button onclick="scrollToId('reports')">Reports <span>↗</span></button><button onclick="scrollToId('tools')">Tools <span>↗</span></button></div>
+<button class="action primary" onclick="refreshAll()">Refresh admin data</button>
+<button class="action" onclick="window.open('/nhw','_blank')">Open NHW portal</button>
+<button class="action" onclick="window.open('/','_blank')">Open public map</button>
+<button class="action danger" onclick="logout()">Log out / clear secret</button>
+<div class="login"><label>Admin Secret</label><input id="admin-secret" type="password" placeholder="ADMIN_SECRET" autocomplete="off" /><button class="action primary" onclick="login()">Unlock Admin Hub</button></div>
+</aside>
+<main class="main">
+<div class="top" id="overview"><div class="title"><h2>SafeNote Admin Hub</h2><p>Manage NHW access, reports, exports and testing data from one secure control room.</p></div><select id="days" onchange="refreshAll()"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option></select></div>
+<div class="grid">
+<div class="card kpi span2"><div class="label">Reports Today</div><div class="val" id="k-today">0</div><div class="sub">public submissions</div></div>
+<div class="card kpi span2"><div class="label">Reports This Week</div><div class="val" id="k-week">0</div><div class="sub">all incident types</div></div>
+<div class="card kpi span2"><div class="label">Period Total</div><div class="val" id="k-period">0</div><div class="sub">selected range</div></div>
+<div class="card kpi span2"><div class="label">NHW Groups</div><div class="val" id="k-nhw">0</div><div class="sub">active access codes</div></div>
+<div class="card kpi span2"><div class="label">Intel Reports</div><div class="val" id="k-intel">0</div><div class="sub">sensitive layer</div></div>
+<div class="card kpi span2"><div class="label">High / Critical</div><div class="val" id="k-risk">0</div><div class="sub">priority reports</div></div>
+<div class="card span3" id="nhw-manager"><div class="section-title"><h3>NHW / CPF Manager</h3><span>Create and revoke access</span></div><div class="row"><div><label>Group / Area Label</label><input id="nhw-label" placeholder="e.g. Kensington NHW Test" /></div><button class="action primary" onclick="createNhwToken()">Generate Code</button></div><div style="height:14px"></div><div id="new-token-box" class="empty hide"></div><div style="height:14px"></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Label</th><th>Access Code</th><th>Created</th><th>Actions</th></tr></thead><tbody id="tokens-body"></tbody></table></div></div>
+<div class="card span3"><div class="section-title"><h3>Admin Shortcuts</h3><span>Operational tools</span></div><div class="mini-list"><div class="mini-row"><b>NHW test code</b><span>Create above, then give it to a tester</span></div><div class="mini-row"><b>Public reports</b><span>Users submit through /app</span></div><div class="mini-row"><b>NHW portal</b><span>Testers view live data through /nhw</span></div><div class="mini-row"><b>Reset data</b><span>Use only before real pilot begins</span></div></div></div>
+<div class="card span6" id="reports"><div class="section-title"><h3>Incident Manager</h3><span id="reports-count">0 records</span></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:12px"><select id="type-filter"><option value="">All types</option></select><select id="sev-filter"><option value="">All severities</option><option>low</option><option>medium</option><option>high</option><option>critical</option></select><select id="report-limit"><option value="100">100 records</option><option value="250">250 records</option><option value="500">500 records</option></select><button class="action primary" onclick="loadReports()">Filter</button></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Status</th><th>Coordinates</th><th>Note</th></tr></thead><tbody id="reports-body"></tbody></table></div></div>
+<div class="card span3" id="tools"><div class="section-title"><h3>Exports</h3><span>CSV downloads</span></div><button class="action primary" onclick="downloadAdminExport()">Download admin CSV</button><div style="height:10px"></div><button class="action" onclick="downloadNhwExport()">Download NHW CSV</button></div>
+<div class="card span3"><div class="section-title"><h3>Testing Controls</h3><span>Use with care</span></div><div class="empty">These actions are for test cleanup before onboarding real NHW groups. They require your admin secret.</div><div style="height:12px"></div><button class="action danger" onclick="clearReports()">Clear incident reports only</button><div style="height:10px"></div><button class="action danger" onclick="clearIntel()">Clear intel reports only</button><div style="height:10px"></div><button class="action danger" onclick="fullReset()">Full reset: reports + intel</button></div>
+</div></main></div><div class="toast" id="toast">Ready</div>
 <script>
-const API=window.location.origin;
-let adminSecret='';
+const API=window.location.origin;let adminSecret="";
 const types=["murder","shooting","stabbing","attempted_murder","hijacking","armed_robbery","mugging","house_robbery","atm_robbery","burglary","vehicle_theft","theft","vandalism","gbv","domestic","sexual_assault","child_abuse","suspicious_person","suspicious_vehicle","loitering","drone_surveillance","casing","following","drug_dealing","gang_activity","illegal_firearm","extortion","cable_theft","illegal_connection","manhole_theft","road_blockage","water_cut","fire","missing_person","illegal_dumping","protest_violence","farm_attack","mob_justice","xenophobia","other","power_loadshedding","power_fault","power_partial","power_restored"];
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
-function headers(){return {'Authorization':'Bearer '+adminSecret}}
-function scrollToId(id){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'})}
-function fmtTime(ts){return ts?new Date(ts*1000).toLocaleString([], {dateStyle:'medium', timeStyle:'short'}):'—'}
-function label(x){return String(x||'').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase())}
-function setAuth(ok,msg){const el=document.getElementById('auth-status');el.textContent=msg;el.classList.toggle('bad',!ok)}
-function copyText(txt){navigator.clipboard.writeText(txt).then(()=>toast('Copied'))}
-function init(){types.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=label(t);document.getElementById('type-filter').appendChild(o)});const saved=localStorage.getItem('safenote_admin_secret');if(saved){document.getElementById('admin-secret').value=saved;adminSecret=saved;setAuth(true,'Saved admin secret found. Loading hub...');refreshAll()}}
-function login(){adminSecret=document.getElementById('admin-secret').value.trim();if(!adminSecret){toast('Enter admin secret');return}localStorage.setItem('safenote_admin_secret',adminSecret);setAuth(true,'Admin unlocked. Loading hub...');refreshAll()}
-function logout(){localStorage.removeItem('safenote_admin_secret');adminSecret='';document.getElementById('admin-secret').value='';setAuth(false,'Locked. Enter admin secret to access the SafeNote Admin Hub.');toast('Admin secret cleared')}
-async function refreshAll(){if(!adminSecret){toast('Unlock admin first');return}try{await Promise.all([loadOverview(),loadTokens(),loadReports()]);setAuth(true,'Admin active · Last sync: '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));toast('Admin data refreshed')}catch(e){console.error(e);setAuth(false,'Admin auth failed or API unavailable. Check ADMIN_SECRET.');toast('Could not load admin data')}}
-async function loadOverview(){const days=document.getElementById('days').value;const r=await fetch(API+'/api/admin/overview?days='+days,{headers:headers()});if(!r.ok)throw new Error('overview');const d=await r.json();document.getElementById('k-today').textContent=d.today||0;document.getElementById('k-week').textContent=d.week||0;document.getElementById('k-period').textContent=d.period_total||0;document.getElementById('k-nhw').textContent=d.nhw_tokens||0;document.getElementById('k-intel').textContent=d.intel_total||0;document.getElementById('k-risk').textContent=(d.critical||0)+(d.high||0)}
-async function loadTokens(){const r=await fetch(API+'/api/admin/nhw-tokens',{headers:headers()});if(!r.ok)throw new Error('tokens');const d=await r.json();const body=document.getElementById('tokens-body');body.innerHTML='';(d.tokens||[]).forEach(t=>{const tr=document.createElement('tr');tr.innerHTML='<td>'+(t.label||'—')+'</td><td class="token">'+t.token+'</td><td>'+fmtTime(t.created_at)+'</td><td><button class="btn-small" onclick="copyText(\\''+t.token+'\\')">Copy</button><button class="btn-small red" onclick="revokeToken(\\''+t.token+'\\')">Revoke</button></td>';body.appendChild(tr)});if(!(d.tokens||[]).length)body.innerHTML='<tr><td colspan="4"><div class="empty">No NHW codes yet. Generate your first test code above.</div></td></tr>'}
-async function createNhwToken(){const label=document.getElementById('nhw-label').value.trim();if(!label){toast('Add a group label first');return}const r=await fetch(API+'/api/admin/nhw-tokens?label='+encodeURIComponent(label),{method:'POST',headers:headers()});if(!r.ok){toast('Could not create token');return}const d=await r.json();const box=document.getElementById('new-token-box');box.classList.remove('hide');box.innerHTML='<b>New NHW Code Created</b><br><span class="token">'+d.token+'</span><br><br><button class="btn-small" onclick="copyText(\\''+d.token+'\\')">Copy code</button>';document.getElementById('nhw-label').value='';toast('NHW code created');loadTokens();loadOverview()}
-async function revokeToken(tok){if(!confirm('Revoke this NHW access code?'))return;const r=await fetch(API+'/api/admin/nhw-tokens/'+encodeURIComponent(tok),{method:'DELETE',headers:headers()});if(!r.ok){toast('Could not revoke');return}toast('Token revoked');loadTokens();loadOverview()}
-async function loadReports(){const days=document.getElementById('days').value,limit=document.getElementById('report-limit').value,type=document.getElementById('type-filter').value,sev=document.getElementById('sev-filter').value;let url=API+'/api/admin/reports?days='+days+'&limit='+limit;if(type)url+='&type_filter='+encodeURIComponent(type);if(sev)url+='&severity_filter='+encodeURIComponent(sev);const r=await fetch(url,{headers:headers()});if(!r.ok)throw new Error('reports');const d=await r.json();const rows=d.reports||[];document.getElementById('reports-count').textContent=(d.total||rows.length)+' records';const body=document.getElementById('reports-body');body.innerHTML='';if(!rows.length){body.innerHTML='<tr><td colspan="6"><div class="empty">No reports yet for this filter.</div></td></tr>';return}rows.forEach(rep=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML='<td></td><td></td><td></td><td></td><td></td><td></td>';
-    tr.children[0].textContent=fmtTime(rep.ts);
-    tr.children[1].textContent=label(rep.type);
-    tr.children[2].innerHTML='<span class="pill sev-'+rep.severity+'">'+rep.severity+'</span>';
-    tr.children[3].appendChild(statusDropdown(rep));
-    tr.children[4].textContent=Number(rep.lat).toFixed(5)+", "+Number(rep.lng).toFixed(5);
-    tr.children[5].textContent=rep.note||"—";
-    body.appendChild(tr)
-  })}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
+function headers(){return {"Authorization":"Bearer "+adminSecret,"X-Admin-Secret":adminSecret}}
+function scrollToId(id){document.getElementById(id).scrollIntoView({behavior:"smooth",block:"start"})}
+function fmtTime(ts){return ts?new Date(ts*1000).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}):"—"}
+function label(x){return String(x||"").replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase())}
+function setAuth(ok,msg){const el=document.getElementById("auth-status");el.textContent=msg;el.classList.toggle("bad",!ok)}
+function copyText(txt){navigator.clipboard.writeText(txt).then(()=>toast("Copied"))}
+function init(){types.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=label(t);document.getElementById("type-filter").appendChild(o)});const saved=localStorage.getItem("safenote_admin_secret");if(saved){document.getElementById("admin-secret").value=saved;adminSecret=saved;setAuth(false,"Saved secret found. Click Unlock Admin Hub to verify.")}}
+async function login(){adminSecret=document.getElementById("admin-secret").value.trim();if(!adminSecret){toast("Enter admin secret");return}try{const r=await fetch(API+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Secret":adminSecret},body:JSON.stringify({secret:adminSecret})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok){setAuth(false,"Login failed. Check ADMIN_SECRET.");toast("Login failed");return}localStorage.setItem("safenote_admin_secret",adminSecret);setAuth(true,"Admin unlocked. Loading hub...");await refreshAll()}catch(e){console.error(e);setAuth(false,"Login request failed. Check API/admin routes.");toast("Login request failed")}}
+function logout(){localStorage.removeItem("safenote_admin_secret");adminSecret="";document.getElementById("admin-secret").value="";setAuth(false,"Locked. Enter admin secret to access the SafeNote Admin Hub.");toast("Admin secret cleared")}
+async function refreshAll(){if(!adminSecret){toast("Unlock admin first");return}try{await Promise.all([loadOverview(),loadTokens(),loadReports()]);setAuth(true,"Admin active · Last sync: "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}));toast("Admin data refreshed")}catch(e){console.error(e);setAuth(false,"Admin auth failed or API unavailable. Check ADMIN_SECRET.");toast("Could not load admin data")}}
+async function loadOverview(){const days=document.getElementById("days").value;const r=await fetch(API+"/api/admin/overview?days="+days,{headers:headers()});if(!r.ok)throw new Error("overview");const d=await r.json();document.getElementById("k-today").textContent=d.today||0;document.getElementById("k-week").textContent=d.week||0;document.getElementById("k-period").textContent=d.period_total||0;document.getElementById("k-nhw").textContent=d.nhw_tokens||0;document.getElementById("k-intel").textContent=d.intel_total||0;document.getElementById("k-risk").textContent=(d.critical||0)+(d.high||0)}
+async function loadTokens(){const r=await fetch(API+"/api/admin/nhw-tokens",{headers:headers()});if(!r.ok)throw new Error("tokens");const d=await r.json();const body=document.getElementById("tokens-body");body.innerHTML="";const rows=d.tokens||[];if(!rows.length){body.innerHTML='<tr><td colspan="4"><div class="empty">No NHW codes yet. Generate your first test code above.</div></td></tr>';return}rows.forEach(t=>{const tr=document.createElement("tr");tr.innerHTML='<td></td><td class="token"></td><td></td><td></td>';tr.children[0].textContent=t.label||"—";tr.children[1].textContent=t.token;tr.children[2].textContent=fmtTime(t.created_at);const copy=document.createElement("button");copy.className="btn-small";copy.textContent="Copy";copy.onclick=()=>copyText(t.token);const revoke=document.createElement("button");revoke.className="btn-small red";revoke.textContent="Revoke";revoke.onclick=()=>revokeToken(t.token);tr.children[3].appendChild(copy);tr.children[3].appendChild(revoke);body.appendChild(tr)})}
+async function createNhwToken(){const groupLabel=document.getElementById("nhw-label").value.trim();if(!groupLabel){toast("Add a group label first");return}const r=await fetch(API+"/api/admin/nhw-tokens?label="+encodeURIComponent(groupLabel),{method:"POST",headers:headers()});if(!r.ok){toast("Could not create token");return}const d=await r.json();const box=document.getElementById("new-token-box");box.classList.remove("hide");box.innerHTML="";const title=document.createElement("b");title.textContent="New NHW Code Created";const br1=document.createElement("br");const code=document.createElement("span");code.className="token";code.textContent=d.token;const br2=document.createElement("br");const br3=document.createElement("br");const btn=document.createElement("button");btn.className="btn-small";btn.textContent="Copy code";btn.onclick=()=>copyText(d.token);box.append(title,br1,code,br2,br3,btn);document.getElementById("nhw-label").value="";toast("NHW code created");loadTokens();loadOverview()}
+async function revokeToken(tok){if(!confirm("Revoke this NHW access code?"))return;const r=await fetch(API+"/api/admin/nhw-tokens/"+encodeURIComponent(tok),{method:"DELETE",headers:headers()});if(!r.ok){toast("Could not revoke");return}toast("Token revoked");loadTokens();loadOverview()}
+async function loadReports(){const days=document.getElementById("days").value,limit=document.getElementById("report-limit").value,type=document.getElementById("type-filter").value,sev=document.getElementById("sev-filter").value;let url=API+"/api/admin/reports?days="+days+"&limit="+limit;if(type)url+="&type_filter="+encodeURIComponent(type);if(sev)url+="&severity_filter="+encodeURIComponent(sev);const r=await fetch(url,{headers:headers()});if(!r.ok)throw new Error("reports");const d=await r.json();const rows=d.reports||[];document.getElementById("reports-count").textContent=(d.total||rows.length)+" records";const body=document.getElementById("reports-body");body.innerHTML="";if(!rows.length){body.innerHTML='<tr><td colspan="6"><div class="empty">No reports yet for this filter.</div></td></tr>';return}rows.forEach(rep=>{const tr=document.createElement("tr");tr.innerHTML='<td>'+fmtTime(rep.ts)+'</td><td>'+label(rep.type)+'</td><td><span class="pill sev-'+rep.severity+'">'+rep.severity+'</span></td><td>'+Number(rep.lat).toFixed(5)+", "+Number(rep.lng).toFixed(5)+'</td><td>'+(rep.note||"—")+"</td>";body.appendChild(tr)})}
 
 function statusLabel(s){return label(s||"new")}
 async function updateReportStatus(id,status){
@@ -201,22 +68,30 @@ async function updateReportStatus(id,status){
     body:JSON.stringify({status:status})
   });
   if(!r.ok){toast("Status update failed");return}
-  toast("Report marked "+statusLabel(status)); loadReports(); loadOverview();
+  toast("Report marked "+statusLabel(status));
+  loadReports(); loadOverview();
 }
 function statusDropdown(rep){
   const statuses=["new","reviewed","verified","duplicate","false_report","archived"];
-  const sel=document.createElement("select"); sel.className="status-select";
-  statuses.forEach(s=>{const o=document.createElement("option");o.value=s;o.textContent=statusLabel(s);if(s===(rep.status||"new"))o.selected=true;sel.appendChild(o)});
-  sel.onchange=()=>updateReportStatus(rep.id,sel.value); return sel;
+  const sel=document.createElement("select");
+  sel.className="status-select";
+  statuses.forEach(s=>{
+    const o=document.createElement("option");
+    o.value=s; o.textContent=statusLabel(s);
+    if(s===(rep.status||"new"))o.selected=true;
+    sel.appendChild(o);
+  });
+  sel.onchange=()=>updateReportStatus(rep.id,sel.value);
+  return sel;
 }
 
-function downloadAdminExport(){window.open(API+'/api/admin/export-download?admin_secret='+encodeURIComponent(adminSecret),'_blank')}
-function downloadNhwExport(){const days=document.getElementById('days').value;window.open(API+'/api/admin/nhw-export-download?days='+days+'&admin_secret='+encodeURIComponent(adminSecret),'_blank')}
-async function adminDelete(path,msg){if(!confirm(msg))return;const r=await fetch(API+path,{method:'DELETE',headers:headers()});if(!r.ok){toast('Action failed');return}toast('Done');refreshAll()}
-function clearReports(){adminDelete('/api/admin/reports/all','Clear all incident reports?')}
-function clearIntel(){adminDelete('/api/admin/intel/all','Clear all intel reports?')}
-function fullReset(){adminDelete('/api/admin/reset','FULL RESET: clear reports and intel?')}
-window.addEventListener('load',init);
+function downloadAdminExport(){window.open(API+"/api/admin/export-download?admin_secret="+encodeURIComponent(adminSecret),"_blank")}
+function downloadNhwExport(){const days=document.getElementById("days").value;window.open(API+"/api/admin/nhw-export-download?days="+days+"&admin_secret="+encodeURIComponent(adminSecret),"_blank")}
+async function adminDelete(path,msg){if(!confirm(msg))return;const r=await fetch(API+path,{method:"DELETE",headers:headers()});if(!r.ok){toast("Action failed");return}toast("Done");refreshAll()}
+function clearReports(){adminDelete("/api/admin/reports/all","Clear all incident reports?")}
+function clearIntel(){adminDelete("/api/admin/intel/all","Clear all intel reports?")}
+function fullReset(){adminDelete("/api/admin/reset","FULL RESET: clear reports and intel?")}
+window.addEventListener("load",init);
 </script>
 </body>
 </html>
