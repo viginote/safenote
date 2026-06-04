@@ -557,5 +557,222 @@ function downloadExport(){if(!token){toast('Verify first');return}window.open(AP
 })();
 </script>
 
+
+<script>
+/* SafeNote Pre-Phase 3 Stabilization
+   1. Overview map shows patrol zones and AOIs.
+   2. Members see only Overview + Incident Feed.
+   3. Refresh clears token/session automatically.
+   4. Public map can redirect via /nhw?access=CODE once.
+   5. Revoke disables token and removes from active list; Delete permanently removes member.
+*/
+(function(){
+  function isViewOnlyRole(){
+    return nhwIdentity && !nhwIdentity.can_manage_patrols && !nhwIdentity.can_manage_members;
+  }
+
+  function getAccessParam(){
+    try{return new URLSearchParams(window.location.search).get('access') || ''}catch(e){return ''}
+  }
+
+  function clearNHWStorage(){
+    localStorage.removeItem('safenote_nhw_token');
+    localStorage.removeItem('nhw_token');
+    sessionStorage.removeItem('safenote_nhw_token');
+  }
+
+  function applyRoleNavigation(){
+    const role=(nhwIdentity&&nhwIdentity.role)||'';
+    const memberPageBtn=[...document.querySelectorAll('.tab-btn')].find(b=>(b.textContent||'').toLowerCase().includes('members'));
+    const planningPageBtn=[...document.querySelectorAll('.tab-btn')].find(b=>(b.textContent||'').toLowerCase().includes('planning'));
+
+    if(!nhwIdentity) return;
+
+    if(nhwIdentity.can_manage_members){
+      if(memberPageBtn) memberPageBtn.style.display='flex';
+    }else{
+      if(memberPageBtn) memberPageBtn.style.display='none';
+    }
+
+    if(nhwIdentity.can_manage_patrols){
+      if(planningPageBtn) planningPageBtn.style.display='flex';
+      document.querySelectorAll('#draw-zone-btn,#finish-zone-btn,#aoi-btn,.tool-btn').forEach(b=>b.disabled=false);
+    }else{
+      if(planningPageBtn) planningPageBtn.style.display='none';
+      document.querySelectorAll('#draw-zone-btn,#finish-zone-btn,#aoi-btn').forEach(b=>b.disabled=true);
+    }
+
+    // A basic patrol_member/member should only navigate to overview and incidents.
+    if(isViewOnlyRole()){
+      if(typeof showPage==='function') showPage('overview', document.querySelector('.tab-btn'));
+    }
+  }
+
+  function addGeoJsonToMap(map, layerGroup, z){
+    if(!map || !layerGroup || !z.geometry) return;
+    try{
+      L.geoJSON(z.geometry,{
+        style:{color:z.color,weight:3,fillColor:z.color,fillOpacity:.16}
+      }).bindPopup('<b>'+z.name+'</b><br>'+label(z.zone_type||'patrol')).addTo(layerGroup);
+    }catch(e){console.warn('zone render issue', e)}
+  }
+
+  function addAOIToMap(map, layerGroup, a){
+    if(!map || !layerGroup) return;
+    try{
+      L.circle([a.lat,a.lng],{
+        radius:a.radius_m||250,
+        color:a.color,
+        weight:2,
+        fillColor:a.color,
+        fillOpacity:.18
+      }).bindPopup('<b>'+a.name+'</b><br>Area of interest · '+(a.radius_m||250)+'m').addTo(layerGroup);
+    }catch(e){console.warn('aoi render issue', e)}
+  }
+
+  // Add missing overview operational layer groups if they do not exist.
+  window.ensureOverviewOpsLayers=function(){
+    if(typeof overviewMap==='undefined' || !overviewMap) return;
+    if(!window.overviewPatrolLayer){
+      window.overviewPatrolLayer=L.layerGroup().addTo(overviewMap);
+    }
+    if(!window.overviewAOILayer){
+      window.overviewAOILayer=L.layerGroup().addTo(overviewMap);
+    }
+  };
+
+  const previousInitMaps=window.initMaps;
+  window.initMaps=function(){
+    previousInitMaps();
+    ensureOverviewOpsLayers();
+  };
+
+  window.loadPlanningLayers=async function(){
+    if(typeof patrolLayer==='undefined' || !patrolLayer || typeof aoiLayer==='undefined' || !aoiLayer) return;
+    patrolLayer.clearLayers();
+    aoiLayer.clearLayers();
+    ensureOverviewOpsLayers();
+    try{window.overviewPatrolLayer.clearLayers();window.overviewAOILayer.clearLayers()}catch(e){}
+
+    const zones=await fetch(API+'/api/nhw/patrol-zones',{headers:authHeaders()}).then(r=>r.ok?r.json():{zones:[]});
+    const aois=await fetch(API+'/api/nhw/aoi',{headers:authHeaders()}).then(r=>r.ok?r.json():{areas:[]});
+
+    (zones.zones||[]).forEach(z=>{
+      addGeoJsonToMap(planningMap, patrolLayer, z);
+      addGeoJsonToMap(overviewMap, window.overviewPatrolLayer, z);
+    });
+    (aois.areas||[]).forEach(a=>{
+      addAOIToMap(planningMap, aoiLayer, a);
+      addAOIToMap(overviewMap, window.overviewAOILayer, a);
+    });
+
+    renderZoneList(zones.zones||[], aois.areas||[]);
+  };
+
+  // Override member list with revoke + delete.
+  window.loadMembers=async function(){
+    const list=document.getElementById('member-list');
+    if(!list) return;
+    list.innerHTML='';
+    if(!nhwIdentity || !nhwIdentity.can_manage_members){
+      list.innerHTML='<div class="empty">Only the chairman/root NHW code can manage member sub-codes.</div>';
+      return;
+    }
+
+    const d=await fetch(API+'/api/nhw/members',{headers:authHeaders()}).then(r=>r.ok?r.json():{members:[]});
+    const members=d.members||[];
+    if(!members.length){list.innerHTML='<div class="empty">No active member codes yet.</div>';return}
+
+    members.forEach(m=>{
+      const div=document.createElement('div');
+      div.className='mini-row';
+      div.innerHTML='<b>'+m.member_label+' <span class="role-chip">'+roleLabel(m.role)+'</span></b><span>'+m.token+'</span>';
+
+      const actions=document.createElement('div');
+      actions.style.display='flex';
+      actions.style.gap='6px';
+
+      const revoke=document.createElement('button');
+      revoke.className='btn-small red';
+      revoke.textContent='Revoke';
+      revoke.title='Disable token access and remove from active list';
+      revoke.onclick=()=>revokeMember(m.token);
+
+      const del=document.createElement('button');
+      del.className='btn-small red';
+      del.textContent='Delete';
+      del.title='Permanently delete member record';
+      del.onclick=()=>deleteMember(m.token);
+
+      actions.appendChild(revoke);
+      actions.appendChild(del);
+      div.appendChild(actions);
+      list.appendChild(div);
+    });
+  };
+
+  window.revokeMember=async function(tok){
+    if(!confirm('Revoke this member token? It will no longer work and will disappear from the active list.')) return;
+    const r=await fetch(API+'/api/nhw/members/'+encodeURIComponent(tok),{method:'DELETE',headers:authHeaders()});
+    if(!r.ok){toast('Could not revoke member');return}
+    toast('Member token revoked');
+    await loadMembers();
+  };
+
+  window.deleteMember=async function(tok){
+    if(!confirm('Permanently delete this member record?')) return;
+    const r=await fetch(API+'/api/nhw/members/'+encodeURIComponent(tok)+'/delete',{method:'DELETE',headers:authHeaders()});
+    if(!r.ok){toast('Could not delete member');return}
+    toast('Member deleted');
+    await loadMembers();
+  };
+
+  const previousVerify=window.verifyAndLoad;
+  window.verifyAndLoad=async function(){
+    await previousVerify();
+    if(nhwIdentity){
+      applyRoleNavigation();
+      ensureOverviewOpsLayers();
+      await loadPlanningLayers();
+      setTimeout(()=>{try{overviewMap&&overviewMap.invalidateSize();planningMap&&planningMap.invalidateSize()}catch(e){}},300);
+    }
+  };
+
+  const previousRefresh=window.refreshAll;
+  window.refreshAll=async function(){
+    await previousRefresh();
+    if(nhwIdentity){
+      applyRoleNavigation();
+      await loadPlanningLayers();
+    }
+  };
+
+  // Do not persist token after page refresh. Public redirect can pass ?access=CODE once.
+  window.addEventListener('load',()=>{
+    const access=getAccessParam();
+    clearNHWStorage();
+
+    if(access){
+      const input=document.getElementById('token');
+      if(input) input.value=access.toUpperCase();
+      try{window.history.replaceState({},document.title,'/nhw')}catch(e){}
+      setTimeout(()=>{verifyAndLoad()},250);
+      return;
+    }
+
+    const input=document.getElementById('token');
+    if(input) input.value='';
+    if(typeof lock==='function') lock();
+  }, {once:true});
+
+  window.logout=function(){
+    clearNHWStorage();
+    token='';
+    try{sessionStorage.clear()}catch(e){}
+    location.href='/nhw';
+  };
+})();
+</script>
+
 </body>
 </html>
