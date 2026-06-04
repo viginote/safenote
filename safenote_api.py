@@ -40,7 +40,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-import sqlite3, uuid, time, os, hashlib, io, csv, math, re, urllib.parse, json
+import sqlite3, uuid, time, os, hashlib, io, csv, math, re, urllib.parse, json, random
 
 import httpx
 from datetime import datetime, timezone
@@ -97,6 +97,23 @@ POWER_TYPES = {
 VALID_SEVERITIES = {"low", "medium", "high", "critical"}
 VALID_REPORT_STATUSES = {"new","reviewed","verified","duplicate","false_report","archived"}
 
+# ── PRIVACY PHASE 1 CONSTANTS ────────────────────────────────────────────────
+VALID_LOCATION_CONTEXTS = {
+    "at_location",
+    "nearby_same_street",
+    "across_road",
+    "different_street_nearby",
+    "heard_or_seen_uncertain",
+}
+
+SENSITIVE_TYPES = {
+    "murder","shooting","stabbing","attempted_murder",
+    "gbv","domestic","sexual_assault","child_abuse",
+    "drug_dealing","gang_activity","illegal_firearm","extortion",
+    "farm_attack","mob_justice","xenophobia"
+}
+
+
 # ── DATABASE ──────────────────────────────────────────────────────────────────
 def get_db():
     con = sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -123,7 +140,17 @@ def init_db():
             ts          INTEGER NOT NULL,
             created_at  INTEGER NOT NULL,
             ip_hash     TEXT,
-            status      TEXT DEFAULT 'new'
+            status      TEXT DEFAULT 'new',
+            reporter_lat REAL,
+            reporter_lng REAL,
+            incident_lat REAL,
+            incident_lng REAL,
+            display_lat  REAL,
+            display_lng  REAL,
+            location_context TEXT DEFAULT 'at_location',
+            location_confidence TEXT DEFAULT 'medium',
+            privacy_radius_m INTEGER DEFAULT 250,
+            location_note TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_reports_ts   ON reports(ts);
         CREATE INDEX IF NOT EXISTS idx_reports_geo  ON reports(lat, lng);
@@ -196,6 +223,35 @@ def init_db():
         cur.execute("ALTER TABLE reports ADD COLUMN status TEXT DEFAULT 'new'")
     cur.execute("UPDATE reports SET status='new' WHERE status IS NULL OR status=''")
 
+    # Privacy Phase 1 migration for existing SQLite databases.
+    privacy_cols = {
+        "reporter_lat": "REAL",
+        "reporter_lng": "REAL",
+        "incident_lat": "REAL",
+        "incident_lng": "REAL",
+        "display_lat": "REAL",
+        "display_lng": "REAL",
+        "location_context": "TEXT DEFAULT 'at_location'",
+        "location_confidence": "TEXT DEFAULT 'medium'",
+        "privacy_radius_m": "INTEGER DEFAULT 250",
+        "location_note": "TEXT",
+    }
+    existing_cols = [r[1] for r in cur.execute("PRAGMA table_info(reports)").fetchall()]
+    for col, spec in privacy_cols.items():
+        if col not in existing_cols:
+            cur.execute(f"ALTER TABLE reports ADD COLUMN {col} {spec}")
+
+    cur.execute("UPDATE reports SET reporter_lat=lat WHERE reporter_lat IS NULL")
+    cur.execute("UPDATE reports SET reporter_lng=lng WHERE reporter_lng IS NULL")
+    cur.execute("UPDATE reports SET incident_lat=lat WHERE incident_lat IS NULL")
+    cur.execute("UPDATE reports SET incident_lng=lng WHERE incident_lng IS NULL")
+    cur.execute("UPDATE reports SET display_lat=lat WHERE display_lat IS NULL")
+    cur.execute("UPDATE reports SET display_lng=lng WHERE display_lng IS NULL")
+    cur.execute("UPDATE reports SET location_context='at_location' WHERE location_context IS NULL OR location_context=''")
+    cur.execute("UPDATE reports SET location_confidence='medium' WHERE location_confidence IS NULL OR location_confidence=''")
+    cur.execute("UPDATE reports SET privacy_radius_m=250 WHERE privacy_radius_m IS NULL")
+
+
     con.commit()
     con.close()
 
@@ -209,6 +265,10 @@ class ReportIn(BaseModel):
     lng:      float = Field(..., ge=-180, le=180)
     note:     Optional[str] = None
     token:    Optional[str] = None
+    location_context: Optional[str] = "at_location"
+    incident_lat: Optional[float] = None
+    incident_lng: Optional[float] = None
+    location_note: Optional[str] = None
 
     @validator("type")
     def valid_type(cls, v):
@@ -226,6 +286,20 @@ class ReportIn(BaseModel):
     def clean_note(cls, v):
         if v is None: return None
         v = v.strip()[:200]
+        return v if v else None
+
+    @validator("location_context")
+    def valid_location_context(cls, v):
+        if not v:
+            return "at_location"
+        if v not in VALID_LOCATION_CONTEXTS:
+            raise ValueError("Invalid location context")
+        return v
+
+    @validator("location_note")
+    def clean_location_note(cls, v):
+        if v is None: return None
+        v = v.strip()[:160]
         return v if v else None
 
     @validator("lat")
@@ -472,6 +546,75 @@ def cluster_outage_reports(reports: list) -> list:
     return clusters
 
 
+
+# ── PRIVACY / LOCATION PROTECTION HELPERS ─────────────────────────────────────
+
+def privacy_radius_for_report(report_type: str, context: str) -> tuple[int, str]:
+    """
+    Chooses a protection radius based on incident sensitivity and reporter certainty.
+    Larger radius = stronger protection for the reporter and small communities.
+    """
+    base = 250
+    confidence = "medium"
+
+    if report_type in SENSITIVE_TYPES:
+        base = 450
+    elif report_type in POWER_TYPES:
+        base = 120
+    elif report_type in {"theft","vandalism","burglary","vehicle_theft"}:
+        base = 220
+
+    if context == "at_location":
+        confidence = "medium"
+    elif context == "nearby_same_street":
+        base = max(base, 250)
+        confidence = "medium"
+    elif context == "across_road":
+        base = max(base, 300)
+        confidence = "medium"
+    elif context == "different_street_nearby":
+        base = max(base, 450)
+        confidence = "low"
+    elif context == "heard_or_seen_uncertain":
+        base = max(base, 650)
+        confidence = "low"
+
+    return min(base, 900), confidence
+
+
+def offset_location(lat: float, lng: float, radius_m: int, seed: str) -> tuple[float, float]:
+    """
+    Deterministic random offset per report ID.
+    Keeps the protected point stable while hiding precise location.
+    """
+    rnd = random.Random(seed)
+    dist = rnd.uniform(radius_m * 0.35, radius_m * 0.95)
+    bearing = rnd.uniform(0, 2 * math.pi)
+
+    dlat = (dist * math.cos(bearing)) / 111_320
+    dlng = (dist * math.sin(bearing)) / (111_320 * max(math.cos(math.radians(lat)), 0.1))
+    return round(lat + dlat, 5), round(lng + dlng, 5)
+
+
+def protected_report_payload(row, precision: str = "protected") -> dict:
+    """
+    Public/NHW payload uses display_lat/display_lng.
+    Exact reporter/incident coordinates stay admin-only.
+    """
+    d = row_to_dict(row)
+
+    if precision == "exact":
+        return d
+
+    d["lat"] = d.get("display_lat") if d.get("display_lat") is not None else d.get("lat")
+    d["lng"] = d.get("display_lng") if d.get("display_lng") is not None else d.get("lng")
+    d["privacy_note"] = "Approximate location shown to protect the reporter and community."
+
+    for k in ("reporter_lat","reporter_lng","incident_lat","incident_lng","ip_hash"):
+        d.pop(k, None)
+
+    return d
+
 # ── REPORT ROUTES ─────────────────────────────────────────────────────────────
 
 @app.post("/api/reports", status_code=201)
@@ -491,11 +634,32 @@ async def submit_report(report: ReportIn, request: Request, db=Depends(get_db)):
     report_id = str(uuid.uuid4())
     token     = report.token or str(uuid.uuid4())
 
+    context = report.location_context or "at_location"
+    incident_lat = report.incident_lat if report.incident_lat is not None else report.lat
+    incident_lng = report.incident_lng if report.incident_lng is not None else report.lng
+
+    if not (-35.0 <= incident_lat <= -22.0):
+        raise HTTPException(status_code=422, detail="Incident latitude outside South Africa bounds")
+    if not (16.0 <= incident_lng <= 33.0):
+        raise HTTPException(status_code=422, detail="Incident longitude outside South Africa bounds")
+
+    incident_lat = round(incident_lat, 5)
+    incident_lng = round(incident_lng, 5)
+
+    privacy_radius_m, location_confidence = privacy_radius_for_report(report.type, context)
+    display_lat, display_lng = offset_location(incident_lat, incident_lng, privacy_radius_m, report_id)
+
     db.execute(
-        """INSERT INTO reports(id,token,type,severity,lat,lng,note,ts,created_at,ip_hash,status)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+        """INSERT INTO reports(
+              id,token,type,severity,lat,lng,note,ts,created_at,ip_hash,status,
+              reporter_lat,reporter_lng,incident_lat,incident_lng,display_lat,display_lng,
+              location_context,location_confidence,privacy_radius_m,location_note
+           )
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (report_id, token, report.type, report.severity,
-         report.lat, report.lng, report.note, now, now, h, 'new')
+         report.lat, report.lng, report.note, now, now, h, 'new',
+         report.lat, report.lng, incident_lat, incident_lng, display_lat, display_lng,
+         context, location_confidence, privacy_radius_m, report.location_note)
     )
     db.commit()
 
@@ -525,13 +689,13 @@ async def public_feed(db=Depends(get_db)):
     """Delayed public feed — 24h lag to prevent criminal use of real-time data."""
     cutoff = int(time.time()) - PUBLIC_DELAY_S
     rows = db.execute(
-        """SELECT type,severity,lat,lng,note,ts,status FROM reports
+        """SELECT type,severity,lat,lng,note,ts,status,display_lat,display_lng,location_context,location_confidence,privacy_radius_m,location_note FROM reports
            WHERE ts <= ? AND COALESCE(status,'new') NOT IN ('false_report','archived') AND type NOT IN
              ('power_loadshedding','power_fault','power_partial','power_restored')
            ORDER BY ts DESC LIMIT 500""",
         (cutoff,)
     ).fetchall()
-    return {"reports": [row_to_dict(r) for r in rows],
+    return {"reports": [protected_report_payload(r) for r in rows],
             "delayed_hours": PUBLIC_DELAY_S // 3600}
 
 
@@ -539,11 +703,11 @@ async def public_feed(db=Depends(get_db)):
 async def live_feed(_=Depends(require_nhw), db=Depends(get_db)):
     """Real-time feed for verified NHW/CPF members — no delay, all types."""
     rows = db.execute(
-        """SELECT id,type,severity,lat,lng,note,ts,status FROM reports
+        """SELECT id,type,severity,lat,lng,note,ts,status,display_lat,display_lng,location_context,location_confidence,privacy_radius_m,location_note FROM reports
            WHERE COALESCE(status,'new') != 'archived'
            ORDER BY ts DESC LIMIT 100"""
     ).fetchall()
-    return {"reports": [row_to_dict(r) for r in rows], "live": True}
+    return {"reports": [protected_report_payload(r) for r in rows], "live": True}
 
 
 @app.get("/api/reports/stats")
@@ -573,13 +737,13 @@ async def report_stats(db=Depends(get_db)):
 async def heatmap_data(db=Depends(get_db)):
     """Aggregated grid heatmap — safe for public consumption."""
     rows = db.execute(
-        """SELECT round(lat,2) as glat, round(lng,2) as glng,
+        """SELECT round(COALESCE(display_lat,lat),2) as glat, round(COALESCE(display_lng,lng),2) as glng,
                   COUNT(*) as count,
                   MAX(CASE severity WHEN 'critical' THEN 4 WHEN 'high' THEN 3
                       WHEN 'medium' THEN 2 ELSE 1 END) as max_sev
            FROM reports
            WHERE type NOT LIKE 'power_%'
-           GROUP BY round(lat,2), round(lng,2)
+           GROUP BY round(COALESCE(display_lat,lat),2), round(COALESCE(display_lng,lng),2)
            ORDER BY count DESC LIMIT 300"""
     ).fetchall()
     return {"cells": [row_to_dict(r) for r in rows]}
@@ -711,7 +875,7 @@ async def admin_all_reports(
     if severity_filter:
         where.append("severity=?"); params.append(severity_filter)
 
-    sql   = (f"SELECT id,type,severity,lat,lng,note,ts,status FROM reports "
+    sql   = (f"SELECT id,type,severity,lat,lng,note,ts,status,reporter_lat,reporter_lng,incident_lat,incident_lng,display_lat,display_lng,location_context,location_confidence,privacy_radius_m,location_note FROM reports "
              f"WHERE {' AND '.join(where)} ORDER BY ts DESC LIMIT ? OFFSET ?")
     count_sql = f"SELECT COUNT(*) FROM reports WHERE {' AND '.join(where)}"
     rows  = db.execute(sql, params + [limit, offset]).fetchall()
@@ -1184,7 +1348,7 @@ async def nhw_area_risk(
                       WHEN 'medium' THEN 2 ELSE 1 END) AS max_sev
            FROM reports
            WHERE ts>? AND type NOT LIKE 'power_%'
-           GROUP BY round(lat,2), round(lng,2)
+           GROUP BY round(COALESCE(display_lat,lat),2), round(COALESCE(display_lng,lng),2)
            ORDER BY count DESC LIMIT 300""", (since,)
     ).fetchall()
 
