@@ -67,6 +67,13 @@ input:focus,select:focus{border-color:var(--green)}
 .toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:13px 15px;color:var(--text);box-shadow:var(--shadow);transform:translateY(120px);transition:.25s;z-index:3000}.toast.show{transform:translateY(0)}
 .hidden{display:none!important}
 @media(max-width:980px){body{overflow:auto}.app{display:block;height:auto}.side{height:auto}.main{height:auto;overflow:visible}.grid,.map-layout{grid-template-columns:1fr}.span2,.span3,.span4,.span6{grid-column:span 1}.form-grid,.form-grid.four,.search-row{grid-template-columns:1fr}.drawer{position:relative;max-height:none}#planning-map,#overview-map{height:480px}}
+
+.legend-explain{display:grid;gap:7px;margin:10px 0 0}
+.legend-explain .legend-item{display:flex;align-items:center;gap:8px;font:700 11px 'DM Sans',sans-serif;color:var(--muted)}
+.legend-explain .swatch{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,.45)}
+.radius-row{display:grid;grid-template-columns:1fr 72px;gap:8px;align-items:center}
+.radius-row output{font:800 11px 'DM Mono',monospace;color:var(--green);text-align:right}
+.map-warning{font:700 10px 'DM Mono',monospace;color:var(--muted);letter-spacing:.4px}
 </style>
 </head>
 <body class="locked">
@@ -155,14 +162,28 @@ input:focus,select:focus{border-color:var(--green)}
           <label>Zone / AOI Name</label>
           <input id="zone-name" placeholder="e.g. Patrol Sector A / Drug Activity AOI" />
           <div style="height:10px"></div>
-          <label>Colour</label>
+          <label>Colour / Operational Meaning</label>
           <div class="color-row" id="color-row">
-            <button class="color-dot on" data-color="#7dab8a" style="background:#7dab8a" onclick="setColor(this)"></button>
-            <button class="color-dot" data-color="#d4a832" style="background:#d4a832" onclick="setColor(this)"></button>
-            <button class="color-dot" data-color="#e8904a" style="background:#e8904a" onclick="setColor(this)"></button>
-            <button class="color-dot" data-color="#f07070" style="background:#f07070" onclick="setColor(this)"></button>
-            <button class="color-dot" data-color="#6ab4d4" style="background:#6ab4d4" onclick="setColor(this)"></button>
-            <button class="color-dot" data-color="#9b59b6" style="background:#9b59b6" onclick="setColor(this)"></button>
+            <button title="Green: normal patrol / safe route" class="color-dot on" data-color="#7dab8a" style="background:#7dab8a" onclick="setColor(this)"></button>
+            <button title="Yellow: monitor / medium attention" class="color-dot" data-color="#d4a832" style="background:#d4a832" onclick="setColor(this)"></button>
+            <button title="Orange: increased patrol focus" class="color-dot" data-color="#e8904a" style="background:#e8904a" onclick="setColor(this)"></button>
+            <button title="Red: high risk / urgent patrol focus" class="color-dot" data-color="#f07070" style="background:#f07070" onclick="setColor(this)"></button>
+            <button title="Blue: community route / public interest" class="color-dot" data-color="#6ab4d4" style="background:#6ab4d4" onclick="setColor(this)"></button>
+            <button title="Purple: sensitive intelligence / AOI" class="color-dot" data-color="#9b59b6" style="background:#9b59b6" onclick="setColor(this)"></button>
+          </div>
+          <div class="legend-explain">
+            <div class="legend-item"><span class="swatch" style="background:#7dab8a"></span> Green = normal patrol / safer route</div>
+            <div class="legend-item"><span class="swatch" style="background:#d4a832"></span> Yellow = monitor / medium attention</div>
+            <div class="legend-item"><span class="swatch" style="background:#e8904a"></span> Orange = increased patrol focus</div>
+            <div class="legend-item"><span class="swatch" style="background:#f07070"></span> Red = high risk / urgent focus</div>
+            <div class="legend-item"><span class="swatch" style="background:#6ab4d4"></span> Blue = community route / public interest</div>
+            <div class="legend-item"><span class="swatch" style="background:#9b59b6"></span> Purple = sensitive intelligence / AOI</div>
+          </div>
+          <div style="height:10px"></div>
+          <label>AOI Circle Radius</label>
+          <div class="radius-row">
+            <input id="aoi-radius" type="range" min="100" max="1500" step="50" value="250" oninput="document.getElementById('aoi-radius-out').value=this.value+'m'" />
+            <output id="aoi-radius-out">250m</output>
           </div>
           <div style="height:10px"></div>
           <label>Type</label>
@@ -180,7 +201,7 @@ input:focus,select:focus{border-color:var(--green)}
             <button class="tool-btn" onclick="cancelDrawing()">Cancel Drawing</button>
           </div>
           <div style="height:12px"></div>
-          <div class="empty">Zone mode: click points on the map, then press “Finish + Save Zone”. AOI mode: click once on the map to place a coloured circle.</div>
+          <div class="empty">First search/outline the suburb boundary. Zone mode: click map points, then press “Finish + Save Zone”. AOI mode: choose radius, then click once on the map.</div>
           <div style="height:14px"></div>
           <div class="section-title"><h3>Saved Layers</h3><span>per NHW group</span></div>
           <div id="zone-list" class="mini-list"></div>
@@ -446,5 +467,95 @@ async function searchBoundary(){
 
 function downloadExport(){if(!token){toast('Verify first');return}window.open(API+'/api/nhw/export?days='+document.getElementById('days').value,'_blank')}
 </script>
+
+<script>
+/* SafeNote Phase 2B map/member fixes:
+   - live-feed markers reliably show on Overview and Planning maps
+   - AOI radius is adjustable
+   - map invalidates when switching pages
+*/
+(function(){
+  function incidentColor(sev){
+    return sev==='critical'?'#f07070':sev==='high'?'#e8904a':sev==='medium'?'#d4a832':'#7dab8a';
+  }
+  function incidentIcon(sev){
+    const col=incidentColor(sev);
+    return L.divIcon({
+      className:'',
+      html:'<div style="width:18px;height:18px;border-radius:50%;background:'+col+';border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.65)"></div>',
+      iconSize:[18,18],
+      iconAnchor:[9,9]
+    });
+  }
+
+  const oldShowPage=window.showPage;
+  window.showPage=function(name,btn){
+    oldShowPage(name,btn);
+    setTimeout(()=>{try{overviewMap&&overviewMap.invalidateSize();planningMap&&planningMap.invalidateSize()}catch(e){}},300);
+    setTimeout(()=>{try{overviewMap&&overviewMap.invalidateSize();planningMap&&planningMap.invalidateSize()}catch(e){}},900);
+  };
+
+  window.loadFeed=async function(){
+    const rows=await fetch(API+'/api/reports/live',{headers:authHeaders()}).then(r=>r.ok?r.json():[]);
+    const body=document.getElementById('feed-body');
+    if(body)body.innerHTML='';
+    const feedCount=document.getElementById('feed-count');
+    if(feedCount)feedCount.textContent=rows.length+' records';
+
+    try{overviewMarkers&&overviewMarkers.clearLayers()}catch(e){}
+    try{planningMarkers&&planningMarkers.clearLayers()}catch(e){}
+
+    const heatPts=[];
+    if(!rows.length){
+      if(body)body.innerHTML='<tr><td colspan="6"><div class="empty">No live reports yet.</div></td></tr>';
+      return;
+    }
+
+    rows.forEach(rep=>{
+      if(body){
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td>'+fmtTime(rep.ts)+'</td><td>'+label(rep.type)+'</td><td><span class="pill sev-'+rep.severity+'">'+rep.severity+'</span></td><td><span class="status-pill st-'+(rep.status||'new')+'">'+label(rep.status||'new')+'</span></td><td>'+Number(rep.lat).toFixed(5)+', '+Number(rep.lng).toFixed(5)+'</td><td>'+(rep.note||'—')+'</td>';
+        body.appendChild(tr);
+      }
+
+      const popup='<b>'+label(rep.type)+'</b><br>'+label(rep.severity)+' · '+label(rep.status||'new')+'<br>'+(rep.note||'');
+      const icon1=incidentIcon(rep.severity);
+      const icon2=incidentIcon(rep.severity);
+      try{L.marker([rep.lat,rep.lng],{icon:icon1}).bindPopup(popup).addTo(overviewMarkers)}catch(e){}
+      try{L.marker([rep.lat,rep.lng],{icon:icon2}).bindPopup(popup).addTo(planningMarkers)}catch(e){}
+      heatPts.push([rep.lat,rep.lng,rep.severity==='critical'?1:rep.severity==='high'?.8:rep.severity==='medium'?.55:.35]);
+    });
+
+    try{
+      if(heat&&overviewMap)overviewMap.removeLayer(heat);
+      heat=L.heatLayer(heatPts,{radius:28,blur:20,maxZoom:16}).addTo(overviewMap);
+    }catch(e){}
+
+    const first=rows[0];
+    if(first){
+      try{overviewMap.setView([first.lat,first.lng],14)}catch(e){}
+      try{planningMap.setView([first.lat,first.lng],14)}catch(e){}
+    }
+    setTimeout(()=>{try{overviewMap.invalidateSize();planningMap.invalidateSize()}catch(e){}},250);
+  };
+
+  const oldSaveAOI=window.saveAOI;
+  window.saveAOI=async function(latlng){
+    const name=document.getElementById('zone-name').value.trim()||'Area of Interest';
+    const radiusEl=document.getElementById('aoi-radius');
+    const radius=parseInt(radiusEl?radiusEl.value:250,10)||250;
+    const r=await fetch(API+'/api/nhw/aoi',{
+      method:'POST',
+      headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
+      body:JSON.stringify({name,color:selectedColor,lat:latlng.lat,lng:latlng.lng,radius_m:radius,note:null})
+    });
+    cancelDrawing();
+    if(!r.ok){toast('Could not save AOI');return}
+    toast('AOI saved · '+radius+'m');
+    loadPlanningLayers();
+  };
+})();
+</script>
+
 </body>
 </html>
