@@ -907,6 +907,41 @@ html,body{height:100%;background:var(--cream);color:var(--text);
 @media(max-width:700px){.map-legend{display:block!important;max-width:150px!important;bottom:72px!important;left:8px!important}}
 
 </style>
+
+<style>
+/* SafeNote Privacy Phase 1 public fields */
+.privacy-phase1-box{
+  margin:10px 0;
+  padding:12px;
+  border:1px solid rgba(125,171,138,.28);
+  border-radius:12px;
+  background:rgba(125,171,138,.07);
+}
+.privacy-phase1-box label{
+  font-family:'DM Mono',monospace;
+  font-size:8px;
+  color:#7dab8a;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+}
+.privacy-phase1-box select,.privacy-phase1-box input{
+  width:100%;
+  margin-top:7px;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid rgba(125,171,138,.25);
+  background:#091209;
+  color:#e8f0ea;
+  font-family:'DM Sans',sans-serif;
+}
+.privacy-phase1-help{
+  margin-top:8px;
+  font-size:11px;
+  color:#b8d4bc;
+  line-height:1.45;
+}
+</style>
+
 </head>
 <body>
 
@@ -2635,6 +2670,72 @@ async function drawApproximateSuburbCircle(name){
       alert('Could not verify NHW access code. Try again.');
     }
   };
+})();
+</script>
+
+
+<script>
+/* SafeNote Privacy Phase 1 — public reporting trust layer */
+(function(){
+  function ensurePrivacyFields(){
+    if(document.getElementById('location-context')) return;
+
+    const form =
+      document.getElementById('report-form') ||
+      document.querySelector('.report-form') ||
+      document.querySelector('.modal form') ||
+      document.querySelector('form');
+
+    if(!form) return;
+
+    const box=document.createElement('div');
+    box.className='privacy-phase1-box';
+    box.innerHTML=
+      '<label>Where did this happen?</label>'+
+      '<select id="location-context">'+
+        '<option value="at_location">At my current location</option>'+
+        '<option value="nearby_same_street">Nearby / same street</option>'+
+        '<option value="across_road">Across the road</option>'+
+        '<option value="different_street_nearby">Different street nearby</option>'+
+        '<option value="heard_or_seen_uncertain">I heard/saw it but I am not sure exactly where</option>'+
+      '</select>'+
+      '<input id="location-note" placeholder="Optional: street, landmark, direction, or safer context" />'+
+      '<div class="privacy-phase1-help">SafeNote protects reporters by showing approximate locations on public and NHW maps. Exact reporter coordinates are not shown publicly.</div>';
+
+    const submit=form.querySelector('button[type="submit"], .submit, .report-submit, button:last-of-type') || form.lastElementChild;
+    if(submit && submit.parentNode===form) form.insertBefore(box, submit);
+    else form.appendChild(box);
+  }
+
+  const oldFetch=window.fetch;
+  window.fetch=function(input, init){
+    try{
+      const url=typeof input==='string'?input:(input&&input.url)||'';
+      if(url.includes('/api/reports') && init && init.method && init.method.toUpperCase()==='POST' && init.body){
+        const body=JSON.parse(init.body);
+        const ctx=document.getElementById('location-context');
+        const note=document.getElementById('location-note');
+        body.location_context=ctx?ctx.value:'at_location';
+        body.location_note=note?note.value:'';
+        init.body=JSON.stringify(body);
+      }
+    }catch(e){}
+    return oldFetch(input, init);
+  };
+
+  if(window.L && L.Marker && L.Marker.prototype.bindPopup && !L.Marker.prototype._safeNotePrivacyPopup){
+    const oldBind=L.Marker.prototype.bindPopup;
+    L.Marker.prototype._safeNotePrivacyPopup=true;
+    L.Marker.prototype.bindPopup=function(content,opts){
+      if(typeof content==='string' && content.indexOf('Approximate location shown')<0){
+        content += '<br><small style="color:#9db99f">Approximate location shown for community safety.</small>';
+      }
+      return oldBind.call(this,content,opts);
+    };
+  }
+
+  window.addEventListener('load',()=>setTimeout(ensurePrivacyFields,700));
+  document.addEventListener('click',()=>setTimeout(ensurePrivacyFields,200),true);
 })();
 </script>
 
