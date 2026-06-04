@@ -64,6 +64,12 @@ body.nhw-locked .side{max-width:430px;margin:0 auto;border-right:none;min-height
 .zone-row b{font-size:12px}.zone-row span{font:600 10px 'DM Mono',monospace;color:var(--muted)}
 @media(max-width:900px){.member-form,.patrol-toolbar{grid-template-columns:1fr}}
 
+
+body.portal-unlocked .main{display:block!important}
+body.portal-unlocked.locked .main{display:block!important}
+body.portal-unlocked .nav,
+body.portal-unlocked .side>.action{display:flex!important}
+body.portal-locked .main{display:none!important}
 </style>
 </head>
 <body class="nhw-locked">
@@ -522,6 +528,94 @@ window.refreshAll=async function(){
     try{ document.getElementById('token').value=''; }catch(e){}
     location.reload();
   };
+})();
+</script>
+
+
+<script>
+/* SafeNote NHW dashboard unlock fix.
+   Fixes verified token but blank/dark dashboard caused by locked CSS state.
+*/
+(function(){
+  function forceUnlockDashboard(){
+    document.body.classList.remove('locked');
+    document.body.classList.remove('portal-locked');
+    document.body.classList.add('portal-unlocked');
+
+    const main=document.querySelector('.main');
+    if(main){
+      main.style.display='block';
+      main.style.visibility='visible';
+      main.style.opacity='1';
+    }
+
+    document.querySelectorAll('.nav, .side>.action').forEach(el=>{
+      el.style.display='flex';
+      el.style.visibility='visible';
+    });
+  }
+
+  function forceLockDashboard(){
+    document.body.classList.add('portal-locked');
+    document.body.classList.add('locked');
+    document.body.classList.remove('portal-unlocked');
+
+    const main=document.querySelector('.main');
+    if(main){
+      main.style.display='none';
+    }
+  }
+
+  window.forceUnlockDashboard=forceUnlockDashboard;
+  window.forceLockDashboard=forceLockDashboard;
+
+  const previousUnlock=window.unlockPortal;
+  window.unlockPortal=function(){
+    try{ if(typeof previousUnlock==='function') previousUnlock(); }catch(e){}
+    forceUnlockDashboard();
+  };
+
+  const previousLock=window.lockPortal;
+  window.lockPortal=function(){
+    try{ if(typeof previousLock==='function') previousLock(); }catch(e){}
+    forceLockDashboard();
+  };
+
+  const previousVerify=window.verifyAndLoad;
+  window.verifyAndLoad=async function(){
+    await previousVerify();
+    const statusText=(document.getElementById('auth-status')?.textContent || '').toLowerCase();
+    if(statusText.includes('verified access') || statusText.includes('token active')){
+      forceUnlockDashboard();
+      setTimeout(forceUnlockDashboard,150);
+      setTimeout(forceUnlockDashboard,600);
+    }
+  };
+
+  const previousLogout=window.logout;
+  window.logout=function(){
+    localStorage.removeItem('safenote_nhw_token');
+    localStorage.removeItem('nhw_token');
+    sessionStorage.clear();
+    try{ if(typeof previousLogout==='function') previousLogout(); }catch(e){}
+    location.reload();
+  };
+
+  window.addEventListener('load',()=>{
+    const saved=localStorage.getItem('safenote_nhw_token');
+    if(!saved){
+      forceLockDashboard();
+    }else{
+      // Do not show the dashboard just because a token exists.
+      // Let verification run first, then reveal after verified.
+      setTimeout(()=>{
+        const statusText=(document.getElementById('auth-status')?.textContent || '').toLowerCase();
+        if(statusText.includes('verified access') || statusText.includes('token active')){
+          forceUnlockDashboard();
+        }
+      },800);
+    }
+  });
 })();
 </script>
 
