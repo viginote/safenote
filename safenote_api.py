@@ -1423,6 +1423,33 @@ async def delete_area_interest(area_id: str, identity=Depends(require_nhw_manage
     return {"deleted": area_id}
 
 
+
+# ── PUBLIC MAP NHW / MEMBER ACCESS BRIDGE ────────────────────────────────────
+
+@app.post("/api/nhw/public-access")
+async def public_nhw_access(body: NhwVerifyIn, db=Depends(get_db)):
+    """
+    Used by the public map NHW Access modal.
+    Accepts chairman/root and member sub-codes.
+    Returns safe permission details and redirect target.
+    """
+    code = body.code.strip().upper()
+    try:
+        identity = get_nhw_identity(code, db)
+        return {
+            "valid": True,
+            "redirect": "/nhw",
+            "label": identity["group_label"],
+            "member_label": identity["member_label"],
+            "role": identity["role"],
+            "can_manage_members": identity["can_manage_members"],
+            "can_manage_patrols": identity["can_manage_patrols"],
+            "can_verify": identity["can_verify"]
+        }
+    except HTTPException:
+        return {"valid": False, "redirect": None}
+
+
 # ── HEALTH ────────────────────────────────────────────────────────────────────
 
 @app.get("/api/health")
