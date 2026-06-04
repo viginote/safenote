@@ -2599,12 +2599,16 @@ async function drawApproximateSuburbCircle(name){
 </script>
 
 
+
+
+
 <script>
-/* SafeNote Phase 2B public NHW/member access bridge.
-   Supports chairman/root and member sub-codes from public map.
+/* SafeNote Public Access Bridge Fix:
+   Member/chairman code from public map redirects once to /nhw?access=CODE.
+   /nhw consumes it, verifies, removes it from URL, and refresh does not persist login.
 */
 (function(){
-  async function verifyPublicNHWCode(code){
+  async function safePublicAccess(code){
     const r=await fetch(API+'/api/nhw/public-access',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -2618,35 +2622,19 @@ async function drawApproximateSuburbCircle(name){
     const code=(input?input.value:'').trim().toUpperCase().replace(/\s/g,'');
     if(!code){alert('Enter NHW access code');return}
     try{
-      const d=await verifyPublicNHWCode(code);
+      const d=await safePublicAccess(code);
       if(!d.valid){
         const err=document.getElementById('nhw-error');
         if(err)err.textContent='Incorrect code. Contact your CPF coordinator.';
         else alert('Incorrect code. Contact your CPF coordinator.');
         return;
       }
-      localStorage.setItem('safenote_nhw_token',code);
-      window.location.href='/nhw';
+      localStorage.removeItem('safenote_nhw_token');
+      window.location.href='/nhw?access='+encodeURIComponent(code);
     }catch(e){
       alert('Could not verify NHW access code. Try again.');
     }
   };
-
-  // Catch generic buttons in NHW modal that call older handlers.
-  document.addEventListener('click',function(e){
-    const txt=(e.target&&e.target.textContent||'').toLowerCase();
-    if(txt.includes('verify access') || txt.includes('nhw access')){
-      const modal=e.target.closest('.modal, .nhw-modal, .overlay, .sheet');
-      if(modal){
-        // only hijack if there is an NHW-looking input nearby
-        const inp=modal.querySelector('input');
-        if(inp && (inp.value.toUpperCase().includes('NHW') || inp.placeholder.toUpperCase().includes('NHW'))){
-          e.preventDefault();
-          verifyNHWAccess();
-        }
-      }
-    }
-  },true);
 })();
 </script>
 
