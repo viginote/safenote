@@ -40,7 +40,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
-import sqlite3, uuid, time, os, hashlib, io, csv, math, re, urllib.parse
+import sqlite3, uuid, time, os, hashlib, io, csv, math, re, urllib.parse, json
 
 import httpx
 from datetime import datetime, timezone
@@ -153,6 +153,43 @@ def init_db():
             ip_hash     TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_intel_geo ON intel_locations(lat, lng);
+
+        CREATE TABLE IF NOT EXISTS nhw_members (
+            token       TEXT PRIMARY KEY,
+            parent_token TEXT,
+            group_label TEXT,
+            member_label TEXT,
+            role        TEXT NOT NULL,
+            created_at  INTEGER,
+            active      INTEGER DEFAULT 1,
+            FOREIGN KEY(parent_token) REFERENCES nhw_tokens(token)
+        );
+        CREATE INDEX IF NOT EXISTS idx_nhw_members_parent ON nhw_members(parent_token);
+
+        CREATE TABLE IF NOT EXISTS patrol_zones (
+            id          TEXT PRIMARY KEY,
+            owner_token TEXT NOT NULL,
+            name        TEXT NOT NULL,
+            color       TEXT NOT NULL,
+            geometry    TEXT NOT NULL,
+            zone_type   TEXT DEFAULT 'patrol',
+            note        TEXT,
+            created_at  INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_patrol_owner ON patrol_zones(owner_token);
+
+        CREATE TABLE IF NOT EXISTS area_interest (
+            id          TEXT PRIMARY KEY,
+            owner_token TEXT NOT NULL,
+            name        TEXT NOT NULL,
+            color       TEXT NOT NULL,
+            lat         REAL NOT NULL,
+            lng         REAL NOT NULL,
+            radius_m    INTEGER DEFAULT 250,
+            note        TEXT,
+            created_at  INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_aoi_owner ON area_interest(owner_token);
     """)
     existing_cols = [r[1] for r in cur.execute("PRAGMA table_info(reports)").fetchall()]
     if "status" not in existing_cols:
@@ -215,19 +252,84 @@ def require_nhw(authorization: Optional[str] = Header(None)):
     if not authorization:
         raise HTTPException(status_code=401, detail="NHW token required")
     token = authorization.replace("Bearer ", "").strip()
-    con = sqlite3.connect(DB_PATH, check_same_thread=False)
-    result = con.execute(
-        "SELECT 1 FROM nhw_tokens WHERE token=?", (token,)
-    ).fetchone()
-    con.close()
-    if not result:
-        raise HTTPException(status_code=401, detail="Invalid NHW token")
+    get_nhw_identity(token)
 
 def require_admin(authorization: Optional[str] = Header(None), x_admin_secret: Optional[str] = Header(None)):
     auth_ok = authorization and authorization.replace("Bearer ", "").strip() == ADMIN_SECRET
     header_ok = x_admin_secret and x_admin_secret.strip() == ADMIN_SECRET
     if not auth_ok and not header_ok:
         raise HTTPException(status_code=401, detail="Admin token required")
+
+
+def get_nhw_identity(token: str, db=None) -> dict:
+    """
+    Resolves whether a token is a chairman/root NHW token or a member sub-code.
+    Root tokens live in nhw_tokens. Member tokens live in nhw_members.
+    """
+    close_after = False
+    if db is None:
+        db = sqlite3.connect(DB_PATH, check_same_thread=False)
+        db.row_factory = sqlite3.Row
+        close_after = True
+
+    root = db.execute("SELECT token,label,created_at FROM nhw_tokens WHERE token=?", (token,)).fetchone()
+    if root:
+        out = {
+            "token": root["token"],
+            "root_token": root["token"],
+            "group_label": root["label"] or "NHW / CPF Group",
+            "member_label": root["label"] or "Chairman",
+            "role": "chairman",
+            "can_manage_members": True,
+            "can_manage_patrols": True,
+            "can_verify": True,
+            "is_root": True
+        }
+        if close_after: db.close()
+        return out
+
+    member = db.execute(
+        """SELECT token,parent_token,group_label,member_label,role,active
+           FROM nhw_members WHERE token=? AND active=1""",
+        (token,)
+    ).fetchone()
+    if member:
+        role = member["role"]
+        out = {
+            "token": member["token"],
+            "root_token": member["parent_token"],
+            "group_label": member["group_label"] or "NHW / CPF Group",
+            "member_label": member["member_label"] or role,
+            "role": role,
+            "can_manage_members": False,
+            "can_manage_patrols": role in ("chairman","vice_chairman","patrol_lead"),
+            "can_verify": role in ("chairman","vice_chairman","patrol_lead"),
+            "is_root": False
+        }
+        if close_after: db.close()
+        return out
+
+    if close_after: db.close()
+    raise HTTPException(status_code=401, detail="Invalid NHW token")
+
+
+def require_nhw_identity(authorization: Optional[str] = Header(None), db=Depends(get_db)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="NHW token required")
+    token = authorization.replace("Bearer ", "").strip()
+    return get_nhw_identity(token, db)
+
+
+def require_nhw_manage_members(identity=Depends(require_nhw_identity)):
+    if not identity.get("can_manage_members"):
+        raise HTTPException(status_code=403, detail="Only chairman/root NHW access can manage members")
+    return identity
+
+
+def require_nhw_manage_patrols(identity=Depends(require_nhw_identity)):
+    if not identity.get("can_manage_patrols"):
+        raise HTTPException(status_code=403, detail="This NHW role cannot manage patrol layers")
+    return identity
 
 def haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Distance in metres between two lat/lng points."""
@@ -851,14 +953,24 @@ class NhwVerifyIn(BaseModel):
 @app.post("/api/nhw/verify")
 async def nhw_verify(body: NhwVerifyIn, db=Depends(get_db)):
     """
-    Frontend calls this to verify an NHW access code without exposing
-    the full token list. Returns validity and group label.
+    Verifies either a chairman/root NHW code or a member sub-code.
+    Returns role and permission details for the portal UI.
     """
     code = body.code.strip().upper()
-    result = db.execute(
-        "SELECT label FROM nhw_tokens WHERE token=?", (code,)
-    ).fetchone()
-    return {"valid": result is not None, "label": result["label"] if result else None}
+    try:
+        identity = get_nhw_identity(code, db)
+        return {
+            "valid": True,
+            "label": identity["group_label"],
+            "member_label": identity["member_label"],
+            "role": identity["role"],
+            "can_manage_members": identity["can_manage_members"],
+            "can_manage_patrols": identity["can_manage_patrols"],
+            "can_verify": identity["can_verify"],
+            "is_root": identity["is_root"]
+        }
+    except HTTPException:
+        return {"valid": False, "label": None}
 
 
 
@@ -1125,6 +1237,190 @@ async def update_report_status(
 @app.get("/api/admin/report-statuses")
 async def report_statuses(_=Depends(require_admin)):
     return {"statuses": sorted(list(VALID_REPORT_STATUSES))}
+
+
+
+# ── NHW HIERARCHY / MEMBER SUB-CODES ─────────────────────────────────────────
+
+VALID_NHW_ROLES = {"vice_chairman","secretary","patrol_lead","patrol_member"}
+
+class NhwMemberCreateIn(BaseModel):
+    member_label: str
+    role: str
+
+    @validator("member_label")
+    def clean_member_label(cls, v):
+        v = (v or "").strip()[:80]
+        if not v:
+            raise ValueError("Member label required")
+        return v
+
+    @validator("role")
+    def valid_role(cls, v):
+        if v not in VALID_NHW_ROLES:
+            raise ValueError("Invalid NHW member role")
+        return v
+
+
+@app.get("/api/nhw/me")
+async def nhw_me(identity=Depends(require_nhw_identity)):
+    return identity
+
+
+@app.get("/api/nhw/members")
+async def list_nhw_members(identity=Depends(require_nhw_manage_members), db=Depends(get_db)):
+    root = identity["root_token"]
+    rows = db.execute(
+        """SELECT token,parent_token,group_label,member_label,role,created_at,active
+           FROM nhw_members WHERE parent_token=?
+           ORDER BY created_at DESC""",
+        (root,)
+    ).fetchall()
+    return {"members": [row_to_dict(r) for r in rows], "limit": 30}
+
+
+@app.post("/api/nhw/members")
+async def create_nhw_member(body: NhwMemberCreateIn, identity=Depends(require_nhw_manage_members), db=Depends(get_db)):
+    root = identity["root_token"]
+    count = db.execute(
+        "SELECT COUNT(*) FROM nhw_members WHERE parent_token=? AND active=1",
+        (root,)
+    ).fetchone()[0]
+    if count >= 30:
+        raise HTTPException(status_code=400, detail="Member code limit reached for this NHW group")
+
+    token = "NHW-M-" + uuid.uuid4().hex[:8].upper()
+    now = int(time.time())
+    db.execute(
+        """INSERT INTO nhw_members(token,parent_token,group_label,member_label,role,created_at,active)
+           VALUES(?,?,?,?,?,?,1)""",
+        (token, root, identity["group_label"], body.member_label, body.role, now)
+    )
+    db.commit()
+    return {"token": token, "member_label": body.member_label, "role": body.role, "limit_remaining": 29-count}
+
+
+@app.delete("/api/nhw/members/{member_token}")
+async def revoke_nhw_member(member_token: str, identity=Depends(require_nhw_manage_members), db=Depends(get_db)):
+    cur = db.execute(
+        "UPDATE nhw_members SET active=0 WHERE token=? AND parent_token=?",
+        (member_token, identity["root_token"])
+    )
+    db.commit()
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Member token not found")
+    return {"revoked": member_token}
+
+
+# ── NHW PATROL ZONES / AREAS OF INTEREST ─────────────────────────────────────
+
+class PatrolZoneIn(BaseModel):
+    name: str
+    color: str = "#7dab8a"
+    geometry: dict
+    zone_type: str = "patrol"
+    note: Optional[str] = None
+
+    @validator("name")
+    def clean_name(cls, v):
+        v = (v or "").strip()[:80]
+        if not v:
+            raise ValueError("Name required")
+        return v
+
+    @validator("zone_type")
+    def clean_zone_type(cls, v):
+        if v not in {"patrol","focus","high_risk","safe_route"}:
+            raise ValueError("Invalid zone type")
+        return v
+
+
+class AreaInterestIn(BaseModel):
+    name: str
+    color: str = "#e8904a"
+    lat: float
+    lng: float
+    radius_m: int = 250
+    note: Optional[str] = None
+
+    @validator("name")
+    def clean_aoi_name(cls, v):
+        v = (v or "").strip()[:80]
+        if not v:
+            raise ValueError("Name required")
+        return v
+
+
+@app.get("/api/nhw/patrol-zones")
+async def list_patrol_zones(identity=Depends(require_nhw_identity), db=Depends(get_db)):
+    rows = db.execute(
+        """SELECT id,owner_token,name,color,geometry,zone_type,note,created_at
+           FROM patrol_zones WHERE owner_token=? ORDER BY created_at DESC""",
+        (identity["root_token"],)
+    ).fetchall()
+    out = []
+    for r in rows:
+        d = row_to_dict(r)
+        try:
+            d["geometry"] = json.loads(d["geometry"])
+        except Exception:
+            d["geometry"] = None
+        out.append(d)
+    return {"zones": out}
+
+
+@app.post("/api/nhw/patrol-zones")
+async def create_patrol_zone(body: PatrolZoneIn, identity=Depends(require_nhw_manage_patrols), db=Depends(get_db)):
+    zid = "pz_" + uuid.uuid4().hex[:12]
+    now = int(time.time())
+    db.execute(
+        """INSERT INTO patrol_zones(id,owner_token,name,color,geometry,zone_type,note,created_at)
+           VALUES(?,?,?,?,?,?,?,?)""",
+        (zid, identity["root_token"], body.name, body.color, json.dumps(body.geometry), body.zone_type, body.note, now)
+    )
+    db.commit()
+    return {"id": zid, "name": body.name, "color": body.color, "zone_type": body.zone_type}
+
+
+@app.delete("/api/nhw/patrol-zones/{zone_id}")
+async def delete_patrol_zone(zone_id: str, identity=Depends(require_nhw_manage_patrols), db=Depends(get_db)):
+    cur = db.execute("DELETE FROM patrol_zones WHERE id=? AND owner_token=?", (zone_id, identity["root_token"]))
+    db.commit()
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Patrol zone not found")
+    return {"deleted": zone_id}
+
+
+@app.get("/api/nhw/aoi")
+async def list_area_interest(identity=Depends(require_nhw_identity), db=Depends(get_db)):
+    rows = db.execute(
+        """SELECT id,owner_token,name,color,lat,lng,radius_m,note,created_at
+           FROM area_interest WHERE owner_token=? ORDER BY created_at DESC""",
+        (identity["root_token"],)
+    ).fetchall()
+    return {"areas": [row_to_dict(r) for r in rows]}
+
+
+@app.post("/api/nhw/aoi")
+async def create_area_interest(body: AreaInterestIn, identity=Depends(require_nhw_manage_patrols), db=Depends(get_db)):
+    aid = "aoi_" + uuid.uuid4().hex[:12]
+    now = int(time.time())
+    db.execute(
+        """INSERT INTO area_interest(id,owner_token,name,color,lat,lng,radius_m,note,created_at)
+           VALUES(?,?,?,?,?,?,?,?,?)""",
+        (aid, identity["root_token"], body.name, body.color, body.lat, body.lng, body.radius_m, body.note, now)
+    )
+    db.commit()
+    return {"id": aid, "name": body.name, "color": body.color, "radius_m": body.radius_m}
+
+
+@app.delete("/api/nhw/aoi/{area_id}")
+async def delete_area_interest(area_id: str, identity=Depends(require_nhw_manage_patrols), db=Depends(get_db)):
+    cur = db.execute("DELETE FROM area_interest WHERE id=? AND owner_token=?", (area_id, identity["root_token"]))
+    db.commit()
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Area of interest not found")
+    return {"deleted": area_id}
 
 
 # ── HEALTH ────────────────────────────────────────────────────────────────────
