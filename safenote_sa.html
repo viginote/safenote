@@ -430,7 +430,7 @@ html,body{height:100%;background:var(--cream);color:var(--text);
 /* Toast */
 .toast{
   position:fixed;bottom:calc(80px + var(--safe-h));left:50%;
-  transform:translateX(-50%) translateY(130px);
+  transform:translateX(-50%) translateY(200px);
   z-index:1100;background:#1a2818;
   border:2px solid var(--fynbos);border-radius:14px;
   padding:14px 18px;display:flex;align-items:center;gap:12px;
@@ -456,7 +456,7 @@ html,body{height:100%;background:var(--cream);color:var(--text);
   .sidebar.mob-open{transform:translateX(0)}
   .tb-mob-menu{display:flex;align-items:center;justify-content:center}
   .tb-region,.tb-live{display:none}
-  .mob-bar{display:flex}
+  .mob-bar{display:none!important}
   .map-area{width:100%}
   .suburb-bar{bottom:68px}
   .map-legend{display:none}
@@ -661,7 +661,7 @@ html,body{height:100%;background:var(--cream);color:var(--text);
 @media(max-width:768px){
   :root{
     --topbar-h:52px;
-    --mobile-action-h:94px;
+    --mobile-action-h:92px;
     --drawer-h:62px;
   }
 
@@ -761,25 +761,31 @@ html,body{height:100%;background:var(--cream);color:var(--text);
     z-index:610;
     background:linear-gradient(180deg,rgba(7,16,7,.98),rgba(7,16,7,.9));
     border-bottom:1px solid rgba(125,171,138,.16);
-    padding:7px 10px 7px;
+    padding:8px 12px 8px;
   }
 
   .mobile-primary-row{
     display:grid;
-    grid-template-columns:1fr 40px;
+    grid-template-columns:1fr;
     gap:8px;
     margin-bottom:7px;
   }
 
   .mobile-report-main{
-    height:40px;
+    height:44px;
     border:none;
     border-radius:12px;
     background:linear-gradient(135deg,#4a7c59,#7dab8a);
     color:#071007;
-    font:900 14px 'Playfair Display',serif;
+    font:900 15px 'Playfair Display',serif;
     letter-spacing:.2px;
     box-shadow:0 6px 18px rgba(74,124,89,.25);
+    width:100%;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
   }
 
   .mobile-layer-mini{
@@ -1222,6 +1228,20 @@ input, textarea, select { touch-action: manipulation; }
   }
 }
 
+
+@media(max-width:768px){
+  .toast{
+    bottom: -20px !important;
+    transform: translateX(-50%) translateY(260px) !important;
+    max-width: 90vw !important;
+    white-space: normal !important;
+  }
+  .toast.show{
+    bottom: calc(var(--drawer-h) + 10px + env(safe-area-inset-bottom,0px)) !important;
+    transform: translateX(-50%) translateY(0) !important;
+  }
+}
+
 </style>
 
 </head>
@@ -1270,7 +1290,7 @@ input, textarea, select { touch-action: manipulation; }
 <div class="mobile-home-actions" id="mobile-home-actions">
   <div class="mobile-primary-row">
     <button class="mobile-report-main" onclick="openModal()">⚠ Report Incident</button>
-    <button class="mobile-layer-mini" onclick="toggleMobileDrawer()">☰</button>
+    
   </div>
   <div class="mobile-search-wrap">
     <input class="mobile-search" id="mobile-suburb-search" placeholder="Search suburb or area…" autocomplete="off" oninput="searchSuburbsMobile(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburbMobile(this.value)}">
