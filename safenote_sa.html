@@ -9,387 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-// ── SafeNote v2 boundary logic: red outline, no blue-pin-only fallback ─────────
-async function selectSuburb(name){
-  name = (name || '').trim();
-  if(!name) return;
-
-  const dd = document.getElementById('suburb-dropdown');
-  if(dd) dd.classList.remove('show');
-
-  const search = document.getElementById('suburb-search');
-  if(search) search.value = name;
-
-  activeSuburb = name;
-  const badge = document.getElementById('active-suburb');
-  const asName = document.getElementById('as-name');
-  if(asName) asName.textContent = name;
-  if(badge) badge.classList.add('show');
-
-  const bar = document.getElementById('suburb-bar');
-  const barName = document.getElementById('sbar-name');
-  if(barName) barName.textContent = name;
-  if(bar) bar.classList.add('show');
-
-  await drawSuburbBoundary(name);
-  updateSuburbStats(name);
-}
-
-async function drawSuburbBoundary(name){
-  if(suburbLayer){
-    try{ map.removeLayer(suburbLayer); }catch(e){}
-    suburbLayer = null;
-  }
-
-  const note = document.getElementById('boundary-note');
-  if(note) note.classList.remove('show');
-
-  try{
-    const r = await fetch(API + '/api/suburb/boundary?name=' + encodeURIComponent(name));
-    if(!r.ok) throw new Error('boundary lookup failed');
-    const d = await r.json();
-
-    if(d.geojson){
-      suburbLayer = L.geoJSON(d.geojson, {
-        className: 'suburb-boundary-red',
-        style: {
-          color:'#f07070',
-          weight:3,
-          opacity:1,
-          fillColor:'#f07070',
-          fillOpacity:.08
-        }
-      }).addTo(map);
-
-      try{
-        map.fitBounds(suburbLayer.getBounds(), {padding:[28,28], maxZoom:15});
-      }catch(e){
-        map.setView([d.lat,d.lng], 13);
-      }
-
-      if(note){
-        note.textContent = 'Boundary shown: ' + name;
-        note.classList.add('show');
-        setTimeout(()=>note.classList.remove('show'), 2800);
-      }
-      return;
-    }
-
-    // Fallback: no polygon from Nominatim, draw approximate red operational circle instead of blue pin.
-    const radius = d.fallback_radius_m || 1800;
-    suburbLayer = L.circle([d.lat, d.lng], {
-      radius: radius,
-      color:'#f07070',
-      weight:2.5,
-      opacity:1,
-      fillColor:'#f07070',
-      fillOpacity:.08,
-      dashArray:'8 6',
-      className:'suburb-approx-circle'
-    }).addTo(map);
-    map.fitBounds(suburbLayer.getBounds(), {padding:[28,28], maxZoom:14});
-
-    if(note){
-      note.textContent = 'Approximate boundary shown: ' + name;
-      note.classList.add('show');
-    }
-
-  }catch(e){
-    console.warn('Boundary failed, using approximate geocode circle', e);
-    await drawApproximateSuburbCircle(name);
-  }
-}
-
-async function drawApproximateSuburbCircle(name){
-  const note = document.getElementById('boundary-note');
-  try{
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
-      encodeURIComponent(name + ', Western Cape, South Africa');
-    const r = await fetch(url);
-    const arr = await r.json();
-    if(!arr || !arr.length) throw new Error('no approximate result');
-
-    const lat = parseFloat(arr[0].lat), lng = parseFloat(arr[0].lon);
-    suburbLayer = L.circle([lat,lng], {
-      radius:1800,
-      color:'#f07070',
-      weight:2.5,
-      opacity:1,
-      fillColor:'#f07070',
-      fillOpacity:.08,
-      dashArray:'8 6',
-      className:'suburb-approx-circle'
-    }).addTo(map);
-    map.fitBounds(suburbLayer.getBounds(), {padding:[28,28], maxZoom:14});
-    if(note){
-      note.textContent = 'Approximate boundary shown: ' + name;
-      note.classList.add('show');
-    }
-  }catch(err){
-    if(note){
-      note.textContent = 'Boundary unavailable for: ' + name;
-      note.classList.add('show');
-      setTimeout(()=>note.classList.remove('show'), 3500);
-    }
-  }
-}
-
-</script>
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js">
-// ── SafeNote v2 boundary logic: red outline, no blue-pin-only fallback ─────────
-async function selectSuburb(name){
-  name = (name || '').trim();
-  if(!name) return;
-
-  const dd = document.getElementById('suburb-dropdown');
-  if(dd) dd.classList.remove('show');
-
-  const search = document.getElementById('suburb-search');
-  if(search) search.value = name;
-
-  activeSuburb = name;
-  const badge = document.getElementById('active-suburb');
-  const asName = document.getElementById('as-name');
-  if(asName) asName.textContent = name;
-  if(badge) badge.classList.add('show');
-
-  const bar = document.getElementById('suburb-bar');
-  const barName = document.getElementById('sbar-name');
-  if(barName) barName.textContent = name;
-  if(bar) bar.classList.add('show');
-
-  await drawSuburbBoundary(name);
-  updateSuburbStats(name);
-}
-
-async function drawSuburbBoundary(name){
-  if(suburbLayer){
-    try{ map.removeLayer(suburbLayer); }catch(e){}
-    suburbLayer = null;
-  }
-
-  const note = document.getElementById('boundary-note');
-  if(note) note.classList.remove('show');
-
-  try{
-    const r = await fetch(API + '/api/suburb/boundary?name=' + encodeURIComponent(name));
-    if(!r.ok) throw new Error('boundary lookup failed');
-    const d = await r.json();
-
-    if(d.geojson){
-      suburbLayer = L.geoJSON(d.geojson, {
-        className: 'suburb-boundary-red',
-        style: {
-          color:'#f07070',
-          weight:3,
-          opacity:1,
-          fillColor:'#f07070',
-          fillOpacity:.08
-        }
-      }).addTo(map);
-
-      try{
-        map.fitBounds(suburbLayer.getBounds(), {padding:[28,28], maxZoom:15});
-      }catch(e){
-        map.setView([d.lat,d.lng], 13);
-      }
-
-      if(note){
-        note.textContent = 'Boundary shown: ' + name;
-        note.classList.add('show');
-        setTimeout(()=>note.classList.remove('show'), 2800);
-      }
-      return;
-    }
-
-    // Fallback: no polygon from Nominatim, draw approximate red operational circle instead of blue pin.
-    const radius = d.fallback_radius_m || 1800;
-    suburbLayer = L.circle([d.lat, d.lng], {
-      radius: radius,
-      color:'#f07070',
-      weight:2.5,
-      opacity:1,
-      fillColor:'#f07070',
-      fillOpacity:.08,
-      dashArray:'8 6',
-      className:'suburb-approx-circle'
-    }).addTo(map);
-    map.fitBounds(suburbLayer.getBounds(), {padding:[28,28], maxZoom:14});
-
-    if(note){
-      note.textContent = 'Approximate boundary shown: ' + name;
-      note.classList.add('show');
-    }
-
-  }catch(e){
-    console.warn('Boundary failed, using approximate geocode circle', e);
-    await drawApproximateSuburbCircle(name);
-  }
-}
-
-async function drawApproximateSuburbCircle(name){
-  const note = document.getElementById('boundary-note');
-  try{
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
-      encodeURIComponent(name + ', Western Cape, South Africa');
-    const r = await fetch(url);
-    const arr = await r.json();
-    if(!arr || !arr.length) throw new Error('no approximate result');
-
-    const lat = parseFloat(arr[0].lat), lng = parseFloat(arr[0].lon);
-    suburbLayer = L.circle([lat,lng], {
-      radius:1800,
-      color:'#f07070',
-      weight:2.5,
-      opacity:1,
-      fillColor:'#f07070',
-      fillOpacity:.08,
-      dashArray:'8 6',
-      className:'suburb-approx-circle'
-    }).addTo(map);
-    map.fitBounds(suburbLayer.getBounds(), {padding:[28,28], maxZoom:14});
-    if(note){
-      note.textContent = 'Approximate boundary shown: ' + name;
-      note.classList.add('show');
-    }
-  }catch(err){
-    if(note){
-      note.textContent = 'Boundary unavailable for: ' + name;
-      note.classList.add('show');
-      setTimeout(()=>note.classList.remove('show'), 3500);
-    }
-  }
-}
-
-</script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js">
-// ── SafeNote v2 boundary logic: red outline, no blue-pin-only fallback ─────────
-async function selectSuburb(name){
-  name = (name || '').trim();
-  if(!name) return;
-
-  const dd = document.getElementById('suburb-dropdown');
-  if(dd) dd.classList.remove('show');
-
-  const search = document.getElementById('suburb-search');
-  if(search) search.value = name;
-
-  activeSuburb = name;
-  const badge = document.getElementById('active-suburb');
-  const asName = document.getElementById('as-name');
-  if(asName) asName.textContent = name;
-  if(badge) badge.classList.add('show');
-
-  const bar = document.getElementById('suburb-bar');
-  const barName = document.getElementById('sbar-name');
-  if(barName) barName.textContent = name;
-  if(bar) bar.classList.add('show');
-
-  await drawSuburbBoundary(name);
-  updateSuburbStats(name);
-}
-
-async function drawSuburbBoundary(name){
-  if(suburbLayer){
-    try{ map.removeLayer(suburbLayer); }catch(e){}
-    suburbLayer = null;
-  }
-
-  const note = document.getElementById('boundary-note');
-  if(note) note.classList.remove('show');
-
-  try{
-    const r = await fetch(API + '/api/suburb/boundary?name=' + encodeURIComponent(name));
-    if(!r.ok) throw new Error('boundary lookup failed');
-    const d = await r.json();
-
-    if(d.geojson){
-      suburbLayer = L.geoJSON(d.geojson, {
-        className: 'suburb-boundary-red',
-        style: {
-          color:'#f07070',
-          weight:3,
-          opacity:1,
-          fillColor:'#f07070',
-          fillOpacity:.08
-        }
-      }).addTo(map);
-
-      try{
-        map.fitBounds(suburbLayer.getBounds(), {padding:[28,28], maxZoom:15});
-      }catch(e){
-        map.setView([d.lat,d.lng], 13);
-      }
-
-      if(note){
-        note.textContent = 'Boundary shown: ' + name;
-        note.classList.add('show');
-        setTimeout(()=>note.classList.remove('show'), 2800);
-      }
-      return;
-    }
-
-    // Fallback: no polygon from Nominatim, draw approximate red operational circle instead of blue pin.
-    const radius = d.fallback_radius_m || 1800;
-    suburbLayer = L.circle([d.lat, d.lng], {
-      radius: radius,
-      color:'#f07070',
-      weight:2.5,
-      opacity:1,
-      fillColor:'#f07070',
-      fillOpacity:.08,
-      dashArray:'8 6',
-      className:'suburb-approx-circle'
-    }).addTo(map);
-    map.fitBounds(suburbLayer.getBounds(), {padding:[28,28], maxZoom:14});
-
-    if(note){
-      note.textContent = 'Approximate boundary shown: ' + name;
-      note.classList.add('show');
-    }
-
-  }catch(e){
-    console.warn('Boundary failed, using approximate geocode circle', e);
-    await drawApproximateSuburbCircle(name);
-  }
-}
-
-async function drawApproximateSuburbCircle(name){
-  const note = document.getElementById('boundary-note');
-  try{
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
-      encodeURIComponent(name + ', Western Cape, South Africa');
-    const r = await fetch(url);
-    const arr = await r.json();
-    if(!arr || !arr.length) throw new Error('no approximate result');
-
-    const lat = parseFloat(arr[0].lat), lng = parseFloat(arr[0].lon);
-    suburbLayer = L.circle([lat,lng], {
-      radius:1800,
-      color:'#f07070',
-      weight:2.5,
-      opacity:1,
-      fillColor:'#f07070',
-      fillOpacity:.08,
-      dashArray:'8 6',
-      className:'suburb-approx-circle'
-    }).addTo(map);
-    map.fitBounds(suburbLayer.getBounds(), {padding:[28,28], maxZoom:14});
-    if(note){
-      note.textContent = 'Approximate boundary shown: ' + name;
-      note.classList.add('show');
-    }
-  }catch(err){
-    if(note){
-      note.textContent = 'Boundary unavailable for: ' + name;
-      note.classList.add('show');
-      setTimeout(()=>note.classList.remove('show'), 3500);
-    }
-  }
-}
-
-</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <style>
@@ -847,25 +469,7 @@ html,body{height:100%;background:var(--cream);color:var(--text);
 }
 
 /* SafeNote boundary fallback / patrol groundwork */
-.suburb-boundary-red{
-  stroke:#f07070!important;
-  stroke-width:3!important;
-  fill:rgba(240,112,112,.08)!important;
-}
-.suburb-approx-circle{
-  stroke:#f07070!important;
-  stroke-width:2.5!important;
-  stroke-dasharray:8 6!important;
-  fill:rgba(240,112,112,.08)!important;
-}
-.boundary-note{
-  position:absolute;top:48px;left:50%;transform:translateX(-50%);z-index:310;
-  background:rgba(20,31,18,.94);border:1px solid rgba(240,112,112,.38);
-  border-radius:18px;padding:6px 14px;font-family:'DM Mono',monospace;
-  font-size:9px;color:#f07070;letter-spacing:.4px;display:none;
-  backdrop-filter:blur(8px);white-space:nowrap;
-}
-.boundary-note.show{display:block}
+/* deduped boundary CSS — canonical version below */
 
 
 /* SafeNote public search boundary fix */
@@ -1538,6 +1142,85 @@ html,body{height:100%;background:var(--cream);color:var(--text);
 @media(min-width:769px){
   .mobile-full-menu,.mobile-home-actions,.mobile-bottom-drawer{display:none!important}
 }
+
+
+/* Mobile touch precision fixes */
+button, [onclick] { cursor: pointer; touch-action: manipulation; }
+input, textarea, select { touch-action: manipulation; }
+.mobile-report-main, .mobile-layer-mini, .mobile-search-btn,
+.mobile-menu-btn, .mobile-layer-row, .mob-report-btn,
+.mob-drug-btn, .mob-stats-btn { -webkit-tap-highlight-color: transparent; }
+
+/* Fix suburb dropdown z-index on mobile so it shows above action bar */
+@media(max-width:768px){
+  #mobile-suburb-dropdown, #mobile-menu-suburb-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    z-index: 9999 !important;
+    background: #111c10;
+    border: 1.5px solid rgba(125,171,138,.35);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 4px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.55);
+  }
+  .suburb-dropdown.show { display: block !important; }
+  .suburb-opt {
+    padding: 14px 16px !important;
+    font-size: 14px !important;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(125,171,138,.1);
+    color: #cfe3d2;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+  .suburb-opt:last-child { border-bottom: none; }
+  .suburb-opt:active { background: rgba(125,171,138,.15); }
+
+  /* Fix map area bottom to account for safe area + drawer handle height */
+  .map-area {
+    bottom: calc(var(--drawer-h) + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Make the mobile search-wrap relative for dropdown positioning */
+  .mobile-search-wrap { position: relative !important; }
+
+  /* Overlay full-screen on mobile: ensure it starts from top:0 not topbar */
+  .overlay.show {
+    padding-top: 0 !important;
+    top: 0 !important;
+    inset: 0 !important;
+  }
+
+  /* Better tap area for layer rows */
+  .mobile-layer-row {
+    min-height: 48px !important;
+    padding: 4px 0 !important;
+  }
+
+  /* Fix boundary note position on mobile (below topbar + action bar) */
+  .boundary-note {
+    top: calc(var(--topbar-h) + var(--mobile-action-h) + 8px) !important;
+  }
+
+  /* Ensure toast is visible above drawer */
+  .toast {
+    bottom: calc(var(--drawer-h) + 16px + env(safe-area-inset-bottom,0px)) !important;
+  }
+
+  /* Scrollable modal body on mobile - important for long incident lists */
+  .modal {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .modal > *:not(.submit-btn):not(.cancel-btn) {
+    flex-shrink: 0;
+  }
+}
+
 </style>
 
 </head>
@@ -1695,7 +1378,7 @@ html,body{height:100%;background:var(--cream);color:var(--text);
       <input class="suburb-search" id="suburb-search"
         type="text" placeholder="Search Western Cape suburb…"
         autocomplete="off" autocorrect="off" spellcheck="false"
-        oninput="searchSuburbs(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburb(this.value)}" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburb(this.value)}">
+        oninput="searchSuburbs(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburb(this.value)}">
       <span class="suburb-search-icon">&#x1F50D;</span>
       <div class="suburb-dropdown" id="suburb-dropdown"></div>
     </div>
