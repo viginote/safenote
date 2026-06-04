@@ -1042,6 +1042,504 @@ html,body{height:100%;background:var(--cream);color:var(--text);
 }
 </style>
 
+
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   SafeNote Public Mobile UX Sprint A
+   Mobile-first public interface rebuild. Desktop remains similar.
+   ═══════════════════════════════════════════════════════════════ */
+
+.mobile-home-actions,
+.mobile-bottom-drawer,
+.mobile-full-menu,
+.mobile-menu-backdrop{display:none}
+
+@media(max-width:768px){
+  :root{
+    --topbar-h:76px;
+    --mobile-action-h:122px;
+    --drawer-h:72px;
+  }
+
+  html,body{
+    overflow:hidden!important;
+    height:100dvh!important;
+    background:#071007!important;
+  }
+
+  .topbar{
+    height:var(--topbar-h)!important;
+    padding:10px 12px!important;
+    gap:8px!important;
+    background:rgba(7,16,7,.98)!important;
+    backdrop-filter:blur(16px)!important;
+    border-bottom:1px solid rgba(125,171,138,.22)!important;
+  }
+
+  .tb-emblem{width:42px!important;height:42px!important}
+  .tb-wordmark{font-size:20px!important}
+  .tb-sub{font-size:7px!important;letter-spacing:2.5px!important}
+  .tb-region,.tb-live,.tp-eskom{display:none!important}
+  .tb-right{gap:8px!important}
+  .tp-nhw{
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    min-height:38px!important;
+    padding:0 16px!important;
+    border-radius:999px!important;
+    font-size:10px!important;
+    letter-spacing:1.2px!important;
+    background:rgba(125,171,138,.08)!important;
+  }
+  .tb-mob-menu{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:46px!important;
+    height:46px!important;
+    border-radius:12px!important;
+    font-size:18px!important;
+    border-color:rgba(125,171,138,.28)!important;
+    background:rgba(255,255,255,.02)!important;
+  }
+
+  .layout{
+    top:var(--topbar-h)!important;
+    bottom:0!important;
+    display:block!important;
+    overflow:hidden!important;
+  }
+
+  .map-area{
+    position:fixed!important;
+    top:calc(var(--topbar-h) + var(--mobile-action-h))!important;
+    left:0!important;
+    right:0!important;
+    bottom:calc(var(--drawer-h) + env(safe-area-inset-bottom,0px))!important;
+    width:100%!important;
+    height:auto!important;
+    overflow:hidden!important;
+    z-index:1!important;
+  }
+
+  #map{inset:0!important}
+  .leaflet-control-zoom{
+    margin-top:14px!important;
+    margin-left:12px!important;
+    z-index:120!important;
+  }
+  .leaflet-control-zoom a{
+    width:38px!important;
+    height:38px!important;
+    line-height:38px!important;
+    font-size:20px!important;
+    border-radius:10px!important;
+  }
+
+  /* Hide old sidebar as slide-over. The new full-screen menu takes over. */
+  .sidebar{
+    display:none!important;
+  }
+
+  .mob-bar{
+    display:none!important;
+  }
+
+  .mobile-home-actions{
+    display:block!important;
+    position:fixed;
+    top:var(--topbar-h);
+    left:0;
+    right:0;
+    height:var(--mobile-action-h);
+    z-index:610;
+    background:linear-gradient(180deg,rgba(7,16,7,.98),rgba(7,16,7,.9));
+    border-bottom:1px solid rgba(125,171,138,.16);
+    padding:10px 12px 9px;
+  }
+
+  .mobile-primary-row{
+    display:grid;
+    grid-template-columns:1fr 48px;
+    gap:10px;
+    margin-bottom:9px;
+  }
+
+  .mobile-report-main{
+    height:48px;
+    border:none;
+    border-radius:16px;
+    background:linear-gradient(135deg,#4a7c59,#7dab8a);
+    color:#071007;
+    font:900 16px 'Playfair Display',serif;
+    letter-spacing:.2px;
+    box-shadow:0 10px 28px rgba(74,124,89,.28);
+  }
+
+  .mobile-layer-mini{
+    height:48px;
+    border-radius:16px;
+    border:1px solid rgba(125,171,138,.32);
+    background:rgba(125,171,138,.08);
+    color:#9db99f;
+    font-size:20px;
+  }
+
+  .mobile-search-wrap{
+    position:relative;
+  }
+
+  .mobile-search{
+    width:100%;
+    height:46px;
+    border-radius:15px;
+    border:1.5px solid rgba(125,171,138,.25);
+    background:#101b10;
+    color:#e8f0ea;
+    padding:0 44px 0 14px;
+    font:600 13px 'DM Mono',monospace;
+    outline:none;
+  }
+  .mobile-search::placeholder{color:#65896e}
+  .mobile-search-btn{
+    position:absolute;
+    top:5px;
+    right:5px;
+    width:36px;
+    height:36px;
+    border:none;
+    border-radius:11px;
+    background:rgba(125,171,138,.14);
+    color:#a8cdb2;
+    font-size:16px;
+  }
+
+  /* Map extras are not always visible on mobile. They live in bottom drawer. */
+  .map-legend,
+  .map-ribbon,
+  .suburb-bar,
+  #boundary-note,
+  .eskom-badge{
+    display:none!important;
+  }
+
+  .mobile-bottom-drawer{
+    display:block!important;
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:700;
+    height:var(--drawer-h);
+    max-height:82dvh;
+    background:rgba(13,24,13,.98);
+    border-top:1.5px solid rgba(125,171,138,.26);
+    border-radius:22px 22px 0 0;
+    box-shadow:0 -18px 48px rgba(0,0,0,.42);
+    transition:height .28s cubic-bezier(.22,.9,.2,1);
+    padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));
+    overflow:hidden;
+  }
+  .mobile-bottom-drawer.open{
+    height:72dvh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .drawer-handle{
+    width:44px;
+    height:5px;
+    border-radius:999px;
+    background:rgba(125,171,138,.24);
+    margin:0 auto 8px;
+  }
+
+  .drawer-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    min-height:42px;
+  }
+  .drawer-title{
+    font:900 16px 'Playfair Display',serif;
+    color:#e8f0ea;
+  }
+  .drawer-sub{
+    font:700 9px 'DM Mono',monospace;
+    color:#7dab8a;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+  }
+  .drawer-count{
+    border:1px solid rgba(125,171,138,.26);
+    border-radius:999px;
+    padding:7px 10px;
+    color:#9db99f;
+    font:700 10px 'DM Mono',monospace;
+  }
+
+  .drawer-content{
+    display:none;
+    padding-top:8px;
+  }
+  .mobile-bottom-drawer.open .drawer-content{
+    display:block;
+  }
+
+  .mobile-card{
+    background:#111c10;
+    border:1px solid rgba(125,171,138,.18);
+    border-radius:16px;
+    padding:13px;
+    margin-bottom:10px;
+  }
+  .mobile-card-title{
+    font:900 15px 'Playfair Display',serif;
+    color:#e8f0ea;
+    margin-bottom:10px;
+    display:flex;
+    justify-content:space-between;
+  }
+
+  .mobile-layer-row{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    min-height:42px;
+    border-bottom:1px solid rgba(125,171,138,.09);
+  }
+  .mobile-layer-row:last-child{border-bottom:none}
+  .mobile-layer-row span:nth-child(2){
+    flex:1;
+    font:700 13px 'DM Sans',sans-serif;
+    color:#cfe3d2;
+  }
+  .mobile-toggle{
+    width:42px;
+    height:24px;
+    border-radius:999px;
+    border:1px solid rgba(125,171,138,.32);
+    background:#223320;
+    position:relative;
+  }
+  .mobile-toggle.on{background:#7dab8a}
+  .mobile-toggle:after{
+    content:'';
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:#fff;
+    position:absolute;
+    top:2px;
+    left:2px;
+    transition:.18s;
+  }
+  .mobile-toggle.on:after{left:20px}
+
+  .mobile-stats-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+  }
+  .mobile-stat{
+    background:#172617;
+    border:1px solid rgba(125,171,138,.18);
+    border-radius:14px;
+    padding:10px 6px;
+    text-align:center;
+  }
+  .mobile-stat b{
+    display:block;
+    font:900 22px 'Playfair Display',serif;
+    color:#e8f0ea;
+  }
+  .mobile-stat span{
+    font:700 8px 'DM Mono',monospace;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:#7dab8a;
+  }
+
+  .mobile-legend-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .mobile-legend-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font:700 12px 'DM Sans',sans-serif;
+    color:#cfe3d2;
+  }
+  .mobile-legend-dot{
+    width:11px;
+    height:11px;
+    border-radius:50%;
+  }
+
+  .mobile-full-menu{
+    display:block;
+    position:fixed;
+    inset:0;
+    z-index:1600;
+    background:#071007;
+    transform:translateX(100%);
+    transition:transform .25s cubic-bezier(.22,.9,.2,1);
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:calc(env(safe-area-inset-top,0px) + 18px) 16px 24px;
+  }
+  body.mobile-menu-active .mobile-full-menu{
+    transform:translateX(0);
+  }
+  body.mobile-menu-active .map-area,
+  body.mobile-menu-active .mobile-home-actions,
+  body.mobile-menu-active .mobile-bottom-drawer,
+  body.mobile-menu-active .leaflet-control,
+  body.mobile-menu-active .leaflet-control-zoom{
+    display:none!important;
+  }
+
+  .mobile-menu-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .mobile-menu-title{
+    font:900 26px 'Playfair Display',serif;
+    color:#e8f0ea;
+  }
+  .mobile-close{
+    width:44px;
+    height:44px;
+    border-radius:14px;
+    border:1px solid rgba(125,171,138,.28);
+    background:#111c10;
+    color:#a8cdb2;
+    font-size:22px;
+  }
+
+  .mobile-menu-section{
+    background:#111c10;
+    border:1px solid rgba(125,171,138,.18);
+    border-radius:18px;
+    padding:14px;
+    margin-bottom:12px;
+  }
+  .mobile-menu-section h3{
+    font:900 18px 'Playfair Display',serif;
+    margin:0 0 12px;
+  }
+  .mobile-menu-btn{
+    width:100%;
+    min-height:48px;
+    border-radius:14px;
+    border:1px solid rgba(125,171,138,.22);
+    background:#0b140b;
+    color:#d9ebdc;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0 14px;
+    margin-bottom:8px;
+    font:800 13px 'DM Sans',sans-serif;
+  }
+  .mobile-menu-btn.primary{
+    background:#7dab8a;
+    color:#071007;
+    border-color:#7dab8a;
+    font:900 16px 'Playfair Display',serif;
+  }
+
+  /* Full-screen report experience on mobile */
+  .overlay.show{
+    align-items:stretch!important;
+    justify-content:stretch!important;
+    background:#071007!important;
+    backdrop-filter:none!important;
+  }
+  .modal,
+  .drug-modal,
+  .nhw-modal{
+    width:100%!important;
+    max-width:none!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    border-radius:0!important;
+    border-top:none!important;
+    padding:calc(env(safe-area-inset-top,0px) + 16px) 14px calc(24px + env(safe-area-inset-bottom,0px))!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  .mhandle{display:none!important}
+  .mtitle{
+    font-size:25px!important;
+    line-height:1.1!important;
+    margin-top:4px!important;
+  }
+  .msub{font-size:9px!important;margin-bottom:14px!important}
+  .inc-grid{
+    grid-template-columns:1fr!important;
+    gap:9px!important;
+  }
+  .inc-btn{
+    min-height:54px!important;
+    padding:12px!important;
+    font-size:14px!important;
+    border-radius:14px!important;
+  }
+  .cat-head{
+    font-size:15px!important;
+    margin-top:18px!important;
+    padding-top:2px!important;
+  }
+  .sev-row{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:8px!important;
+  }
+  .sev-btn{
+    height:48px!important;
+    font-size:12px!important;
+    border-radius:13px!important;
+  }
+  .loc-box{
+    border-radius:16px!important;
+    padding:14px!important;
+  }
+  .note-ta{
+    min-height:110px!important;
+    font-size:15px!important;
+    border-radius:16px!important;
+  }
+  .submit-btn{
+    height:58px!important;
+    border-radius:17px!important;
+    font-size:19px!important;
+    margin-top:14px!important;
+  }
+  .cancel-btn{
+    height:52px!important;
+    border-radius:17px!important;
+    font-size:12px!important;
+  }
+
+  .toast{
+    max-width:92vw!important;
+    white-space:normal!important;
+    bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;
+  }
+}
+
+@media(min-width:769px){
+  .mobile-full-menu,.mobile-home-actions,.mobile-bottom-drawer{display:none!important}
+}
+</style>
+
 </head>
 <body>
 
@@ -1082,6 +1580,104 @@ html,body{height:100%;background:var(--cream);color:var(--text);
     <button class="tb-mob-menu" onclick="toggleMobSidebar()">&#x2630;</button>
   </div>
 </nav>
+
+
+<!-- MOBILE SPRINT A — PRIMARY ACTIONS -->
+<div class="mobile-home-actions" id="mobile-home-actions">
+  <div class="mobile-primary-row">
+    <button class="mobile-report-main" onclick="openModal()">⚠ Report Incident</button>
+    <button class="mobile-layer-mini" onclick="toggleMobileDrawer()">☰</button>
+  </div>
+  <div class="mobile-search-wrap">
+    <input class="mobile-search" id="mobile-suburb-search" placeholder="Search suburb or area…" autocomplete="off" oninput="searchSuburbsMobile(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburbMobile(this.value)}">
+    <button class="mobile-search-btn" onclick="selectSuburbMobile(document.getElementById('mobile-suburb-search').value)">🔍</button>
+    <div class="suburb-dropdown" id="mobile-suburb-dropdown"></div>
+  </div>
+</div>
+
+<!-- MOBILE SPRINT A — FULL MENU -->
+<div class="mobile-full-menu" id="mobile-full-menu">
+  <div class="mobile-menu-top">
+    <div>
+      <div class="mobile-menu-title">SafeNote</div>
+      <div class="drawer-sub">Community safety</div>
+    </div>
+    <button class="mobile-close" onclick="closeMobileMenu()">×</button>
+  </div>
+
+  <div class="mobile-menu-section">
+    <button class="mobile-menu-btn primary" onclick="closeMobileMenu();openModal()">⚠ Report Incident <span>→</span></button>
+    <button class="mobile-menu-btn" onclick="closeMobileMenu();openNhwAuth()">NHW / CPF Access <span>→</span></button>
+  </div>
+
+  <div class="mobile-menu-section">
+    <h3>Search Area</h3>
+    <div class="mobile-search-wrap">
+      <input class="mobile-search" id="mobile-menu-search" placeholder="Search Western Cape suburb…" autocomplete="off" oninput="searchSuburbsMobileMenu(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();selectSuburbMobileMenu(this.value)}">
+      <button class="mobile-search-btn" onclick="selectSuburbMobileMenu(document.getElementById('mobile-menu-search').value)">🔍</button>
+      <div class="suburb-dropdown" id="mobile-menu-suburb-dropdown"></div>
+    </div>
+  </div>
+
+  <div class="mobile-menu-section">
+    <h3>Map Layers</h3>
+    <button class="mobile-menu-btn" onclick="mobileToggleLayer('crimes')">📍 Incident Pins <span id="m-layer-crimes">ON</span></button>
+    <button class="mobile-menu-btn" onclick="mobileToggleLayer('heat')">🔥 Heatmap <span id="m-layer-heat">ON</span></button>
+    <button class="mobile-menu-btn" onclick="mobileToggleLayer('power')">⚡ Power Outages <span id="m-layer-power">ON</span></button>
+    <button class="mobile-menu-btn" onclick="mobileToggleLayer('drugs')">⚠ Drug/Gang Houses <span id="m-layer-drugs">OFF</span></button>
+  </div>
+
+  <div class="mobile-menu-section">
+    <h3>About</h3>
+    <button class="mobile-menu-btn" onclick="closeMobileMenu();toggleMobileDrawer(true)">Nearby Activity <span>→</span></button>
+    <button class="mobile-menu-btn" onclick="closeMobileMenu()">Back to Map <span>→</span></button>
+  </div>
+</div>
+
+<!-- MOBILE SPRINT A — BOTTOM DRAWER -->
+<div class="mobile-bottom-drawer" id="mobile-bottom-drawer" onclick="drawerTap(event)">
+  <div class="drawer-handle"></div>
+  <div class="drawer-head">
+    <div>
+      <div class="drawer-title">Nearby Activity</div>
+      <div class="drawer-sub">tap to view stats, layers and legend</div>
+    </div>
+    <div class="drawer-count"><span id="mobile-total-count">0</span> reports</div>
+  </div>
+  <div class="drawer-content">
+    <div class="mobile-card">
+      <div class="mobile-card-title">Map Layers <span>Public</span></div>
+      <div class="mobile-layer-row" onclick="mobileToggleLayer('crimes')"><span>📍</span><span>Incident Pins</span><div class="mobile-toggle on" id="mob-toggle-crimes"></div></div>
+      <div class="mobile-layer-row" onclick="mobileToggleLayer('heat')"><span>🔥</span><span>Heatmap</span><div class="mobile-toggle on" id="mob-toggle-heat"></div></div>
+      <div class="mobile-layer-row" onclick="mobileToggleLayer('power')"><span>⚡</span><span>Power Outages</span><div class="mobile-toggle on" id="mob-toggle-power"></div></div>
+      <div class="mobile-layer-row" onclick="mobileToggleLayer('drugs')"><span>⚠</span><span>Drug/Gang Houses</span><div class="mobile-toggle" id="mob-toggle-drugs"></div></div>
+    </div>
+
+    <div class="mobile-card">
+      <div class="mobile-card-title">Area Stats <span>Western Cape</span></div>
+      <div class="mobile-stats-grid">
+        <div class="mobile-stat"><b id="m-s-today">0</b><span>Today</span></div>
+        <div class="mobile-stat"><b id="m-s-week">0</b><span>Week</span></div>
+        <div class="mobile-stat"><b id="m-s-areas">0</b><span>Areas</span></div>
+        <div class="mobile-stat"><b id="m-s-total">0</b><span>Total</span></div>
+      </div>
+    </div>
+
+    <div class="mobile-card">
+      <div class="mobile-card-title">Legend <span>Protected locations</span></div>
+      <div class="mobile-legend-grid">
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#f07070"></span>Violent</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#e8904a"></span>Robbery</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#d4a832"></span>Property</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#6ab4d4"></span>Suspicious</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#9b59b6"></span>GBV</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#7dab8a"></span>Community</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#f5a623"></span>Power</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#e8904a;border:2px solid #fff"></span>Drug/Gang</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- LAYOUT -->
 <div class="layout">
@@ -2938,6 +3534,163 @@ async function drawApproximateSuburbCircle(name){
   document.addEventListener('click',()=>{setTimeout(ensurePrivacyFields,150);setTimeout(ensurePrivacyFields,700)},true);
   const mo=new MutationObserver(()=>ensurePrivacyFields());
   mo.observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script>
+/* SafeNote Public Mobile UX Sprint A JS */
+(function(){
+  function isMobile(){return window.matchMedia('(max-width:768px)').matches}
+
+  window.openMobileMenu=function(){
+    document.body.classList.add('mobile-menu-active');
+    document.body.classList.add('menu-open');
+  };
+  window.closeMobileMenu=function(){
+    document.body.classList.remove('mobile-menu-active');
+    document.body.classList.remove('menu-open');
+    setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},180);
+  };
+
+  const oldToggleMobSidebar = window.toggleMobSidebar;
+  window.toggleMobSidebar=function(){
+    if(isMobile()){
+      openMobileMenu();
+      return;
+    }
+    if(typeof oldToggleMobSidebar==='function') oldToggleMobSidebar();
+  };
+
+  window.toggleMobileDrawer=function(forceOpen){
+    const d=document.getElementById('mobile-bottom-drawer');
+    if(!d)return;
+    if(forceOpen===true)d.classList.add('open');
+    else d.classList.toggle('open');
+    setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},240);
+  };
+
+  window.drawerTap=function(e){
+    const d=document.getElementById('mobile-bottom-drawer');
+    if(!d)return;
+    if(e.target.closest('.mobile-layer-row'))return;
+    if(!d.classList.contains('open'))d.classList.add('open');
+  };
+
+  window.mobileToggleLayer=function(layer){
+    const btn=document.getElementById('layer-'+(layer==='crimes'?'crimes':layer));
+    if(btn && typeof toggleLayer==='function') toggleLayer(layer,btn);
+
+    const mob=document.getElementById('mob-toggle-'+layer);
+    if(mob) mob.classList.toggle('on');
+
+    const label=document.getElementById('m-layer-'+layer);
+    if(label) label.textContent = (mob && mob.classList.contains('on')) ? 'ON' : 'OFF';
+  };
+
+  function mirrorStats(){
+    const pairs=[
+      ['s-today','m-s-today'],
+      ['s-week','m-s-week'],
+      ['s-areas','m-s-areas'],
+      ['s-total','m-s-total'],
+      ['s-total','mobile-total-count']
+    ];
+    pairs.forEach(([a,b])=>{
+      const src=document.getElementById(a), dst=document.getElementById(b);
+      if(src&&dst)dst.textContent=src.textContent||'0';
+    });
+  }
+
+  setInterval(mirrorStats,1000);
+  window.addEventListener('load',()=>setTimeout(mirrorStats,1200));
+
+  window.searchSuburbsMobile=function(q){
+    if(typeof searchSuburbs==='function'){
+      const main=document.getElementById('suburb-search');
+      if(main)main.value=q;
+      searchSuburbs(q);
+      const dd=document.getElementById('suburb-dropdown');
+      const mdd=document.getElementById('mobile-suburb-dropdown');
+      if(dd&&mdd){
+        mdd.innerHTML=dd.innerHTML;
+        mdd.className=dd.className;
+        [...mdd.querySelectorAll('.suburb-opt')].forEach(opt=>{
+          const name=opt.textContent;
+          opt.onclick=()=>selectSuburbMobile(name);
+        });
+      }
+    }
+  };
+  window.selectSuburbMobile=function(q){
+    q=(q||'').trim();
+    if(!q)return;
+    const main=document.getElementById('suburb-search');
+    const mobile=document.getElementById('mobile-suburb-search');
+    if(main)main.value=q;
+    if(mobile)mobile.value=q;
+    const dd=document.getElementById('mobile-suburb-dropdown');
+    if(dd)dd.classList.remove('show');
+    if(typeof selectSuburb==='function')selectSuburb(q);
+    setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},250);
+  };
+
+  window.searchSuburbsMobileMenu=function(q){
+    searchSuburbsMobile(q);
+    const src=document.getElementById('mobile-suburb-dropdown');
+    const dst=document.getElementById('mobile-menu-suburb-dropdown');
+    if(src&&dst){
+      dst.innerHTML=src.innerHTML;
+      dst.className=src.className;
+      [...dst.querySelectorAll('.suburb-opt')].forEach(opt=>{
+        const name=opt.textContent;
+        opt.onclick=()=>selectSuburbMobileMenu(name);
+      });
+    }
+  };
+  window.selectSuburbMobileMenu=function(q){
+    closeMobileMenu();
+    selectSuburbMobile(q);
+  };
+
+  // Make NHW access full-screen sheet on mobile while preserving current logic.
+  const oldOpenNhwAuth=window.openNhwAuth;
+  window.openNhwAuth=function(){
+    if(typeof oldOpenNhwAuth==='function')oldOpenNhwAuth();
+    document.body.classList.add('menu-open');
+  };
+
+  const oldOpenModal=window.openModal;
+  window.openModal=function(){
+    if(isMobile()){
+      closeMobileMenu();
+      const d=document.getElementById('mobile-bottom-drawer');
+      if(d)d.classList.remove('open');
+    }
+    if(typeof oldOpenModal==='function')oldOpenModal();
+    document.body.classList.add('menu-open');
+  };
+
+  const oldCloseModal=window.closeModal;
+  if(typeof oldCloseModal==='function'){
+    window.closeModal=function(){
+      oldCloseModal();
+      document.body.classList.remove('menu-open');
+      setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},200);
+    };
+  }
+
+  document.addEventListener('click',function(e){
+    if(e.target.closest('#map') || e.target.classList.contains('leaflet-container')){
+      document.body.classList.remove('menu-open');
+    }
+  },true);
+
+  window.addEventListener('resize',()=>setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},300));
+  window.addEventListener('load',()=>{
+    setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},600);
+    mirrorStats();
+  });
 })();
 </script>
 
