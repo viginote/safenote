@@ -51,6 +51,19 @@ body.nhw-locked .side > button.action{display:none!important}
 body.nhw-locked .login{margin-top:18px}
 body.nhw-locked .side{max-width:430px;margin:0 auto;border-right:none;min-height:100vh}
 
+
+.locked .main{display:none!important}
+.locked .side{max-width:520px;margin:0 auto;border-right:none}
+.locked .nav,.locked .side>.action:not(.danger){display:none!important}
+.role-badge{display:inline-block;border:1px solid var(--line2);border-radius:999px;padding:5px 9px;color:var(--green);font:700 9px 'DM Mono',monospace;text-transform:uppercase}
+.member-form{display:grid;grid-template-columns:1fr 150px auto;gap:8px;margin-bottom:12px}
+.member-form input,.member-form select,.patrol-form input,.patrol-form select{background:#0b120b;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;outline:none}
+.patrol-toolbar{display:grid;grid-template-columns:1fr 130px 130px auto auto;gap:8px;margin-bottom:12px}
+.legend-risk .draw-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.zone-row{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:9px 10px;background:rgba(255,255,255,.025)}
+.zone-row b{font-size:12px}.zone-row span{font:600 10px 'DM Mono',monospace;color:var(--muted)}
+@media(max-width:900px){.member-form,.patrol-toolbar{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body class="nhw-locked">
@@ -62,6 +75,8 @@ body.nhw-locked .side{max-width:430px;margin:0 auto;border-right:none;min-height
       <button class="on" onclick="scrollToId('overview')">Overview <span>↗</span></button>
       <button onclick="scrollToId('opsmap')">Live Map <span>↗</span></button>
       <button onclick="scrollToId('analytics')">Analytics <span>↗</span></button>
+      <button onclick="scrollToId('members')">Members <span>↗</span></button>
+      <button onclick="scrollToId('patrols')">Patrol Planning <span>↗</span></button>
       <button onclick="scrollToId('incidents')">Incident Feed <span>↗</span></button>
     </div>
     <button class="action primary" onclick="refreshAll()">Refresh live data</button>
@@ -97,6 +112,52 @@ body.nhw-locked .side{max-width:430px;margin:0 auto;border-right:none;min-height
       </div>
       <div class="card span4" id="analytics"><div class="section-title"><h3>Incident Trend</h3><span>daily count</span></div><canvas id="trendChart" height="210"></canvas></div>
       <div class="card span4"><div class="section-title"><h3>Types</h3><span>top 12</span></div><canvas id="typeChart" height="210"></canvas></div>
+      
+      <div class="card span6" id="members">
+        <div class="section-title"><h3>NHW Member Access</h3><span id="member-permission-note">Chairman only · 30 max</span></div>
+        <div class="member-form" id="member-form">
+          <input id="member-label" placeholder="Member name / role label e.g. Patrol Lead 1" />
+          <select id="member-role">
+            <option value="vice_chairman">Vice Chairman</option>
+            <option value="secretary">Secretary</option>
+            <option value="patrol_lead">Patrol Lead</option>
+            <option value="patrol_member">Patrol Member</option>
+          </select>
+          <button class="action primary" onclick="createMemberCode()">Generate Member Code</button>
+        </div>
+        <div id="new-member-code" class="empty-state hidden"></div>
+        <div style="height:10px"></div>
+        <div id="member-list" class="mini-list"></div>
+      </div>
+
+      <div class="card span6" id="patrols">
+        <div class="section-title"><h3>Patrol Planning & Areas of Interest</h3><span>NHW operational layer</span></div>
+        <div class="patrol-toolbar">
+          <input id="zone-name" placeholder="Zone / AOI name" />
+          <select id="zone-color">
+            <option value="#7dab8a">Green</option>
+            <option value="#d4a832">Yellow</option>
+            <option value="#e8904a">Orange</option>
+            <option value="#f07070">Red</option>
+            <option value="#6ab4d4">Blue</option>
+            <option value="#9b59b6">Purple</option>
+          </select>
+          <select id="zone-type">
+            <option value="patrol">Patrol Sector</option>
+            <option value="focus">Focus Area</option>
+            <option value="high_risk">High Risk</option>
+            <option value="safe_route">Safe Route</option>
+          </select>
+          <button class="action primary" onclick="startDrawZone()">Draw Zone</button>
+          <button class="action" onclick="startDrawAOI()">Place AOI</button>
+        </div>
+        <div class="empty-state">
+          Draw Mode: click the map to add boundary points. Double click to finish and save a patrol zone. AOI Mode: click once to place a coloured circle.
+        </div>
+        <div style="height:10px"></div>
+        <div id="zone-list" class="mini-list"></div>
+      </div>
+
       <div class="card span6" id="incidents"><div class="section-title"><h3>Live Incident Feed</h3><span id="feed-count">0 records</span></div><div class="table-wrap"><table class="inc-table"><thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Status</th><th>Coordinates</th><th>Note</th></tr></thead><tbody id="feed-body"></tbody></table></div></div>
     </div>
   </main>
@@ -157,5 +218,228 @@ window.addEventListener('load',()=>{
   else{setAuthStatus(false,'Not verified. Enter an NHW access code to unlock the live dashboard.')}
 });
 </script>
+
+<script>
+/* SafeNote Phase 2: hierarchy + patrol drawing */
+let nhwIdentity=null;
+let patrolLayers=L.layerGroup();
+let drawMode=null;
+let drawPoints=[];
+let tempDrawLayer=null;
+
+function lockPortal(){
+  document.body.classList.add('locked');
+}
+function unlockPortal(){
+  document.body.classList.remove('locked');
+}
+function roleLabel(role){return String(role||'').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase())}
+function canManageMembers(){return nhwIdentity && nhwIdentity.can_manage_members}
+function canManagePatrols(){return nhwIdentity && nhwIdentity.can_manage_patrols}
+
+const oldVerifyAndLoad = window.verifyAndLoad;
+window.verifyAndLoad = async function(){
+  token=document.getElementById('token').value.trim().toUpperCase().replace(/\s/g,'');
+  if(!/^NHW-[A-Z0-9-]{4,24}$/.test(token)){setAuthStatus(false,'Invalid code format. Use the NHW access code issued by SafeNote.');toast('Invalid NHW code format');return}
+  try{
+    const r=await fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:token})});
+    const d=await r.json();
+    if(!d.valid){setAuthStatus(false,'Access code not valid. Contact the SafeNote admin.');toast('Access code not valid');lockPortal();return}
+    nhwIdentity=d;
+    localStorage.setItem('safenote_nhw_token',token);
+    const label=d.label||'Verified NHW / CPF Group';
+    setAuthStatus(true,'Verified access: '+label+' · '+roleLabel(d.role)+' · Token active');
+    unlockPortal();
+    toast('NHW access verified');
+    await refreshAll();
+    await loadMembers();
+    await loadPatrolLayers();
+    updateRoleUI();
+  }catch(e){console.error(e);setAuthStatus(false,'Could not verify access code. Check API connection.');toast('Verification failed');lockPortal()}
+};
+
+const oldLogout = window.logout;
+window.logout = function(){
+  localStorage.removeItem('safenote_nhw_token');
+  token='';
+  try{ if(markers) markers.clearLayers(); }catch(e){}
+  try{ if(heat) map.removeLayer(heat); }catch(e){}
+  try{ patrolLayers.clearLayers(); }catch(e){}
+  document.getElementById('token').value='';
+  location.reload();
+};
+
+window.addEventListener('load',()=>{
+  lockPortal();
+});
+
+function updateRoleUI(){
+  const note=document.getElementById('member-permission-note');
+  const form=document.getElementById('member-form');
+  if(note) note.textContent = canManageMembers() ? 'Chairman access · 30 max member codes' : 'Only chairman/root codes can generate member access';
+  if(form) form.style.display = canManageMembers() ? 'grid' : 'none';
+  const patrolTools=document.querySelector('.patrol-toolbar');
+  if(patrolTools) patrolTools.style.display = canManagePatrols() ? 'grid' : 'none';
+}
+
+async function loadMembers(){
+  const list=document.getElementById('member-list');
+  if(!list) return;
+  list.innerHTML='';
+  if(!canManageMembers()){list.innerHTML='<div class="empty-state">Member management is only available to the chairman/root NHW access code.</div>';return}
+  const r=await fetch(API+'/api/nhw/members',{headers:authHeaders()});
+  if(!r.ok){list.innerHTML='<div class="empty-state">Could not load members.</div>';return}
+  const d=await r.json();
+  const members=d.members||[];
+  if(!members.length){list.innerHTML='<div class="empty-state">No member sub-codes yet. Generate up to 30 for verified NHW/CPF members.</div>';return}
+  members.forEach(m=>{
+    const div=document.createElement('div');
+    div.className='zone-row';
+    div.innerHTML='<b>'+m.member_label+' <span class="role-badge">'+roleLabel(m.role)+'</span></b><span>'+m.token+'</span>';
+    const revoke=document.createElement('button');
+    revoke.className='btn-small red';
+    revoke.textContent='Revoke';
+    revoke.onclick=()=>revokeMember(m.token);
+    div.appendChild(revoke);
+    list.appendChild(div);
+  });
+}
+
+async function createMemberCode(){
+  if(!canManageMembers()){toast('Only chairman can generate member codes');return}
+  const member_label=document.getElementById('member-label').value.trim();
+  const role=document.getElementById('member-role').value;
+  if(!member_label){toast('Enter member label');return}
+  const r=await fetch(API+'/api/nhw/members',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({member_label,role})});
+  if(!r.ok){toast('Could not create member code');return}
+  const d=await r.json();
+  const box=document.getElementById('new-member-code');
+  box.classList.remove('hidden');
+  box.innerHTML='<b>New member code:</b><br><span class="token">'+d.token+'</span><br><br>'+member_label+' · '+roleLabel(role);
+  document.getElementById('member-label').value='';
+  toast('Member code created');
+  loadMembers();
+}
+
+async function revokeMember(tok){
+  if(!confirm('Revoke this member code?'))return;
+  const r=await fetch(API+'/api/nhw/members/'+encodeURIComponent(tok),{method:'DELETE',headers:authHeaders()});
+  if(!r.ok){toast('Could not revoke member');return}
+  toast('Member revoked');
+  loadMembers();
+}
+
+function ensurePatrolLayer(){
+  if(map && !map.hasLayer(patrolLayers)) patrolLayers.addTo(map);
+}
+
+async function loadPatrolLayers(){
+  ensurePatrolLayer();
+  patrolLayers.clearLayers();
+  const zones=await fetch(API+'/api/nhw/patrol-zones',{headers:authHeaders()}).then(r=>r.ok?r.json():{zones:[]});
+  const areas=await fetch(API+'/api/nhw/aoi',{headers:authHeaders()}).then(r=>r.ok?r.json():{areas:[]});
+  (zones.zones||[]).forEach(z=>{
+    if(!z.geometry) return;
+    const layer=L.geoJSON(z.geometry,{style:{color:z.color,weight:2.5,fillColor:z.color,fillOpacity:.16}}).bindPopup('<b>'+z.name+'</b><br>'+roleLabel(z.zone_type));
+    layer.addTo(patrolLayers);
+  });
+  (areas.areas||[]).forEach(a=>{
+    L.circle([a.lat,a.lng],{radius:a.radius_m||250,color:a.color,weight:2,fillColor:a.color,fillOpacity:.18}).bindPopup('<b>'+a.name+'</b><br>'+ (a.note||'Area of interest')).addTo(patrolLayers);
+  });
+  renderPatrolList(zones.zones||[], areas.areas||[]);
+}
+
+function renderPatrolList(zones, areas){
+  const list=document.getElementById('zone-list');
+  if(!list) return;
+  list.innerHTML='';
+  if(!zones.length && !areas.length){list.innerHTML='<div class="empty-state">No patrol zones or areas of interest yet.</div>';return}
+  zones.forEach(z=>{
+    const div=document.createElement('div');
+    div.className='zone-row';
+    div.innerHTML='<b><span style="color:'+z.color+'">●</span> '+z.name+'</b><span>'+roleLabel(z.zone_type)+'</span>';
+    if(canManagePatrols()){
+      const del=document.createElement('button');del.className='btn-small red';del.textContent='Delete';del.onclick=()=>deleteZone(z.id);
+      div.appendChild(del);
+    }
+    list.appendChild(div);
+  });
+  areas.forEach(a=>{
+    const div=document.createElement('div');
+    div.className='zone-row';
+    div.innerHTML='<b><span style="color:'+a.color+'">●</span> '+a.name+'</b><span>Area of interest</span>';
+    if(canManagePatrols()){
+      const del=document.createElement('button');del.className='btn-small red';del.textContent='Delete';del.onclick=()=>deleteAOI(a.id);
+      div.appendChild(del);
+    }
+    list.appendChild(div);
+  });
+}
+
+function startDrawZone(){
+  if(!canManagePatrols()){toast('Your role cannot manage patrol layers');return}
+  drawMode='zone';drawPoints=[];
+  toast('Draw mode: click map points, double click to finish');
+  map.once('dblclick',finishDrawZone);
+  map.on('click',addDrawPoint);
+}
+function addDrawPoint(e){
+  if(drawMode!=='zone')return;
+  drawPoints.push([e.latlng.lat,e.latlng.lng]);
+  if(tempDrawLayer) map.removeLayer(tempDrawLayer);
+  tempDrawLayer=L.polyline(drawPoints,{color:document.getElementById('zone-color').value,weight:3,dashArray:'6 4'}).addTo(map);
+}
+async function finishDrawZone(e){
+  if(drawMode!=='zone')return;
+  map.off('click',addDrawPoint);
+  drawMode=null;
+  if(drawPoints.length<3){toast('Need at least 3 points for a patrol zone');return}
+  const name=document.getElementById('zone-name').value.trim()||'Patrol Zone';
+  const color=document.getElementById('zone-color').value;
+  const zone_type=document.getElementById('zone-type').value;
+  const coords=drawPoints.concat([drawPoints[0]]).map(p=>[p[1],p[0]]);
+  const geometry={type:'Feature',properties:{name},geometry:{type:'Polygon',coordinates:[coords]}};
+  const r=await fetch(API+'/api/nhw/patrol-zones',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({name,color,zone_type,geometry,note:null})});
+  if(tempDrawLayer){map.removeLayer(tempDrawLayer);tempDrawLayer=null}
+  drawPoints=[];
+  if(!r.ok){toast('Could not save patrol zone');return}
+  toast('Patrol zone saved');
+  loadPatrolLayers();
+}
+function startDrawAOI(){
+  if(!canManagePatrols()){toast('Your role cannot manage AOI');return}
+  drawMode='aoi';
+  toast('AOI mode: click map once to place circle');
+  map.once('click',saveAOI);
+}
+async function saveAOI(e){
+  const name=document.getElementById('zone-name').value.trim()||'Area of Interest';
+  const color=document.getElementById('zone-color').value;
+  const r=await fetch(API+'/api/nhw/aoi',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({name,color,lat:e.latlng.lat,lng:e.latlng.lng,radius_m:250,note:null})});
+  drawMode=null;
+  if(!r.ok){toast('Could not save AOI');return}
+  toast('Area of interest saved');
+  loadPatrolLayers();
+}
+async function deleteZone(id){
+  if(!confirm('Delete this patrol zone?'))return;
+  const r=await fetch(API+'/api/nhw/patrol-zones/'+encodeURIComponent(id),{method:'DELETE',headers:authHeaders()});
+  if(!r.ok){toast('Could not delete zone');return}
+  toast('Zone deleted');loadPatrolLayers();
+}
+async function deleteAOI(id){
+  if(!confirm('Delete this area of interest?'))return;
+  const r=await fetch(API+'/api/nhw/aoi/'+encodeURIComponent(id),{method:'DELETE',headers:authHeaders()});
+  if(!r.ok){toast('Could not delete AOI');return}
+  toast('AOI deleted');loadPatrolLayers();
+}
+
+const oldRefreshAllPhase2=window.refreshAll;
+window.refreshAll=async function(){
+  await oldRefreshAllPhase2();
+  if(token){try{await loadPatrolLayers();}catch(e){}}
+};
+</script>
+
 </body>
 </html>
