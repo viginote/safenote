@@ -1272,7 +1272,7 @@ async def list_nhw_members(identity=Depends(require_nhw_manage_members), db=Depe
     root = identity["root_token"]
     rows = db.execute(
         """SELECT token,parent_token,group_label,member_label,role,created_at,active
-           FROM nhw_members WHERE parent_token=?
+           FROM nhw_members WHERE parent_token=? AND active=1
            ORDER BY created_at DESC""",
         (root,)
     ).fetchall()
@@ -1310,6 +1310,24 @@ async def revoke_nhw_member(member_token: str, identity=Depends(require_nhw_mana
     if cur.rowcount == 0:
         raise HTTPException(status_code=404, detail="Member token not found")
     return {"revoked": member_token}
+
+
+
+@app.delete("/api/nhw/members/{member_token}/delete")
+async def delete_nhw_member(member_token: str, identity=Depends(require_nhw_manage_members), db=Depends(get_db)):
+    """
+    Permanently deletes a member sub-code row from the chairman/root group.
+    Use revoke for disabling access while preserving audit history.
+    Use delete to remove it from the member manager list.
+    """
+    cur = db.execute(
+        "DELETE FROM nhw_members WHERE token=? AND parent_token=?",
+        (member_token, identity["root_token"])
+    )
+    db.commit()
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Member token not found")
+    return {"deleted": member_token}
 
 
 # ── NHW PATROL ZONES / AREAS OF INTEREST ─────────────────────────────────────
