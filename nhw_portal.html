@@ -774,5 +774,38 @@ function downloadExport(){if(!token){toast('Verify first');return}window.open(AP
 })();
 </script>
 
+
+<script>
+/* SafeNote Privacy Phase 1 — NHW protected display notice */
+(function(){
+  if(window.L && L.Marker && L.Marker.prototype.bindPopup && !L.Marker.prototype._safeNoteNHWPrivacyPopup){
+    const oldBind=L.Marker.prototype.bindPopup;
+    L.Marker.prototype._safeNoteNHWPrivacyPopup=true;
+    L.Marker.prototype.bindPopup=function(content,opts){
+      if(typeof content==='string' && content.indexOf('Protected location')<0){
+        content += '<br><small style="color:#9db99f">Protected location. Exact reporter position hidden.</small>';
+      }
+      return oldBind.call(this,content,opts);
+    };
+  }
+
+  const oldLoadFeed=window.loadFeed;
+  if(typeof oldLoadFeed==='function' && !window._safeNotePrivacyLoadFeedWrapped){
+    window._safeNotePrivacyLoadFeedWrapped=true;
+    window.loadFeed=async function(){
+      await oldLoadFeed();
+      try{
+        document.querySelectorAll('#feed-body tr').forEach(tr=>{
+          if(tr.innerHTML && tr.innerHTML.indexOf('Protected map location')<0 && tr.children.length>=6){
+            const noteCell=tr.children[5];
+            noteCell.innerHTML=(noteCell.innerHTML||'—')+'<br><small style="color:#9db99f">Protected map location · exact reporter position hidden</small>';
+          }
+        });
+      }catch(e){}
+    };
+  }
+})();
+</script>
+
 </body>
 </html>
