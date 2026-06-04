@@ -2637,12 +2637,95 @@ async function drawApproximateSuburbCircle(name){
 
 
 
+
+
+
+
+
+
 <script>
-/* SafeNote Public Access Bridge Fix:
-   Member/chairman code from public map redirects once to /nhw?access=CODE.
-   /nhw consumes it, verifies, removes it from URL, and refresh does not persist login.
+/* SafeNote Privacy Phase 1 Hotfix:
+   - Directly injects "Where did this happen?" into the custom report modal.
+   - Adds location_context/location_note to every /api/reports POST.
+   - Fixes public NHW/member-code access to redirect into /nhw?access=CODE.
 */
 (function(){
+  function privacyBlockHTML(){
+    return ''+
+      '<div class="privacy-phase1-box" id="privacy-phase1-box">'+
+        '<label>Where did this happen?</label>'+
+        '<select id="location-context">'+
+          '<option value="at_location">At my current location</option>'+
+          '<option value="nearby_same_street">Nearby / same street</option>'+
+          '<option value="across_road">Across the road</option>'+
+          '<option value="different_street_nearby">Different street nearby</option>'+
+          '<option value="heard_or_seen_uncertain">I heard/saw it but I am not sure exactly where</option>'+
+        '</select>'+
+        '<input id="location-note" placeholder="Optional: street, landmark, direction, or safer context" />'+
+        '<div class="privacy-phase1-help">SafeNote protects reporters by showing approximate locations on public and NHW maps. Exact reporter coordinates are not shown publicly.</div>'+
+      '</div>';
+  }
+
+  function findReportContainer(){
+    const labels=[...document.querySelectorAll('label,.field-label,.modal-label,.report-label')];
+    for(const el of labels){
+      const txt=(el.textContent||'').toLowerCase();
+      if(txt.includes('brief note') || txt.includes('note')){
+        return el.closest('.modal-body,.sheet-body,.report-body,.modal-content,.report-modal,.panel') || el.parentElement;
+      }
+    }
+
+    const note=document.querySelector('textarea, input[placeholder*="males"], input[placeholder*="dark"], textarea[placeholder*="males"], textarea[placeholder*="dark"]');
+    if(note) return note.closest('.modal-body,.sheet-body,.report-body,.modal-content,.report-modal,.panel') || note.parentElement;
+
+    return document.querySelector('.report-modal,.modal-content,.modal-body,.sheet-body');
+  }
+
+  function ensurePrivacyFields(){
+    if(document.getElementById('privacy-phase1-box')) return true;
+
+    const container=findReportContainer();
+    if(!container) return false;
+
+    const temp=document.createElement('div');
+    temp.innerHTML=privacyBlockHTML();
+    const box=temp.firstElementChild;
+
+    const note=document.querySelector('textarea, input[placeholder*="males"], input[placeholder*="dark"], textarea[placeholder*="males"], textarea[placeholder*="dark"]');
+    if(note){
+      const parent=note.closest('.field,.form-field,.input-wrap') || note.parentElement;
+      parent.insertAdjacentElement('afterend', box);
+      return true;
+    }
+
+    const submit=[...container.querySelectorAll('button')].find(b=>(b.textContent||'').toLowerCase().includes('submit'));
+    if(submit) submit.insertAdjacentElement('beforebegin', box);
+    else container.appendChild(box);
+    return true;
+  }
+
+  // Run repeatedly because this modal is often rendered/opened dynamically.
+  window.addEventListener('load',()=>{setTimeout(ensurePrivacyFields,300);setTimeout(ensurePrivacyFields,1200)});
+  document.addEventListener('click',()=>{setTimeout(ensurePrivacyFields,150);setTimeout(ensurePrivacyFields,700)},true);
+  const mo=new MutationObserver(()=>ensurePrivacyFields());
+  mo.observe(document.documentElement,{childList:true,subtree:true});
+
+  const oldFetch=window.fetch;
+  window.fetch=function(input, init){
+    try{
+      const url=typeof input==='string'?input:(input&&input.url)||'';
+      if(url.includes('/api/reports') && !url.includes('/public') && !url.includes('/live') && init && init.method && init.method.toUpperCase()==='POST' && init.body){
+        const body=JSON.parse(init.body);
+        const ctx=document.getElementById('location-context');
+        const note=document.getElementById('location-note');
+        body.location_context=ctx?ctx.value:'at_location';
+        body.location_note=note?note.value:'';
+        init.body=JSON.stringify(body);
+      }
+    }catch(e){}
+    return oldFetch(input,init);
+  };
+
   async function safePublicAccess(code){
     const r=await fetch(API+'/api/nhw/public-access',{
       method:'POST',
@@ -2653,7 +2736,7 @@ async function drawApproximateSuburbCircle(name){
   }
 
   window.verifyNHWAccess = async function(){
-    const input=document.getElementById('nhw-code') || document.getElementById('nhw-token') || document.querySelector('input[placeholder*="NHW"]');
+    const input=document.getElementById('nhw-code') || document.getElementById('nhw-token') || document.querySelector('input[placeholder*="NHW"], input[value^="NHW"]');
     const code=(input?input.value:'').trim().toUpperCase().replace(/\s/g,'');
     if(!code){alert('Enter NHW access code');return}
     try{
@@ -2670,58 +2753,20 @@ async function drawApproximateSuburbCircle(name){
       alert('Could not verify NHW access code. Try again.');
     }
   };
-})();
-</script>
 
-
-<script>
-/* SafeNote Privacy Phase 1 — public reporting trust layer */
-(function(){
-  function ensurePrivacyFields(){
-    if(document.getElementById('location-context')) return;
-
-    const form =
-      document.getElementById('report-form') ||
-      document.querySelector('.report-form') ||
-      document.querySelector('.modal form') ||
-      document.querySelector('form');
-
-    if(!form) return;
-
-    const box=document.createElement('div');
-    box.className='privacy-phase1-box';
-    box.innerHTML=
-      '<label>Where did this happen?</label>'+
-      '<select id="location-context">'+
-        '<option value="at_location">At my current location</option>'+
-        '<option value="nearby_same_street">Nearby / same street</option>'+
-        '<option value="across_road">Across the road</option>'+
-        '<option value="different_street_nearby">Different street nearby</option>'+
-        '<option value="heard_or_seen_uncertain">I heard/saw it but I am not sure exactly where</option>'+
-      '</select>'+
-      '<input id="location-note" placeholder="Optional: street, landmark, direction, or safer context" />'+
-      '<div class="privacy-phase1-help">SafeNote protects reporters by showing approximate locations on public and NHW maps. Exact reporter coordinates are not shown publicly.</div>';
-
-    const submit=form.querySelector('button[type="submit"], .submit, .report-submit, button:last-of-type') || form.lastElementChild;
-    if(submit && submit.parentNode===form) form.insertBefore(box, submit);
-    else form.appendChild(box);
-  }
-
-  const oldFetch=window.fetch;
-  window.fetch=function(input, init){
-    try{
-      const url=typeof input==='string'?input:(input&&input.url)||'';
-      if(url.includes('/api/reports') && init && init.method && init.method.toUpperCase()==='POST' && init.body){
-        const body=JSON.parse(init.body);
-        const ctx=document.getElementById('location-context');
-        const note=document.getElementById('location-note');
-        body.location_context=ctx?ctx.value:'at_location';
-        body.location_note=note?note.value:'';
-        init.body=JSON.stringify(body);
+  document.addEventListener('click',function(e){
+    const txt=(e.target&&e.target.textContent||'').toLowerCase();
+    if(txt.includes('verify access') || txt.includes('nhw access')){
+      const modal=e.target.closest('.modal,.nhw-modal,.overlay,.sheet,.access-modal');
+      if(modal){
+        const inp=modal.querySelector('input');
+        if(inp && (inp.value.toUpperCase().includes('NHW') || (inp.placeholder||'').toUpperCase().includes('NHW'))){
+          e.preventDefault();
+          verifyNHWAccess();
+        }
       }
-    }catch(e){}
-    return oldFetch(input, init);
-  };
+    }
+  },true);
 
   if(window.L && L.Marker && L.Marker.prototype.bindPopup && !L.Marker.prototype._safeNotePrivacyPopup){
     const oldBind=L.Marker.prototype.bindPopup;
@@ -2733,9 +2778,6 @@ async function drawApproximateSuburbCircle(name){
       return oldBind.call(this,content,opts);
     };
   }
-
-  window.addEventListener('load',()=>setTimeout(ensurePrivacyFields,700));
-  document.addEventListener('click',()=>setTimeout(ensurePrivacyFields,200),true);
 })();
 </script>
 
