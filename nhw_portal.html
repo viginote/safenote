@@ -441,5 +441,89 @@ window.refreshAll=async function(){
 };
 </script>
 
+
+<script>
+(function(){
+  window.safeLoad = async function(label, fn){
+    try{ await fn(); return true; }
+    catch(e){ console.warn("SafeNote partial load failed:", label, e); return false; }
+  };
+
+  window.refreshAll = async function(){
+    if(!token){toast('Verify NHW access first');return}
+    try{ initMap(); }catch(e){ console.warn('map init issue', e); }
+
+    const results = [];
+    if(typeof loadAnalytics === 'function') results.push(await safeLoad('analytics', loadAnalytics));
+    if(typeof loadFeed === 'function') results.push(await safeLoad('feed', loadFeed));
+    if(typeof loadIntel === 'function') results.push(await safeLoad('intel', loadIntel));
+    if(typeof loadMembers === 'function') results.push(await safeLoad('members', loadMembers));
+    if(typeof loadPatrolLayers === 'function') results.push(await safeLoad('patrol layers', loadPatrolLayers));
+
+    const now=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    const current=(document.getElementById('auth-status').textContent || 'Verified access').split(' · ')[0];
+    setAuthStatus(true,current+' · Last sync: '+now+' · Token active');
+
+    toast(results.every(Boolean) ? 'Live data refreshed' : 'Portal loaded with some sections pending');
+  };
+
+  window.verifyAndLoad = async function(){
+    token=document.getElementById('token').value.trim().toUpperCase().replace(/\s/g,'');
+    if(!/^NHW-[A-Z0-9-]{4,24}$/.test(token)){
+      setAuthStatus(false,'Invalid code format. Use the NHW access code issued by SafeNote.');
+      toast('Invalid NHW code format');
+      return;
+    }
+
+    try{
+      const r=await fetch(API+'/api/nhw/verify',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({code:token})
+      });
+      const d=await r.json();
+
+      if(!d.valid){
+        setAuthStatus(false,'Access code not valid. Contact the SafeNote admin.');
+        toast('Access code not valid');
+        if(typeof lockPortal==='function') lockPortal();
+        return;
+      }
+
+      window.nhwIdentity=d;
+      localStorage.setItem('safenote_nhw_token',token);
+
+      const group=d.label||'Verified NHW / CPF Group';
+      const roleText=(typeof roleLabel==='function') ? roleLabel(d.role) : (d.role||'NHW');
+      setAuthStatus(true,'Verified access: '+group+' · '+roleText+' · Token active');
+
+      if(typeof unlockPortal==='function') unlockPortal();
+
+      toast('NHW access verified');
+      await refreshAll();
+
+      if(typeof updateRoleUI==='function'){
+        try{updateRoleUI()}catch(e){console.warn('role ui issue',e)}
+      }
+    }catch(e){
+      console.error(e);
+      setAuthStatus(false,'Could not verify access code. Check API connection.');
+      toast('Verification failed');
+      if(typeof lockPortal==='function') lockPortal();
+    }
+  };
+
+  window.logout = function(){
+    localStorage.removeItem('safenote_nhw_token');
+    token='';
+    try{ if(markers) markers.clearLayers(); }catch(e){}
+    try{ if(heat) map.removeLayer(heat); }catch(e){}
+    try{ if(typeof patrolLayers !== 'undefined') patrolLayers.clearLayers(); }catch(e){}
+    try{ document.getElementById('token').value=''; }catch(e){}
+    location.reload();
+  };
+})();
+</script>
+
 </body>
 </html>
