@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></script>
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <style>
@@ -1262,6 +1262,44 @@ input, textarea, select { touch-action: manipulation; }
 }
 </style>
 
+
+<style>
+/* SafeNote Live Feed 2.0 public status badges */
+.sn-status-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-top:7px;
+  padding:4px 8px;
+  border-radius:999px;
+  font:800 8px 'DM Mono',monospace;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  border:1px solid rgba(255,255,255,.18);
+}
+.sn-status-new{background:rgba(212,168,50,.15);color:#d4a832;border-color:rgba(212,168,50,.35)}
+.sn-status-verified{background:rgba(125,171,138,.15);color:#7dab8a;border-color:rgba(125,171,138,.35)}
+.sn-status-reviewed{background:rgba(106,180,212,.14);color:#6ab4d4;border-color:rgba(106,180,212,.35)}
+.sn-status-duplicate{background:rgba(155,89,182,.14);color:#9b59b6;border-color:rgba(155,89,182,.35)}
+.sn-status-unknown{background:rgba(157,185,159,.12);color:#9db99f;border-color:rgba(157,185,159,.3)}
+.sn-popup-privacy{
+  margin-top:7px;
+  font:700 8px 'DM Mono',monospace;
+  color:#9db99f;
+  line-height:1.45;
+}
+.sn-live-note{
+  margin:8px 12px;
+  padding:9px 11px;
+  border-radius:10px;
+  background:rgba(212,168,50,.08);
+  border:1px solid rgba(212,168,50,.22);
+  color:#d4a832;
+  font:700 9px 'DM Mono',monospace;
+  line-height:1.55;
+}
+</style>
+
 </head>
 <body>
 
@@ -1396,6 +1434,9 @@ input, textarea, select { touch-action: manipulation; }
         <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#7dab8a"></span>Community</div>
         <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#f5a623"></span>Power</div>
         <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#e8904a;border:2px solid #fff"></span>Drug/Gang</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#d4a832"></span>Unverified</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#7dab8a"></span>Verified</div>
+        <div class="mobile-legend-item"><span class="mobile-legend-dot" style="background:#6ab4d4"></span>Reviewed</div>
       </div>
     </div>
   </div>
@@ -1410,6 +1451,10 @@ input, textarea, select { touch-action: manipulation; }
     <button class="sb-report-btn" onclick="openModal()">
       <span style="font-size:18px">&#x26A0;</span> Report Incident
     </button>
+<div class="sn-live-note" id="live-feed-note">
+  LIVE FEED 2.0: Community reports are shown immediately. Items marked UNVERIFIED have not yet been reviewed by SafeNote/NHW/admin.
+</div>
+
 
     <!-- Suburb search -->
     <span class="sb-label">Suburb / Area</span>
@@ -1502,7 +1547,7 @@ input, textarea, select { touch-action: manipulation; }
     <div class="boundary-note" id="boundary-note">Approximate area boundary shown</div>
 
     <div class="map-ribbon" id="delay-ribbon">
-      &#x23F1; Public map — 24 hr delayed data
+      &#x25CF; Live public map — unverified reports may appear
     </div>
 
     <!-- Eskom badge -->
@@ -1522,6 +1567,10 @@ input, textarea, select { touch-action: manipulation; }
       <div class="ml-row"><div class="ml-dot" style="background:#7dab8a"></div><div class="ml-lbl">Community</div></div>
       <div class="ml-row"><div class="ml-dot" style="background:#f5a623"></div><div class="ml-lbl">Power outage</div></div>
       <div class="ml-row"><div class="ml-dot" style="background:#e8904a;border:2px solid #fff"></div><div class="ml-lbl">Drug/Gang house</div></div>
+      <div class="ml-title" style="margin-top:9px">Verification status</div>
+      <div class="ml-row"><div class="ml-dot" style="background:#d4a832"></div><div class="ml-lbl">Unverified</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#7dab8a"></div><div class="ml-lbl">Verified</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#6ab4d4"></div><div class="ml-lbl">Reviewed</div></div>
     </div>
 
     <!-- Suburb info bar -->
@@ -2179,24 +2228,49 @@ function loadFeed(){
   });
 }
 
+function reportStatusMeta(status){
+  status=(status||'new').toLowerCase();
+  if(status==='verified') return {label:'Verified', cls:'sn-status-verified', ring:'#7dab8a', dot:'●'};
+  if(status==='reviewed') return {label:'Reviewed', cls:'sn-status-reviewed', ring:'#6ab4d4', dot:'●'};
+  if(status==='duplicate') return {label:'Duplicate', cls:'sn-status-duplicate', ring:'#9b59b6', dot:'●'};
+  if(status==='new') return {label:'Unverified', cls:'sn-status-new', ring:'#d4a832', dot:'●'};
+  return {label:'Unverified', cls:'sn-status-unknown', ring:'#9db99f', dot:'●'};
+}
+
 function renderCrimeMarkers(rpts){
   crimeCluster.clearLayers();
   var powerTypes={power_loadshedding:1,power_fault:1,power_partial:1,power_restored:1};
-  rpts.filter(function(r){return !powerTypes[r.type];}).forEach(function(r){
-    var col=TYPE_COLORS[r.type]||'#7dab8a';
-    var html='<div style="width:13px;height:13px;border-radius:50%;background:'
-      +col+';border:2px solid rgba(26,40,24,.8);box-shadow:0 1px 6px rgba(0,0,0,.4)"></div>';
-    var icon=L.divIcon({html:html,iconSize:[13,13],iconAnchor:[6.5,6.5],className:''});
-    var m=L.marker([r.lat,r.lng],{icon:icon});
-    m.bindPopup(
-      '<div style="font-family:DM Sans,sans-serif;font-size:12px;min-width:150px">'+
-      '<strong style="color:'+col+';font-family:Playfair Display,serif;font-size:13px;display:block;margin-bottom:3px">'+
-      (TYPE_LABELS[r.type]||r.type)+'</strong>'+
-      '<span style="font-family:DM Mono,monospace;font-size:9px;color:#7dab8a">'+tAgo(r.ts)+'</span>'+
-      (r.note?'<p style="margin-top:5px;font-size:11px;color:#b8d4bc">'+esc(r.note)+'</p>':'')+
-      '</div>',{className:'sn-popup'});
-    crimeCluster.addLayer(m);
-  });
+
+  rpts
+    .filter(function(r){
+      var st=(r.status||'new').toLowerCase();
+      return !powerTypes[r.type] && ['false_report','archived','duplicate'].indexOf(st)===-1;
+    })
+    .forEach(function(r){
+      var col=TYPE_COLORS[r.type]||'#7dab8a';
+      var sm=reportStatusMeta(r.status);
+      var border=sm.ring || 'rgba(26,40,24,.8)';
+
+      var html='<div title="'+esc(sm.label)+'" style="width:15px;height:15px;border-radius:50%;background:'
+        +col+';border:3px solid '+border+';box-shadow:0 1px 8px rgba(0,0,0,.55)"></div>';
+
+      var icon=L.divIcon({html:html,iconSize:[15,15],iconAnchor:[7.5,7.5],className:''});
+      var m=L.marker([r.lat,r.lng],{icon:icon});
+
+      var statusHtml='<div class="sn-status-badge '+sm.cls+'"><span>'+sm.dot+'</span>'+sm.label+'</div>';
+      var privacyHtml='<div class="sn-popup-privacy">Approximate location shown to protect the reporter and community.</div>';
+
+      m.bindPopup(
+        '<div style="font-family:DM Sans,sans-serif;font-size:12px;min-width:170px">'+
+        '<strong style="color:'+col+';font-family:Playfair Display,serif;font-size:14px;display:block;margin-bottom:3px">'+
+        (TYPE_LABELS[r.type]||r.type)+'</strong>'+
+        '<span style="font-family:DM Mono,monospace;font-size:9px;color:#7dab8a">'+tAgo(r.ts)+'</span>'+
+        statusHtml+
+        (r.note?'<p style="margin-top:7px;font-size:11px;color:#b8d4bc;line-height:1.45">'+esc(r.note)+'</p>':'')+
+        privacyHtml+
+        '</div>',{className:'sn-popup'});
+      crimeCluster.addLayer(m);
+    });
 }
 
 function renderHeat(rpts){
@@ -3506,6 +3580,25 @@ async function drawApproximateSuburbCircle(name){
   }, true);
 
   attachDrawerGestures();
+})();
+</script>
+
+
+<script>
+/* SafeNote Live Feed 2.0 auto-refresh */
+(function(){
+  if(window.__safeNoteLiveFeedRefreshInstalled) return;
+  window.__safeNoteLiveFeedRefreshInstalled=true;
+  window.addEventListener('load', function(){
+    setInterval(function(){
+      try{
+        if(typeof loadFeed==='function'){
+          loadFeed();
+          if(typeof loadStats==='function') loadStats();
+        }
+      }catch(e){}
+    }, 60000);
+  });
 })();
 </script>
 
