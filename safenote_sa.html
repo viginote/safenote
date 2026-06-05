@@ -864,10 +864,6 @@ html,body{height:100%;background:var(--cream);color:var(--text);
     border-radius:999px;
     background:rgba(125,171,138,.22);
     margin:0 auto 6px;
-    position:sticky;
-    top:0;
-    z-index:2;
-    cursor:pointer;
   }
 
   .drawer-head{
@@ -876,12 +872,6 @@ html,body{height:100%;background:var(--cream);color:var(--text);
     align-items:center;
     gap:10px;
     min-height:36px;
-    position:sticky;
-    top:10px;
-    z-index:2;
-    background:rgba(13,24,13,.98);
-    padding-bottom:4px;
-    cursor:pointer;
   }
   .drawer-title{
     font:900 14px 'Playfair Display',serif;
@@ -1254,6 +1244,24 @@ input, textarea, select { touch-action: manipulation; }
 
 </style>
 
+
+<style>
+/* SafeNote drawer close/open fix */
+@media(max-width:768px){
+  .mobile-bottom-drawer{
+    touch-action: pan-y !important;
+  }
+  .drawer-handle,
+  .drawer-head{
+    cursor:pointer;
+    touch-action: manipulation;
+  }
+  .drawer-content{
+    touch-action: pan-y;
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -1335,10 +1343,10 @@ input, textarea, select { touch-action: manipulation; }
 
   <div class="mobile-menu-section">
     <h3>Map Layers</h3>
-    <button class="mobile-menu-btn" onclick="event.stopPropagation();mobileToggleLayer('crimes')">📍 Incident Pins <span id="m-layer-crimes">ON</span></button>
-    <button class="mobile-menu-btn" onclick="event.stopPropagation();mobileToggleLayer('heat')">🔥 Heatmap <span id="m-layer-heat">ON</span></button>
-    <button class="mobile-menu-btn" onclick="event.stopPropagation();mobileToggleLayer('power')">⚡ Power Outages <span id="m-layer-power">ON</span></button>
-    <button class="mobile-menu-btn" onclick="event.stopPropagation();mobileToggleLayer('drugs')">⚠ Drug/Gang Houses <span id="m-layer-drugs">OFF</span></button>
+    <button class="mobile-menu-btn" onclick="mobileToggleLayer('crimes')">📍 Incident Pins <span id="m-layer-crimes">ON</span></button>
+    <button class="mobile-menu-btn" onclick="mobileToggleLayer('heat')">🔥 Heatmap <span id="m-layer-heat">ON</span></button>
+    <button class="mobile-menu-btn" onclick="mobileToggleLayer('power')">⚡ Power Outages <span id="m-layer-power">ON</span></button>
+    <button class="mobile-menu-btn" onclick="mobileToggleLayer('drugs')">⚠ Drug/Gang Houses <span id="m-layer-drugs">OFF</span></button>
   </div>
 
   <div class="mobile-menu-section">
@@ -1361,10 +1369,10 @@ input, textarea, select { touch-action: manipulation; }
   <div class="drawer-content">
     <div class="mobile-card">
       <div class="mobile-card-title">Map Layers <span>Public</span></div>
-      <div class="mobile-layer-row" onclick="event.stopPropagation();mobileToggleLayer('crimes')"><span>📍</span><span>Incident Pins</span><div class="mobile-toggle on" id="mob-toggle-crimes"></div></div>
-      <div class="mobile-layer-row" onclick="event.stopPropagation();mobileToggleLayer('heat')"><span>🔥</span><span>Heatmap</span><div class="mobile-toggle on" id="mob-toggle-heat"></div></div>
-      <div class="mobile-layer-row" onclick="event.stopPropagation();mobileToggleLayer('power')"><span>⚡</span><span>Power Outages</span><div class="mobile-toggle on" id="mob-toggle-power"></div></div>
-      <div class="mobile-layer-row" onclick="event.stopPropagation();mobileToggleLayer('drugs')"><span>⚠</span><span>Drug/Gang Houses</span><div class="mobile-toggle" id="mob-toggle-drugs"></div></div>
+      <div class="mobile-layer-row" onclick="mobileToggleLayer('crimes')"><span>📍</span><span>Incident Pins</span><div class="mobile-toggle on" id="mob-toggle-crimes"></div></div>
+      <div class="mobile-layer-row" onclick="mobileToggleLayer('heat')"><span>🔥</span><span>Heatmap</span><div class="mobile-toggle on" id="mob-toggle-heat"></div></div>
+      <div class="mobile-layer-row" onclick="mobileToggleLayer('power')"><span>⚡</span><span>Power Outages</span><div class="mobile-toggle on" id="mob-toggle-power"></div></div>
+      <div class="mobile-layer-row" onclick="mobileToggleLayer('drugs')"><span>⚠</span><span>Drug/Gang Houses</span><div class="mobile-toggle" id="mob-toggle-drugs"></div></div>
     </div>
 
     <div class="mobile-card">
@@ -3287,8 +3295,7 @@ async function drawApproximateSuburbCircle(name){
   window.drawerTap=function(e){
     const d=document.getElementById('mobile-bottom-drawer');
     if(!d)return;
-    /* Only toggle when tapping the handle pill or the header row — not the content cards */
-    if(!e.target.closest('.drawer-handle') && !e.target.closest('.drawer-head'))return;
+    if(e.target.closest('.mobile-layer-row'))return;
     d.classList.toggle('open');
     setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},240);
   };
@@ -3407,6 +3414,98 @@ async function drawApproximateSuburbCircle(name){
     setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},600);
     mirrorStats();
   });
+})();
+</script>
+
+
+<script>
+/* SafeNote drawer slide fix
+   - Tap drawer header/handle to open/close
+   - Swipe down closes
+   - Swipe up opens
+   - Interacting inside drawer content does not accidentally close it
+*/
+(function(){
+  let drawerTouchStartY = null;
+  let drawerTouchStartTime = 0;
+
+  function getDrawer(){
+    return document.getElementById('mobile-bottom-drawer');
+  }
+
+  window.toggleMobileDrawer = function(forceOpen){
+    const d = getDrawer();
+    if(!d) return;
+    if(forceOpen === true) d.classList.add('open');
+    else if(forceOpen === false) d.classList.remove('open');
+    else d.classList.toggle('open');
+
+    setTimeout(function(){
+      try{ if(window.map) map.invalidateSize(); }catch(e){}
+    }, 240);
+  };
+
+  window.drawerTap = function(e){
+    const d = getDrawer();
+    if(!d) return;
+
+    if(
+      e.target.closest('.mobile-layer-row') ||
+      e.target.closest('.mobile-card') ||
+      e.target.closest('button') ||
+      e.target.closest('input') ||
+      e.target.closest('select') ||
+      e.target.closest('textarea')
+    ){
+      return;
+    }
+
+    toggleMobileDrawer();
+  };
+
+  function attachDrawerGestures(){
+    const d = getDrawer();
+    if(!d || d.dataset.gestureReady === "1") return;
+    d.dataset.gestureReady = "1";
+
+    d.addEventListener('touchstart', function(e){
+      if(!e.touches || !e.touches.length) return;
+      drawerTouchStartY = e.touches[0].clientY;
+      drawerTouchStartTime = Date.now();
+    }, {passive:true});
+
+    d.addEventListener('touchend', function(e){
+      if(drawerTouchStartY === null) return;
+      const changed = e.changedTouches && e.changedTouches[0];
+      if(!changed){ drawerTouchStartY = null; return; }
+
+      const deltaY = changed.clientY - drawerTouchStartY;
+      const dt = Date.now() - drawerTouchStartTime;
+      drawerTouchStartY = null;
+
+      if(Math.abs(deltaY) < 45 || dt > 900) return;
+
+      if(deltaY > 0){
+        toggleMobileDrawer(false);
+      }else{
+        toggleMobileDrawer(true);
+      }
+    }, {passive:true});
+  }
+
+  window.addEventListener('load', function(){
+    setTimeout(attachDrawerGestures, 200);
+  });
+
+  document.addEventListener('click', function(e){
+    if(e.target.closest('.drawer-handle') || e.target.closest('.drawer-head')){
+      e.preventDefault();
+      e.stopPropagation();
+      toggleMobileDrawer();
+    }
+  }, true);
+
+  attachDrawerGestures();
 })();
 </script>
 
