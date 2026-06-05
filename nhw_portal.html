@@ -255,7 +255,7 @@ function showPage(name,btn){
 
 async function verifyAndLoad(){
   token=document.getElementById('token').value.trim().toUpperCase().replace(/\s/g,'');
-  if(!/^NHW-[A-Z0-9-]{4,24}$/.operational(token)){setAuth(false,'Invalid code format.');toast('Invalid code');return}
+  if(!/^NHW-[A-Z0-9-]{4,24}$/.test(token)){setAuth(false,'Invalid code format.');toast('Invalid code');return}
   try{
     const r=await fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:token})});
     const d=await r.json();
