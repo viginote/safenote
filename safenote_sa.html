@@ -1288,16 +1288,6 @@ input, textarea, select { touch-action: manipulation; }
   color:#9db99f;
   line-height:1.45;
 }
-.sn-live-note{
-  margin:8px 12px;
-  padding:9px 11px;
-  border-radius:10px;
-  background:rgba(212,168,50,.08);
-  border:1px solid rgba(212,168,50,.22);
-  color:#d4a832;
-  font:700 9px 'DM Mono',monospace;
-  line-height:1.55;
-}
 </style>
 
 </head>
@@ -1451,12 +1441,7 @@ input, textarea, select { touch-action: manipulation; }
     <button class="sb-report-btn" onclick="openModal()">
       <span style="font-size:18px">&#x26A0;</span> Report Incident
     </button>
-<div class="sn-live-note" id="live-feed-note">
-  LIVE FEED 2.0: Community reports are shown immediately. Items marked UNVERIFIED have not yet been reviewed by SafeNote/NHW/admin.
-</div>
-
-
-    <!-- Suburb search -->
+<!-- Suburb search -->
     <span class="sb-label">Suburb / Area</span>
     <div class="suburb-search-wrap">
       <input class="suburb-search" id="suburb-search"
@@ -1547,7 +1532,7 @@ input, textarea, select { touch-action: manipulation; }
     <div class="boundary-note" id="boundary-note">Approximate area boundary shown</div>
 
     <div class="map-ribbon" id="delay-ribbon">
-      &#x25CF; Live public map — unverified reports may appear
+      &#x25CF; Live community map
     </div>
 
     <!-- Eskom badge -->
