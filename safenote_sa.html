@@ -864,6 +864,10 @@ html,body{height:100%;background:var(--cream);color:var(--text);
     border-radius:999px;
     background:rgba(125,171,138,.22);
     margin:0 auto 6px;
+    position:sticky;
+    top:0;
+    z-index:2;
+    cursor:pointer;
   }
 
   .drawer-head{
@@ -872,6 +876,12 @@ html,body{height:100%;background:var(--cream);color:var(--text);
     align-items:center;
     gap:10px;
     min-height:36px;
+    position:sticky;
+    top:10px;
+    z-index:2;
+    background:rgba(13,24,13,.98);
+    padding-bottom:4px;
+    cursor:pointer;
   }
   .drawer-title{
     font:900 14px 'Playfair Display',serif;
@@ -1325,10 +1335,10 @@ input, textarea, select { touch-action: manipulation; }
 
   <div class="mobile-menu-section">
     <h3>Map Layers</h3>
-    <button class="mobile-menu-btn" onclick="mobileToggleLayer('crimes')">📍 Incident Pins <span id="m-layer-crimes">ON</span></button>
-    <button class="mobile-menu-btn" onclick="mobileToggleLayer('heat')">🔥 Heatmap <span id="m-layer-heat">ON</span></button>
-    <button class="mobile-menu-btn" onclick="mobileToggleLayer('power')">⚡ Power Outages <span id="m-layer-power">ON</span></button>
-    <button class="mobile-menu-btn" onclick="mobileToggleLayer('drugs')">⚠ Drug/Gang Houses <span id="m-layer-drugs">OFF</span></button>
+    <button class="mobile-menu-btn" onclick="event.stopPropagation();mobileToggleLayer('crimes')">📍 Incident Pins <span id="m-layer-crimes">ON</span></button>
+    <button class="mobile-menu-btn" onclick="event.stopPropagation();mobileToggleLayer('heat')">🔥 Heatmap <span id="m-layer-heat">ON</span></button>
+    <button class="mobile-menu-btn" onclick="event.stopPropagation();mobileToggleLayer('power')">⚡ Power Outages <span id="m-layer-power">ON</span></button>
+    <button class="mobile-menu-btn" onclick="event.stopPropagation();mobileToggleLayer('drugs')">⚠ Drug/Gang Houses <span id="m-layer-drugs">OFF</span></button>
   </div>
 
   <div class="mobile-menu-section">
@@ -1351,10 +1361,10 @@ input, textarea, select { touch-action: manipulation; }
   <div class="drawer-content">
     <div class="mobile-card">
       <div class="mobile-card-title">Map Layers <span>Public</span></div>
-      <div class="mobile-layer-row" onclick="mobileToggleLayer('crimes')"><span>📍</span><span>Incident Pins</span><div class="mobile-toggle on" id="mob-toggle-crimes"></div></div>
-      <div class="mobile-layer-row" onclick="mobileToggleLayer('heat')"><span>🔥</span><span>Heatmap</span><div class="mobile-toggle on" id="mob-toggle-heat"></div></div>
-      <div class="mobile-layer-row" onclick="mobileToggleLayer('power')"><span>⚡</span><span>Power Outages</span><div class="mobile-toggle on" id="mob-toggle-power"></div></div>
-      <div class="mobile-layer-row" onclick="mobileToggleLayer('drugs')"><span>⚠</span><span>Drug/Gang Houses</span><div class="mobile-toggle" id="mob-toggle-drugs"></div></div>
+      <div class="mobile-layer-row" onclick="event.stopPropagation();mobileToggleLayer('crimes')"><span>📍</span><span>Incident Pins</span><div class="mobile-toggle on" id="mob-toggle-crimes"></div></div>
+      <div class="mobile-layer-row" onclick="event.stopPropagation();mobileToggleLayer('heat')"><span>🔥</span><span>Heatmap</span><div class="mobile-toggle on" id="mob-toggle-heat"></div></div>
+      <div class="mobile-layer-row" onclick="event.stopPropagation();mobileToggleLayer('power')"><span>⚡</span><span>Power Outages</span><div class="mobile-toggle on" id="mob-toggle-power"></div></div>
+      <div class="mobile-layer-row" onclick="event.stopPropagation();mobileToggleLayer('drugs')"><span>⚠</span><span>Drug/Gang Houses</span><div class="mobile-toggle" id="mob-toggle-drugs"></div></div>
     </div>
 
     <div class="mobile-card">
@@ -3277,7 +3287,8 @@ async function drawApproximateSuburbCircle(name){
   window.drawerTap=function(e){
     const d=document.getElementById('mobile-bottom-drawer');
     if(!d)return;
-    if(e.target.closest('.mobile-layer-row'))return;
+    /* Only toggle when tapping the handle pill or the header row — not the content cards */
+    if(!e.target.closest('.drawer-handle') && !e.target.closest('.drawer-head'))return;
     d.classList.toggle('open');
     setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},240);
   };
