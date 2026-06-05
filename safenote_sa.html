@@ -3278,7 +3278,8 @@ async function drawApproximateSuburbCircle(name){
     const d=document.getElementById('mobile-bottom-drawer');
     if(!d)return;
     if(e.target.closest('.mobile-layer-row'))return;
-    if(!d.classList.contains('open'))d.classList.add('open');
+    d.classList.toggle('open');
+    setTimeout(()=>{try{map&&map.invalidateSize()}catch(e){}},240);
   };
 
   window.mobileToggleLayer=function(layer){
