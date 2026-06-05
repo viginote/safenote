@@ -5,7 +5,7 @@ FastAPI backend
 Routes:
   GET  /                            — serves safenote_sa.html (the app)
   POST /api/reports                 — anonymous incident submission
-  GET  /api/reports/public          — delayed public feed (24h lag)
+  GET  /api/reports/public          — live public feed with moderation status
   GET  /api/reports/live            — NHW real-time feed (NHW token required)
   GET  /api/reports/stats           — summary counts for the map UI
   GET  /api/reports/heatmap         — aggregated heatmap data
@@ -45,7 +45,7 @@ import sqlite3, uuid, time, os, hashlib, io, csv, math, re, urllib.parse, json, 
 import httpx
 from datetime import datetime, timezone
 
-app = FastAPI(title="SafeNote API", version="1.1.0")
+app = FastAPI(title="SafeNote API", version="1.2.0")
 # Phase 1A note: Eskom UI is disabled in frontend; backend power routes remain for compatibility.
 
 app.add_middleware(
@@ -59,7 +59,8 @@ app.add_middleware(
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 DB_PATH        = os.environ.get("SAFENOTE_DB", "safenote.db")
 ADMIN_SECRET   = os.environ.get("ADMIN_SECRET", "admin-secret-change-me")
-PUBLIC_DELAY_S = int(os.environ.get("PUBLIC_DELAY_SECONDS", 86400))
+# Live Feed 2.0: public reports appear immediately; moderation happens after submission.
+PUBLIC_DELAY_S = int(os.environ.get("PUBLIC_DELAY_SECONDS", 0))
 
 # Outage clustering config
 OUTAGE_RADIUS_M   = 500    # metres — reports within this radius form a cluster
@@ -686,17 +687,32 @@ async def submit_report(report: ReportIn, request: Request, db=Depends(get_db)):
 
 @app.get("/api/reports/public")
 async def public_feed(db=Depends(get_db)):
-    """Delayed public feed — 24h lag to prevent criminal use of real-time data."""
-    cutoff = int(time.time()) - PUBLIC_DELAY_S
+    """
+    Live Feed 2.0 public feed.
+
+    Public reports are visible immediately after submission with a moderation
+    status. Reports marked false, archived or duplicate are hidden from the
+    public map/feed but remain available to admin for audit/history.
+    """
     rows = db.execute(
-        """SELECT type,severity,lat,lng,note,ts,status,display_lat,display_lng,location_context,location_confidence,privacy_radius_m,location_note FROM reports
-           WHERE ts <= ? AND COALESCE(status,'new') NOT IN ('false_report','archived') AND type NOT IN
+        """SELECT type,severity,lat,lng,note,ts,status,
+                  display_lat,display_lng,
+                  location_context,location_confidence,
+                  privacy_radius_m,location_note
+           FROM reports
+           WHERE COALESCE(status,'new') NOT IN ('false_report','archived','duplicate')
+             AND type NOT IN
              ('power_loadshedding','power_fault','power_partial','power_restored')
-           ORDER BY ts DESC LIMIT 500""",
-        (cutoff,)
+           ORDER BY ts DESC LIMIT 500"""
     ).fetchall()
-    return {"reports": [protected_report_payload(r) for r in rows],
-            "delayed_hours": PUBLIC_DELAY_S // 3600}
+
+    return {
+        "reports": [protected_report_payload(r) for r in rows],
+        "live": True,
+        "delayed_hours": 0,
+        "visibility": "immediate",
+        "moderation_note": "Community reports are shown immediately and may be reviewed, verified or removed later."
+    }
 
 
 @app.get("/api/reports/live")
@@ -712,21 +728,32 @@ async def live_feed(_=Depends(require_nhw), db=Depends(get_db)):
 
 @app.get("/api/reports/stats")
 async def report_stats(db=Depends(get_db)):
-    """Summary counts for the map UI bottom sheet."""
+    """Summary counts for the public map UI. False, duplicate and archived reports are excluded."""
     now        = int(time.time())
     today_s    = now - 86400
     week_s     = now - 604800
+    hidden_statuses = ("false_report", "archived", "duplicate")
 
-    today  = db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (today_s,)).fetchone()[0]
-    week   = db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (week_s,)).fetchone()[0]
-    total  = db.execute("SELECT COUNT(*) FROM reports").fetchone()[0]
+    today  = db.execute(
+        "SELECT COUNT(*) FROM reports WHERE ts>? AND COALESCE(status,'new') NOT IN (?,?,?)",
+        (today_s, *hidden_statuses)
+    ).fetchone()[0]
+    week   = db.execute(
+        "SELECT COUNT(*) FROM reports WHERE ts>? AND COALESCE(status,'new') NOT IN (?,?,?)",
+        (week_s, *hidden_statuses)
+    ).fetchone()[0]
+    total  = db.execute(
+        "SELECT COUNT(*) FROM reports WHERE COALESCE(status,'new') NOT IN (?,?,?)",
+        hidden_statuses
+    ).fetchone()[0]
     areas  = db.execute(
-        "SELECT COUNT(DISTINCT round(lat,2)||','||round(lng,2)) FROM reports WHERE ts>?",
-        (week_s,)
+        "SELECT COUNT(DISTINCT round(COALESCE(display_lat,lat),2)||','||round(COALESCE(display_lng,lng),2)) "
+        "FROM reports WHERE ts>? AND COALESCE(status,'new') NOT IN (?,?,?)",
+        (week_s, *hidden_statuses)
     ).fetchone()[0]
     outages = db.execute(
-        "SELECT COUNT(*) FROM reports WHERE type LIKE 'power_%' AND ts>?",
-        (today_s,)
+        "SELECT COUNT(*) FROM reports WHERE type LIKE 'power_%' AND ts>? AND COALESCE(status,'new') NOT IN (?,?,?)",
+        (today_s, *hidden_statuses)
     ).fetchone()[0]
 
     return {"today": today, "week": week, "total": total,
@@ -737,12 +764,14 @@ async def report_stats(db=Depends(get_db)):
 async def heatmap_data(db=Depends(get_db)):
     """Aggregated grid heatmap — safe for public consumption."""
     rows = db.execute(
-        """SELECT round(COALESCE(display_lat,lat),2) as glat, round(COALESCE(display_lng,lng),2) as glng,
+        """SELECT round(COALESCE(display_lat,lat),2) as glat,
+                  round(COALESCE(display_lng,lng),2) as glng,
                   COUNT(*) as count,
                   MAX(CASE severity WHEN 'critical' THEN 4 WHEN 'high' THEN 3
                       WHEN 'medium' THEN 2 ELSE 1 END) as max_sev
            FROM reports
            WHERE type NOT LIKE 'power_%'
+             AND COALESCE(status,'new') NOT IN ('false_report','archived','duplicate')
            GROUP BY round(COALESCE(display_lat,lat),2), round(COALESCE(display_lng,lng),2)
            ORDER BY count DESC LIMIT 300"""
     ).fetchall()
@@ -1636,7 +1665,7 @@ async def public_nhw_access(body: NhwVerifyIn, db=Depends(get_db)):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "SafeNote", "version": "1.1.0",
+    return {"status": "ok", "service": "SafeNote", "version": "1.2.0",
             "ts": int(time.time())}
 
 
