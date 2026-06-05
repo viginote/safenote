@@ -103,7 +103,7 @@ input:focus,select:focus{border-color:var(--green)}
 
   <main class="main">
     <div class="top">
-      <div class="title"><h2 id="page-title">Operational Safety Dashboard</h2><p id="page-subtitle">Live incident awareness, heatmaps, patrol planning and member access control.</p></div>
+      <div class="title"><h2 id="page-title">Operational Safety Dashboard</h2><p id="page-subtitle">Operational awareness, heatmaps, patrol planning and member access control.</p></div>
       <div style="display:flex;gap:8px;align-items:center">
         <span class="role-chip" id="role-chip">NOT VERIFIED</span>
         <select id="days" onchange="refreshAll()"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option></select>
@@ -126,7 +126,7 @@ input:focus,select:focus{border-color:var(--green)}
       <div class="grid">
         <div class="card span6">
           <div class="section-title"><h3>NHW Member Access</h3><span id="member-note">Chairman/root only · 30 max member codes</span></div>
-          <div class="empty">Admin creates the chairman/root NHW code. The chairman can then create up to 30 sub-codes for trusted NHW/CPF members. Non-chairman roles can use the portal according to permissions but cannot generate more members.</div>
+          <div class="empty">Manage approved NHW / CPF member access. Group leaders can issue role-based access codes for operational use.</div>
           <div style="height:14px"></div>
           <div class="form-grid" id="member-form">
             <input id="member-label" placeholder="Member name / role label e.g. Patrol Lead 1" />
@@ -255,7 +255,7 @@ function showPage(name,btn){
 
 async function verifyAndLoad(){
   token=document.getElementById('token').value.trim().toUpperCase().replace(/\s/g,'');
-  if(!/^NHW-[A-Z0-9-]{4,24}$/.test(token)){setAuth(false,'Invalid code format.');toast('Invalid code');return}
+  if(!/^NHW-[A-Z0-9-]{4,24}$/.operational(token)){setAuth(false,'Invalid code format.');toast('Invalid code');return}
   try{
     const r=await fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:token})});
     const d=await r.json();
