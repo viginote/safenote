@@ -1,206 +1,973 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SafeNote Admin Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#081008;--panel:#111c10;--panel2:#172617;--line:rgba(125,171,138,.22);--line2:rgba(125,171,138,.38);--text:#edf5ef;--muted:#9db99f;--green:#7dab8a;--gold:#d4a832;--orange:#e8904a;--red:#f07070;--shadow:0 18px 60px rgba(0,0,0,.36)}
-*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}body{overflow:hidden}.app{display:grid;grid-template-columns:300px 1fr;height:100vh}.side{background:#0d180d;border-right:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}.brand{display:flex;gap:12px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line)}.logo{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--green);display:grid;place-items:center;background:#182618;color:var(--green);font:900 13px 'DM Mono',monospace}.brand h1{font:900 22px 'Playfair Display',serif;margin:0}.brand p{font:500 9px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.8px;text-transform:uppercase;margin:2px 0 0}.status{border:1px solid var(--line);background:rgba(125,171,138,.07);border-radius:14px;padding:12px;font:500 11px 'DM Mono',monospace;color:var(--green);line-height:1.7}.status.bad{border-color:rgba(240,112,112,.35);background:rgba(240,112,112,.07);color:var(--red)}.nav button,.action{width:100%;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:12px 13px;text-align:left;cursor:pointer;font:700 12px 'DM Sans',sans-serif;display:flex;justify-content:space-between;align-items:center}.nav button:hover,.nav button.on,.action:hover{border-color:var(--green);background:rgba(125,171,138,.08);color:var(--text)}.action.primary{background:var(--green);color:#071007;border-color:var(--green);font-weight:900}.action.danger{border-color:rgba(240,112,112,.35);color:var(--red)}.login{margin-top:auto;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:14px;box-shadow:var(--shadow)}label{font:500 8px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:7px}input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#091209;color:var(--text);font:500 13px 'DM Sans',sans-serif;outline:none}input:focus,select:focus{border-color:var(--green)}.login input{font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:10px}.main{height:100vh;overflow-y:auto;padding:22px}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}.title h2{font:900 34px 'Playfair Display',serif;margin:0}.title p{margin:5px 0 0;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}.kpi{min-height:106px}.kpi .label{font:500 8px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}.kpi .val{font:900 34px 'Playfair Display',serif;margin-top:6px}.kpi .sub{font-size:12px;color:var(--muted)}.span2{grid-column:span 2}.span3{grid-column:span 3}.span6{grid-column:span 6}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.section-title h3{font:900 20px 'Playfair Display',serif;margin:0}.section-title span{font:500 10px 'DM Mono',monospace;color:var(--muted)}.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}.table-wrap{overflow:auto;max-height:460px}.tbl{width:100%;border-collapse:collapse;font-size:12px}.tbl th{text-align:left;color:var(--muted);font:500 9px 'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;border-bottom:1px solid var(--line);padding:10px}.tbl td{border-bottom:1px solid rgba(125,171,138,.12);padding:10px;vertical-align:top}.pill{display:inline-block;border-radius:999px;padding:4px 8px;font:700 9px 'DM Mono',monospace;text-transform:uppercase}.sev-critical{background:rgba(240,112,112,.14);color:var(--red)}.sev-high{background:rgba(232,144,74,.14);color:var(--orange)}.sev-medium{background:rgba(212,168,50,.16);color:var(--gold)}.sev-low{background:rgba(125,171,138,.14);color:var(--green)}.mini-list{display:grid;gap:10px}.mini-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:12px;padding:11px}.mini-row b{font-size:12px}.mini-row span{font:600 10px 'DM Mono',monospace;color:var(--muted)}.token{font-family:'DM Mono',monospace;color:var(--green);word-break:break-all}.btn-small{border:1px solid var(--line2);background:transparent;color:var(--green);border-radius:9px;padding:7px 10px;cursor:pointer;font:700 11px 'DM Sans',sans-serif;margin-right:5px}.btn-small.red{color:var(--red);border-color:rgba(240,112,112,.35)}.empty{border:1px dashed var(--line2);background:rgba(125,171,138,.04);border-radius:14px;padding:14px;color:var(--muted);font-size:13px;line-height:1.6}.toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:13px 15px;color:var(--text);box-shadow:var(--shadow);transform:translateY(120px);transition:.25s;z-index:2000}.toast.show{transform:translateY(0)}.hide{display:none!important}@media(max-width:950px){body{overflow:auto}.app{display:block;height:auto}.side{height:auto}.main{height:auto;overflow:visible}.grid{grid-template-columns:1fr}.span2,.span3,.span6{grid-column:span 1}.top{display:block}.row{grid-template-columns:1fr}.table-wrap{max-height:none}}
+:root{
+  --bg:#081008;--panel:#111c10;--panel2:#172617;
+  --line:rgba(125,171,138,.18);--line2:rgba(125,171,138,.32);
+  --text:#edf5ef;--muted:#9db99f;--dim:#4a6e52;
+  --green:#7dab8a;--green-dk:#4a7c59;--green-lt:#a8cdb2;
+  --gold:#d4a832;--orange:#e8904a;--red:#f07070;--blue:#6ab4d4;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px}
+body{overflow:hidden}
 
-.status-select{min-width:132px;padding:7px;border-radius:9px;background:#091209;color:var(--text);border:1px solid var(--line);font-size:11px}
+/* ── APP SHELL ── */
+.app{display:grid;grid-template-columns:240px 1fr;height:100vh}
+
+/* ── SIDEBAR ── */
+.side{background:#0a160a;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:12px;padding:18px 16px 14px;border-bottom:1px solid var(--line)}
+.logo{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--green);background:#182618;display:grid;place-items:center;font:900 12px 'DM Mono',monospace;color:var(--green);flex-shrink:0}
+.brand-name{font:900 18px 'Playfair Display',serif}
+.brand-sub{font:500 9px 'DM Mono',monospace;color:var(--dim);letter-spacing:1.6px;text-transform:uppercase;margin-top:2px}
+.nav-section{font:500 8px 'DM Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:var(--dim);padding:14px 16px 5px}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 16px;border:none;background:transparent;color:var(--muted);font:500 13px 'DM Sans',sans-serif;cursor:pointer;text-align:left;border-radius:0;transition:all .14s}
+.nav-btn svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn:hover{background:rgba(125,171,138,.06);color:var(--text)}
+.nav-btn.active{background:rgba(125,171,138,.1);color:var(--green-lt);font-weight:600}
+.side-footer{margin-top:auto;padding:12px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.auth-status{font:500 10px 'DM Mono',monospace;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(240,112,112,.07);color:var(--red);line-height:1.5}
+.auth-status.ok{background:rgba(125,171,138,.07);color:var(--green);border-color:rgba(125,171,138,.25)}
+.side-btn{width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;transition:all .14s}
+.side-btn:hover{border-color:var(--green);color:var(--text);background:rgba(125,171,138,.06)}
+.side-btn.primary{background:var(--green-dk);color:#fff;border-color:var(--green-dk)}
+.side-btn.primary:hover{background:var(--green)}
+.side-btn.danger{color:var(--red);border-color:rgba(240,112,112,.28)}
+.side-btn.danger:hover{background:rgba(240,112,112,.08)}
+.login-box{padding:10px 16px;border-top:1px solid var(--line)}
+.login-label{font:500 8px 'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:6px}
+.login-input{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:#091209;color:var(--text);font:500 12px 'DM Mono',monospace;outline:none;margin-bottom:8px;letter-spacing:.5px}
+.login-input:focus{border-color:var(--green)}
+
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--line);flex-shrink:0;gap:12px}
+.page-title{font:900 24px 'Playfair Display',serif}
+.page-sub{font:400 12px 'DM Sans',sans-serif;color:var(--muted);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tb-select{padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:#111c10;color:var(--text);font:500 12px 'DM Sans',sans-serif;outline:none;cursor:pointer}
+.tb-btn{padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .14s}
+.tb-btn:hover{border-color:var(--green);color:var(--text)}
+.tb-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── CONTENT AREA ── */
+.content{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:16px}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi-label{font:500 9px 'DM Mono',monospace;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim)}
+.kpi-val{font:900 30px 'Playfair Display',serif;margin:6px 0 2px;line-height:1}
+.kpi-sub{font:400 11px 'DM Sans',sans-serif;color:var(--muted)}
+.kpi-delta{font:600 11px 'DM Mono',monospace;margin-top:5px}
+.delta-up{color:var(--red)}.delta-dn{color:var(--green)}.delta-flat{color:var(--dim)}
+
+/* ── PANEL GRID ── */
+.panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel.wide{grid-column:span 2}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel-title{font:900 16px 'Playfair Display',serif}
+.panel-meta{font:500 10px 'DM Mono',monospace;color:var(--dim)}
+.panel-actions{display:flex;gap:6px}
+.p-btn{padding:5px 10px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 11px 'DM Sans',sans-serif;cursor:pointer;transition:all .12s}
+.p-btn:hover{border-color:var(--green);color:var(--text)}
+.p-btn.primary{background:var(--green-dk);border-color:var(--green-dk);color:#fff}
+.p-btn.danger{color:var(--red);border-color:rgba(240,112,112,.3)}
+
+/* ── LIVE FEED ── */
+.feed-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.feed-item:last-child{border-bottom:none;padding-bottom:0}
+.feed-badge{flex-shrink:0;margin-top:1px}
+.feed-type{font:600 13px 'DM Sans',sans-serif}
+.feed-meta{font:400 11px 'DM Sans',sans-serif;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px}
+.feed-empty{font:400 12px 'DM Sans',sans-serif;color:var(--dim);padding:12px 0}
+
+/* ── BADGES / PILLS ── */
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font:700 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+.pill-crit{background:rgba(240,112,112,.14);color:var(--red)}
+.pill-high{background:rgba(232,144,74,.14);color:var(--orange)}
+.pill-med{background:rgba(212,168,50,.14);color:var(--gold)}
+.pill-low{background:rgba(125,171,138,.14);color:var(--green)}
+.pill-new{background:rgba(212,168,50,.12);color:var(--gold)}
+.pill-verified{background:rgba(125,171,138,.12);color:var(--green)}
+.pill-reviewed{background:rgba(106,180,212,.12);color:var(--blue)}
+.pill-duplicate{background:rgba(125,171,138,.06);color:var(--dim)}
+.pill-false{background:rgba(240,112,112,.08);color:var(--red)}
+.pill-archived{background:rgba(125,171,138,.05);color:var(--dim)}
+
+/* ── BAR CHART ── */
+.bar-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(125,171,138,.08)}
+.bar-row:last-child{border-bottom:none}
+.bar-label{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:5px;background:rgba(125,171,138,.1);border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;transition:width .4s ease}
+.bar-count{font:600 12px 'DM Mono',monospace;color:var(--text);width:28px;text-align:right;flex-shrink:0}
+
+/* ── NHW TABLE ── */
+.nhw-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.nhw-row:last-child{border-bottom:none}
+.nhw-name{font:600 13px 'DM Sans',sans-serif;flex:1}
+.nhw-code{font:400 11px 'DM Mono',monospace;color:var(--green);margin-top:2px}
+.nhw-date{font:400 10px 'DM Mono',monospace;color:var(--dim);flex-shrink:0}
+.icon-btn{padding:5px 7px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;transition:all .12s}
+.icon-btn:hover{border-color:var(--green);color:var(--green)}
+.icon-btn.red:hover{border-color:var(--red);color:var(--red)}
+.nhw-create{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:12px}
+.nhw-input{padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:#091209;color:var(--text);font:400 13px 'DM Sans',sans-serif;outline:none;width:100%}
+.nhw-input:focus{border-color:var(--green)}
+.new-code-box{padding:10px 12px;border-radius:10px;border:1px solid rgba(125,171,138,.3);background:rgba(125,171,138,.06);margin-bottom:10px;display:none}
+.new-code-box.show{display:block}
+.new-code-label{font:500 9px 'DM Mono',monospace;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:5px}
+.new-code-val{font:600 14px 'DM Mono',monospace;color:var(--green);word-break:break-all}
+
+/* ── SIGNALS / PLATFORM HEALTH ── */
+.signal-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(125,171,138,.08)}
+.signal-row:last-child{border-bottom:none}
+.signal-label{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:120px;flex-shrink:0}
+.signal-track{flex:1;height:5px;background:rgba(125,171,138,.1);border-radius:999px;overflow:hidden}
+.signal-fill{height:100%;border-radius:999px}
+.signal-val{font:600 11px 'DM Mono',monospace;width:36px;text-align:right;flex-shrink:0}
+
+/* ── REPORTS TABLE ── */
+.table-filters{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:12px}
+.f-select{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:#091209;color:var(--text);font:400 12px 'DM Sans',sans-serif;outline:none}
+.f-select:focus{border-color:var(--green)}
+.table-wrap{overflow-x:auto;max-height:400px;overflow-y:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;color:var(--dim);font:500 9px 'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;border-bottom:1px solid var(--line);padding:9px 10px;position:sticky;top:0;background:var(--panel);z-index:1}
+.tbl td{border-bottom:1px solid rgba(125,171,138,.08);padding:9px 10px;vertical-align:middle;color:var(--text)}
+.tbl tr:hover td{background:rgba(125,171,138,.04)}
+.status-sel{padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:#091209;color:var(--text);font:500 11px 'DM Sans',sans-serif;outline:none;cursor:pointer}
+.status-sel:focus{border-color:var(--green)}
+.tbl-empty{padding:20px;text-align:center;color:var(--dim);font:400 13px 'DM Sans',sans-serif}
+.tbl-count{font:500 10px 'DM Mono',monospace;color:var(--dim)}
+
+/* ── EXPORTS + DANGER ── */
+.action-list{display:flex;flex-direction:column;gap:8px}
+.action-btn{width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 13px 'DM Sans',sans-serif;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;transition:all .14s}
+.action-btn:hover{border-color:var(--green);color:var(--text);background:rgba(125,171,138,.05)}
+.action-btn.primary{background:var(--green-dk);border-color:var(--green-dk);color:#fff}
+.action-btn.primary:hover{background:var(--green)}
+.action-btn.danger{border-color:rgba(240,112,112,.28);color:var(--red)}
+.action-btn.danger:hover{background:rgba(240,112,112,.07)}
+.danger-note{font:400 12px 'DM Sans',sans-serif;color:var(--dim);line-height:1.6;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(240,112,112,.04);margin-bottom:10px}
+
+/* ── SECTIONS (hidden/shown by nav) ── */
+.section{display:none;flex-direction:column;gap:16px}
+.section.active{display:flex}
+
+/* ── TOAST ── */
+.toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:12px 16px;color:var(--text);box-shadow:var(--shadow);transform:translateY(100px);transition:.25s cubic-bezier(.32,.72,0,1);z-index:2000;font:500 13px 'DM Sans',sans-serif;max-width:280px}
+.toast.show{transform:translateY(0)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(125,171,138,.2);border-radius:999px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  body{overflow:auto}
+  .app{display:block;height:auto}
+  .main{height:auto;overflow:visible}
+  .content{overflow:visible}
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .panel-grid{grid-template-columns:1fr}
+  .panel.wide{grid-column:span 1}
+  .table-filters{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
 <body>
 <div class="app">
-<aside class="side">
-<div class="brand"><div class="logo">SN</div><div><h1>SafeNote</h1><p>Admin Hub</p></div></div>
-<div class="status bad" id="auth-status">Locked. Enter admin secret to access the SafeNote Admin Hub.</div>
-<div class="nav"><button class="on" onclick="scrollToId('overview')">Overview <span>↗</span></button><button onclick="scrollToId('nhw-manager')">NHW Manager <span>↗</span></button><button onclick="scrollToId('reports')">Reports <span>↗</span></button><button onclick="scrollToId('tools')">Tools <span>↗</span></button></div>
-<button class="action primary" onclick="refreshAll()">Refresh admin data</button>
-<button class="action" onclick="window.open('/nhw','_blank')">Open NHW portal</button>
-<button class="action" onclick="window.open('/','_blank')">Open public map</button>
-<button class="action danger" onclick="logout()">Log out / clear secret</button>
-<div class="login"><label>Admin Secret</label><input id="admin-secret" type="password" placeholder="ADMIN_SECRET" autocomplete="off" /><button class="action primary" onclick="login()">Unlock Admin Hub</button></div>
-</aside>
-<main class="main">
-<div class="top" id="overview"><div class="title"><h2>SafeNote Admin Hub</h2><p>Manage NHW access, reports, exports and platform operations from one secure control room.</p></div><select id="days" onchange="refreshAll()"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option></select></div>
-<div class="grid">
-<div class="card kpi span2"><div class="label">Reports Today</div><div class="val" id="k-today">0</div><div class="sub">public submissions</div></div>
-<div class="card kpi span2"><div class="label">Reports This Week</div><div class="val" id="k-week">0</div><div class="sub">all incident types</div></div>
-<div class="card kpi span2"><div class="label">Period Total</div><div class="val" id="k-period">0</div><div class="sub">selected range</div></div>
-<div class="card kpi span2"><div class="label">NHW Groups</div><div class="val" id="k-nhw">0</div><div class="sub">active access codes</div></div>
-<div class="card kpi span2"><div class="label">Intel Reports</div><div class="val" id="k-intel">0</div><div class="sub">sensitive layer</div></div>
-<div class="card kpi span2"><div class="label">High / Critical</div><div class="val" id="k-risk">0</div><div class="sub">priority reports</div></div>
-<div class="card span3" id="nhw-manager"><div class="section-title"><h3>NHW / CPF Manager</h3><span>Create chairman/root access</span></div><div class="empty">Create and manage NHW / CPF group access codes. Group leaders can manage approved member access from the NHW Portal.</div><div style="height:12px"></div><div class="row"><div><label>Group / Area Label</label><input id="nhw-label" placeholder="e.g. Kensington NHW Test" /></div><button class="action primary" onclick="createNhwToken()">Generate Code</button></div><div style="height:14px"></div><div id="new-token-box" class="empty hide"></div><div style="height:14px"></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Label</th><th>Access Code</th><th>Created</th><th>Actions</th></tr></thead><tbody id="tokens-body"></tbody></table></div></div>
-<div class="card span3"><div class="section-title"><h3>Admin Shortcuts</h3><span>Operational tools</span></div><div class="mini-list"><div class="mini-row"><b>Public Map</b><span>Open community view</span></div><div class="mini-row"><b>NHW Portal</b><span>Open operational portal</span></div><div class="mini-row"><b>Reports</b><span>Review and moderate submissions</span></div><div class="mini-row"><b>Exports</b><span>Download operational data</span></div></div></div>
-<div class="card span6" id="reports"><div class="section-title"><h3>Incident Manager</h3><span id="reports-count">0 records</span></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:12px"><select id="type-filter"><option value="">All types</option></select><select id="sev-filter"><option value="">All severities</option><option>low</option><option>medium</option><option>high</option><option>critical</option></select><select id="report-limit"><option value="100">100 records</option><option value="250">250 records</option><option value="500">500 records</option></select><button class="action primary" onclick="loadReports()">Filter</button></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Status</th><th>Coordinates</th><th>Note</th></tr></thead><tbody id="reports-body"></tbody></table></div></div>
-<div class="card span3" id="tools"><div class="section-title"><h3>Exports</h3><span>CSV downloads</span></div><button class="action primary" onclick="downloadAdminExport()">Download admin CSV</button><div style="height:10px"></div><button class="action" onclick="downloadNhwExport()">Download NHW CSV</button></div>
-<div class="card span3"><div class="section-title"><h3>Administrative Controls</h3><span>Restricted actions</span></div><div class="empty">These actions are for administrative cleanup when required by administration. They require your admin secret.</div><div style="height:12px"></div><button class="action danger" onclick="clearReports()">Clear incident reports only</button><div style="height:10px"></div><button class="action danger" onclick="clearIntel()">Clear intel reports only</button><div style="height:10px"></div><button class="action danger" onclick="fullReset()">Full reset: reports + intel</button></div>
-</div></main></div><div class="toast" id="toast">Ready</div>
-<script>
-const API=window.location.origin;let adminSecret="";
-const types=["murder","shooting","stabbing","attempted_murder","hijacking","armed_robbery","mugging","house_robbery","atm_robbery","burglary","vehicle_theft","theft","vandalism","gbv","domestic","sexual_assault","child_abuse","suspicious_person","suspicious_vehicle","loitering","drone_surveillance","casing","following","drug_dealing","gang_activity","illegal_firearm","extortion","cable_theft","illegal_connection","manhole_theft","road_blockage","water_cut","fire","missing_person","illegal_dumping","protest_violence","farm_attack","mob_justice","xenophobia","other","power_loadshedding","power_fault","power_partial","power_restored"];
-function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
-function headers(){return {"Authorization":"Bearer "+adminSecret,"X-Admin-Secret":adminSecret}}
-function scrollToId(id){document.getElementById(id).scrollIntoView({behavior:"smooth",block:"start"})}
-function fmtTime(ts){return ts?new Date(ts*1000).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}):"—"}
-function label(x){return String(x||"").replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase())}
-function setAuth(ok,msg){const el=document.getElementById("auth-status");el.textContent=msg;el.classList.toggle("bad",!ok)}
-function copyText(txt){navigator.clipboard.writeText(txt).then(()=>toast("Copied"))}
-function init(){types.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=label(t);document.getElementById("type-filter").appendChild(o)});const saved=localStorage.getItem("safenote_admin_secret");if(saved){document.getElementById("admin-secret").value=saved;adminSecret=saved;setAuth(false,"Saved secret found. Click Unlock Admin Hub to verify.")}}
-async function login(){adminSecret=document.getElementById("admin-secret").value.trim();if(!adminSecret){toast("Enter admin secret");return}try{const r=await fetch(API+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Secret":adminSecret},body:JSON.stringify({secret:adminSecret})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok){setAuth(false,"Login failed. Check ADMIN_SECRET.");toast("Login failed");return}localStorage.setItem("safenote_admin_secret",adminSecret);setAuth(true,"Admin unlocked. Loading hub...");await refreshAll()}catch(e){console.error(e);setAuth(false,"Login request failed. Check API/admin routes.");toast("Login request failed")}}
-function logout(){
-  try{localStorage.removeItem("safenote_admin_secret");}catch(e){}
-  adminSecret="";
-  try{document.getElementById("admin-secret").value="";}catch(e){}
-  try{document.getElementById("tokens-body").innerHTML="";}catch(e){}
-  try{document.getElementById("reports-body").innerHTML="";}catch(e){}
-  try{document.getElementById("new-token-box").classList.add("hide");document.getElementById("new-token-box").innerHTML="";}catch(e){}
-  ["k-today","k-week","k-period","k-nhw","k-intel","k-risk"].forEach(id=>{try{document.getElementById(id).textContent="0";}catch(e){}});
-  setAuth(false,"Locked. Enter admin secret to access the SafeNote Admin Hub.");
-  toast("Admin secret cleared");
-  setTimeout(()=>location.reload(),350);
-}
-async function refreshAll(){if(!adminSecret){toast("Unlock admin first");return}try{await Promise.all([loadOverview(),loadTokens(),loadReports()]);setAuth(true,"Admin active · Last sync: "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}));toast("Admin data refreshed")}catch(e){console.error(e);setAuth(false,"Admin auth failed or API unavailable. Check ADMIN_SECRET.");toast("Could not load admin data")}}
-async function loadOverview(){const days=document.getElementById("days").value;const r=await fetch(API+"/api/admin/overview?days="+days,{headers:headers()});if(!r.ok)throw new Error("overview");const d=await r.json();document.getElementById("k-today").textContent=d.today||0;document.getElementById("k-week").textContent=d.week||0;document.getElementById("k-period").textContent=d.period_total||0;document.getElementById("k-nhw").textContent=d.nhw_tokens||0;document.getElementById("k-intel").textContent=d.intel_total||0;document.getElementById("k-risk").textContent=(d.critical||0)+(d.high||0)}
-async function loadTokens(){const r=await fetch(API+"/api/admin/nhw-tokens",{headers:headers()});if(!r.ok)throw new Error("tokens");const d=await r.json();const body=document.getElementById("tokens-body");body.innerHTML="";const rows=d.tokens||[];if(!rows.length){body.innerHTML='<tr><td colspan="4"><div class="empty">No NHW codes yet. Generate your first test code above.</div></td></tr>';return}rows.forEach(t=>{const tr=document.createElement("tr");tr.innerHTML='<td></td><td class="token"></td><td></td><td></td>';tr.children[0].textContent=t.label||"—";tr.children[1].textContent=t.token;tr.children[2].textContent=fmtTime(t.created_at);const copy=document.createElement("button");copy.className="btn-small";copy.textContent="Copy";copy.onclick=()=>copyText(t.token);const revoke=document.createElement("button");revoke.className="btn-small red";revoke.textContent="Revoke";revoke.onclick=()=>revokeToken(t.token);tr.children[3].appendChild(copy);tr.children[3].appendChild(revoke);body.appendChild(tr)})}
-async function createNhwToken(){const groupLabel=document.getElementById("nhw-label").value.trim();if(!groupLabel){toast("Add a group label first");return}const r=await fetch(API+"/api/admin/nhw-tokens?label="+encodeURIComponent(groupLabel),{method:"POST",headers:headers()});if(!r.ok){toast("Could not create token");return}const d=await r.json();const box=document.getElementById("new-token-box");box.classList.remove("hide");box.innerHTML="";const title=document.createElement("b");title.textContent="New NHW Code Created";const br1=document.createElement("br");const code=document.createElement("span");code.className="token";code.textContent=d.token;const br2=document.createElement("br");const br3=document.createElement("br");const btn=document.createElement("button");btn.className="btn-small";btn.textContent="Copy code";btn.onclick=()=>copyText(d.token);box.append(title,br1,code,br2,br3,btn);document.getElementById("nhw-label").value="";toast("NHW code created");loadTokens();loadOverview()}
-async function revokeToken(tok){if(!confirm("Revoke this NHW access code?"))return;const r=await fetch(API+"/api/admin/nhw-tokens/"+encodeURIComponent(tok),{method:"DELETE",headers:headers()});if(!r.ok){toast("Could not revoke");return}toast("Token revoked");loadTokens();loadOverview()}
-async function loadReports(){const days=document.getElementById("days").value,limit=document.getElementById("report-limit").value,type=document.getElementById("type-filter").value,sev=document.getElementById("sev-filter").value;let url=API+"/api/admin/reports?days="+days+"&limit="+limit;if(type)url+="&type_filter="+encodeURIComponent(type);if(sev)url+="&severity_filter="+encodeURIComponent(sev);const r=await fetch(url,{headers:headers()});if(!r.ok)throw new Error("reports");const d=await r.json();const rows=d.reports||[];document.getElementById("reports-count").textContent=(d.total||rows.length)+" records";const body=document.getElementById("reports-body");body.innerHTML="";if(!rows.length){body.innerHTML='<tr><td colspan="6"><div class="empty">No reports yet for this filter.</div></td></tr>';return}rows.forEach(rep=>{const tr=document.createElement("tr");tr.innerHTML='<td>'+fmtTime(rep.ts)+'</td><td>'+label(rep.type)+'</td><td><span class="pill sev-'+rep.severity+'">'+rep.severity+'</span></td><td>'+Number(rep.lat).toFixed(5)+", "+Number(rep.lng).toFixed(5)+'</td><td>'+(rep.note||"—")+"</td>";body.appendChild(tr)})}
 
-function statusLabel(s){return label(s||"new")}
-async function updateReportStatus(id,status){
-  const r=await fetch(API+"/api/admin/reports/"+encodeURIComponent(id)+"/status",{
-    method:"PATCH",
-    headers:Object.assign({"Content-Type":"application/json"},headers()),
-    body:JSON.stringify({status:status})
-  });
-  if(!r.ok){toast("Status update failed");return}
-  toast("Report marked "+statusLabel(status));
-  loadReports(); loadOverview();
+<!-- ── SIDEBAR ── -->
+<aside class="side">
+  <div class="brand">
+    <div class="logo">SN</div>
+    <div>
+      <div class="brand-name">SafeNote</div>
+      <div class="brand-sub">Admin Hub</div>
+    </div>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <button class="nav-btn active" onclick="showSection('dashboard',this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </button>
+  <button class="nav-btn" onclick="showSection('incidents',this)">
+    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Incident manager
+  </button>
+  <button class="nav-btn" onclick="showSection('nhw',this)">
+    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    NHW manager
+  </button>
+  <button class="nav-btn" onclick="showSection('intel',this)">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Intel reports
+  </button>
+
+  <div class="nav-section">Data</div>
+  <button class="nav-btn" onclick="showSection('exports',this)">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Exports
+  </button>
+
+  <div class="nav-section">System</div>
+  <button class="nav-btn" onclick="showSection('controls',this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M2 12h2M20 12h2"/></svg>
+    Data controls
+  </button>
+
+  <div class="side-footer">
+    <div class="auth-status" id="auth-status">Locked — enter admin secret below</div>
+    <button class="side-btn" onclick="window.open('/','_blank')">Public map <span>↗</span></button>
+    <button class="side-btn" onclick="window.open('/nhw','_blank')">NHW portal <span>↗</span></button>
+    <button class="side-btn danger" onclick="logout()">Log out <span>×</span></button>
+  </div>
+
+  <div class="login-box">
+    <label class="login-label">Admin secret</label>
+    <input class="login-input" id="admin-secret" type="password" placeholder="ADMIN_SECRET" autocomplete="off"/>
+    <button class="side-btn primary" onclick="login()">Unlock admin hub</button>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="page-sub" id="page-sub">Overview of platform activity and health</div>
+    </div>
+    <div class="topbar-right">
+      <select class="tb-select" id="days" onchange="refreshAll()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="60">Last 60 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+      <button class="tb-btn" onclick="refreshAll()">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+      <button class="tb-btn" onclick="window.open('/','_blank')">
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Public map
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── DASHBOARD SECTION ── -->
+    <div class="section active" id="sec-dashboard">
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-label">Reports today</div>
+          <div class="kpi-val" id="k-today">—</div>
+          <div class="kpi-sub">public submissions</div>
+          <div class="kpi-delta delta-flat" id="k-today-d">awaiting data</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">This week</div>
+          <div class="kpi-val" id="k-week">—</div>
+          <div class="kpi-sub">all incident types</div>
+          <div class="kpi-delta delta-flat" id="k-week-d">awaiting data</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Critical / high</div>
+          <div class="kpi-val" id="k-risk">—</div>
+          <div class="kpi-sub">priority reports</div>
+          <div class="kpi-delta delta-flat" id="k-risk-d">awaiting data</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Active NHW groups</div>
+          <div class="kpi-val" id="k-nhw">—</div>
+          <div class="kpi-sub" id="k-intel-sub">intel reports in system</div>
+          <div class="kpi-delta delta-flat" id="k-nhw-d">awaiting data</div>
+        </div>
+      </div>
+
+      <div class="panel-grid">
+        <!-- Live feed -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Live incident feed</div>
+            <div class="panel-meta" id="feed-meta">last 24h</div>
+          </div>
+          <div id="live-feed"><div class="feed-empty">Unlock admin to load feed</div></div>
+        </div>
+
+        <!-- Top types bar chart -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Top incident types</div>
+            <div class="panel-meta" id="types-meta">period breakdown</div>
+          </div>
+          <div id="types-chart"><div class="feed-empty">Unlock admin to load data</div></div>
+        </div>
+
+        <!-- Platform signals -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Platform signals</div>
+            <div class="panel-meta">health + quality</div>
+          </div>
+          <div id="signals-panel">
+            <div class="signal-row">
+              <div class="signal-label">API health</div>
+              <div class="signal-track"><div class="signal-fill" id="sig-api" style="width:0%;background:var(--green)"></div></div>
+              <div class="signal-val" id="sig-api-val" style="color:var(--dim)">—</div>
+            </div>
+            <div class="signal-row">
+              <div class="signal-label">Verified reports</div>
+              <div class="signal-track"><div class="signal-fill" id="sig-ver" style="width:0%;background:var(--green)"></div></div>
+              <div class="signal-val" id="sig-ver-val" style="color:var(--dim)">—</div>
+            </div>
+            <div class="signal-row">
+              <div class="signal-label">False / duplicate</div>
+              <div class="signal-track"><div class="signal-fill" id="sig-false" style="width:0%;background:var(--red)"></div></div>
+              <div class="signal-val" id="sig-false-val" style="color:var(--dim)">—</div>
+            </div>
+            <div class="signal-row">
+              <div class="signal-label">Intel reports</div>
+              <div class="signal-track"><div class="signal-fill" id="sig-intel" style="width:0%;background:var(--gold)"></div></div>
+              <div class="signal-val" id="sig-intel-val" style="color:var(--dim)">—</div>
+            </div>
+            <div class="signal-row">
+              <div class="signal-label">Active areas</div>
+              <div class="signal-track"><div class="signal-fill" id="sig-areas" style="width:0%;background:var(--blue)"></div></div>
+              <div class="signal-val" id="sig-areas-val" style="color:var(--dim)">—</div>
+            </div>
+            <div class="signal-row">
+              <div class="signal-label">Period total</div>
+              <div class="signal-track"><div class="signal-fill" id="sig-period" style="width:100%;background:var(--green-dk)"></div></div>
+              <div class="signal-val" id="sig-period-val" style="color:var(--dim)">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NHW quick list -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">NHW groups</div>
+            <button class="p-btn primary" onclick="showSection('nhw',document.querySelector('.nav-btn:nth-child(5))'))">Manage</button>
+          </div>
+          <div id="nhw-quick"><div class="feed-empty">Unlock admin to load groups</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INCIDENT MANAGER SECTION ── -->
+    <div class="section" id="sec-incidents">
+      <div class="panel wide">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Incident manager</div>
+            <div class="panel-meta" id="reports-count">0 records</div>
+          </div>
+          <button class="p-btn primary" onclick="loadReports()">Filter</button>
+        </div>
+        <div class="table-filters">
+          <select class="f-select" id="type-filter"><option value="">All types</option></select>
+          <select class="f-select" id="sev-filter">
+            <option value="">All severities</option>
+            <option>low</option><option>medium</option><option>high</option><option>critical</option>
+          </select>
+          <select class="f-select" id="report-limit">
+            <option value="100">100 records</option>
+            <option value="250">250 records</option>
+            <option value="500">500 records</option>
+          </select>
+          <button class="p-btn primary" onclick="loadReports()">Apply</button>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th>Time</th><th>Type</th><th>Severity</th>
+              <th>Status</th><th>Coordinates</th><th>Note</th>
+            </tr></thead>
+            <tbody id="reports-body"><tr><td colspan="6"><div class="tbl-empty">Unlock admin to load reports</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NHW MANAGER SECTION ── -->
+    <div class="section" id="sec-nhw">
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Create NHW access code</div>
+            <div class="panel-meta">chairman / root level</div>
+          </div>
+          <div class="nhw-create">
+            <input class="nhw-input" id="nhw-label" placeholder="e.g. Claremont NHW, Sea Point CPF…"/>
+            <button class="p-btn primary" onclick="createNhwToken()">Generate</button>
+          </div>
+          <div class="new-code-box" id="new-code-box">
+            <div class="new-code-label">New code created — share securely with the group chairman</div>
+            <div class="new-code-val" id="new-code-val"></div>
+            <div style="margin-top:8px;display:flex;gap:6px">
+              <button class="p-btn primary" onclick="copyText(document.getElementById('new-code-val').textContent)">Copy code</button>
+              <button class="p-btn" onclick="document.getElementById('new-code-box').classList.remove('show')">Dismiss</button>
+            </div>
+          </div>
+          <div style="font:400 12px 'DM Sans',sans-serif;color:var(--dim);line-height:1.6;padding:10px 12px;border-radius:8px;background:rgba(125,171,138,.05);border:1px solid var(--line)">
+            Chairman codes give full NHW portal access. The chairman can then create up to 30 member sub-codes for their patrol team from within the NHW portal.
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Active NHW groups</div>
+            <div class="panel-meta" id="nhw-count">0 groups</div>
+          </div>
+          <div id="nhw-list"><div class="feed-empty">Unlock admin to load groups</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INTEL SECTION ── -->
+    <div class="section" id="sec-intel">
+      <div class="panel wide">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Intel reports</div>
+            <div class="panel-meta">Drug / gang house reports — NHW + admin only, never public</div>
+          </div>
+          <button class="p-btn primary" onclick="loadIntel()">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th>Time</th><th>Type</th><th>Duration</th><th>Coordinates</th><th>Note</th>
+            </tr></thead>
+            <tbody id="intel-body"><tr><td colspan="5"><div class="tbl-empty">Unlock admin to load intel</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EXPORTS SECTION ── -->
+    <div class="section" id="sec-exports">
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">CSV exports</div>
+            <div class="panel-meta">anonymised data downloads</div>
+          </div>
+          <div class="action-list">
+            <button class="action-btn primary" onclick="downloadAdminExport()">Download full admin CSV <span>↓</span></button>
+            <button class="action-btn" onclick="downloadNhwExport()">Download NHW operational CSV <span>↓</span></button>
+          </div>
+          <div style="margin-top:12px;font:400 11px 'DM Mono',monospace;color:var(--dim);line-height:1.7">
+            Exports are anonymised — no reporter identity, only coordinates, type, severity and timestamp. Suitable for SAPS intelligence packages and funding applications.
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Export scope</div>
+            <div class="panel-meta">based on selected period</div>
+          </div>
+          <div class="signal-row">
+            <div class="signal-label">Period selected</div>
+            <div style="flex:1;font:600 13px 'DM Mono',monospace;color:var(--text)" id="exp-period">30 days</div>
+          </div>
+          <div class="signal-row">
+            <div class="signal-label">Records in range</div>
+            <div style="flex:1;font:600 13px 'DM Mono',monospace;color:var(--text)" id="exp-records">—</div>
+          </div>
+          <div class="signal-row">
+            <div class="signal-label">Intel records</div>
+            <div style="flex:1;font:600 13px 'DM Mono',monospace;color:var(--text)" id="exp-intel">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DATA CONTROLS SECTION ── -->
+    <div class="section" id="sec-controls">
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Administrative controls</div>
+            <div class="panel-meta">restricted — irreversible actions</div>
+          </div>
+          <div class="danger-note">These actions permanently delete data. They cannot be undone. Use only for administrative cleanup when required. All actions require your admin secret to be active.</div>
+          <div class="action-list">
+            <button class="action-btn danger" onclick="clearReports()">Clear incident reports only <span>⚠</span></button>
+            <button class="action-btn danger" onclick="clearIntel()">Clear intel reports only <span>⚠</span></button>
+            <button class="action-btn danger" onclick="fullReset()">Full reset: reports + intel <span>⚠</span></button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Session</div>
+            <div class="panel-meta">current admin session</div>
+          </div>
+          <div class="signal-row">
+            <div class="signal-label">Auth status</div>
+            <div style="flex:1;font:600 12px 'DM Mono',monospace" id="ctrl-auth-status">Locked</div>
+          </div>
+          <div class="signal-row">
+            <div class="signal-label">Last refresh</div>
+            <div style="flex:1;font:600 12px 'DM Mono',monospace;color:var(--dim)" id="ctrl-last-sync">—</div>
+          </div>
+          <div style="height:10px"></div>
+          <button class="action-btn danger" onclick="logout()">Log out and clear session <span>×</span></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let adminSecret = '';
+
+const TYPES = ["murder","shooting","stabbing","attempted_murder","hijacking","armed_robbery","mugging","house_robbery","atm_robbery","burglary","vehicle_theft","theft","vandalism","gbv","domestic","sexual_assault","child_abuse","suspicious_person","suspicious_vehicle","loitering","drone_surveillance","casing","following","drug_dealing","gang_activity","illegal_firearm","extortion","cable_theft","illegal_connection","manhole_theft","road_blockage","water_cut","fire","missing_person","illegal_dumping","protest_violence","farm_attack","mob_justice","xenophobia","other","power_loadshedding","power_fault","power_partial","power_restored"];
+
+const PAGES = {
+  dashboard: {title:'Dashboard', sub:'Overview of platform activity and health'},
+  incidents: {title:'Incident manager', sub:'Review, filter and moderate all reports'},
+  nhw:       {title:'NHW manager', sub:'Create and manage NHW / CPF group access codes'},
+  intel:     {title:'Intel reports', sub:'Drug and gang house intel — never shown publicly'},
+  exports:   {title:'Exports', sub:'Download anonymised CSV data for reporting'},
+  controls:  {title:'Data controls', sub:'Administrative and session management'},
+};
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
 }
-function statusDropdown(rep){
-  const statuses=["new","reviewed","verified","duplicate","false_report","archived"];
-  const sel=document.createElement("select");
-  sel.className="status-select";
-  statuses.forEach(s=>{
-    const o=document.createElement("option");
-    o.value=s; o.textContent=statusLabel(s);
-    if(s===(rep.status||"new"))o.selected=true;
+
+function headers() {
+  return {'Authorization': 'Bearer ' + adminSecret, 'X-Admin-Secret': adminSecret};
+}
+
+function fmtTime(ts) {
+  return ts ? new Date(ts * 1000).toLocaleString([], {dateStyle:'medium', timeStyle:'short'}) : '—';
+}
+
+function fmtAgo(ts) {
+  const s = Math.floor(Date.now()/1000 - ts);
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+
+function lbl(x) {
+  return String(x||'').replace(/_/g,' ').replace(/\b\w/g, m => m.toUpperCase());
+}
+
+function copyText(txt) {
+  navigator.clipboard.writeText(txt).then(() => toast('Copied to clipboard'));
+}
+
+function setAuth(ok, msg) {
+  const el = document.getElementById('auth-status');
+  el.textContent = msg;
+  el.classList.toggle('ok', ok);
+  document.getElementById('ctrl-auth-status').textContent = ok ? 'Active' : 'Locked';
+  document.getElementById('ctrl-auth-status').style.color = ok ? 'var(--green)' : 'var(--red)';
+}
+
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  if (btn && btn.classList) btn.classList.add('active');
+  const p = PAGES[name] || {};
+  document.getElementById('page-title').textContent = p.title || name;
+  document.getElementById('page-sub').textContent = p.sub || '';
+}
+
+function pillClass(sev) {
+  return {critical:'pill-crit',high:'pill-high',medium:'pill-med',low:'pill-low'}[sev] || 'pill-low';
+}
+
+function statusPillClass(s) {
+  return {new:'pill-new',verified:'pill-verified',reviewed:'pill-reviewed',
+    duplicate:'pill-duplicate',false_report:'pill-false',archived:'pill-archived'}[s] || 'pill-new';
+}
+
+function statusDropdown(rep) {
+  const statuses = ['new','reviewed','verified','duplicate','false_report','archived'];
+  const sel = document.createElement('select');
+  sel.className = 'status-sel';
+  statuses.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s;
+    o.textContent = lbl(s);
+    if (s === (rep.status || 'new')) o.selected = true;
     sel.appendChild(o);
   });
-  sel.onchange=()=>updateReportStatus(rep.id,sel.value);
+  sel.addEventListener('change', () => updateReportStatus(rep.id, sel.value));
   return sel;
 }
 
-function downloadAdminExport(){window.open(API+"/api/admin/export-download?admin_secret="+encodeURIComponent(adminSecret),"_blank")}
-function downloadNhwExport(){const days=document.getElementById("days").value;window.open(API+"/api/admin/nhw-export-download?days="+days+"&admin_secret="+encodeURIComponent(adminSecret),"_blank")}
-async function adminDelete(path,msg){if(!confirm(msg))return;const r=await fetch(API+path,{method:"DELETE",headers:headers()});if(!r.ok){toast("Action failed");return}toast("Done");refreshAll()}
-function clearReports(){adminDelete("/api/admin/reports/all","Clear all incident reports?")}
-function clearIntel(){adminDelete("/api/admin/intel/all","Clear all intel reports?")}
-function fullReset(){adminDelete("/api/admin/reset","FULL RESET: clear reports and intel?")}
-window.addEventListener("load",init);
-</script>
+async function updateReportStatus(id, status) {
+  if (!id) { toast('Missing report ID'); return; }
+  const r = await fetch(API + '/api/admin/reports/' + encodeURIComponent(id) + '/status', {
+    method: 'PATCH',
+    headers: Object.assign({'Content-Type':'application/json'}, headers()),
+    body: JSON.stringify({status})
+  });
+  if (!r.ok) { toast('Status update failed'); return; }
+  toast('Marked: ' + lbl(status));
+  loadReports();
+  loadOverview();
+}
 
-<script>
-/* SafeNote Admin Status Table Fix v2
-   Final override: fixes column alignment and makes Status a clickable dropdown.
-*/
-(function(){
-  function adminLabel(x){
-    return String(x || "new").replaceAll("_"," ").replace(/\b\w/g,function(m){return m.toUpperCase()});
+// ── AUTH ──
+async function login() {
+  adminSecret = document.getElementById('admin-secret').value.trim();
+  if (!adminSecret) { toast('Enter admin secret'); return; }
+  try {
+    const r = await fetch(API + '/api/admin/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'X-Admin-Secret': adminSecret},
+      body: JSON.stringify({secret: adminSecret})
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) {
+      setAuth(false, 'Login failed — check ADMIN_SECRET');
+      toast('Login failed');
+      return;
+    }
+    localStorage.setItem('safenote_admin_secret', adminSecret);
+    setAuth(true, 'Admin active');
+    toast('Admin unlocked');
+    await refreshAll();
+  } catch(e) {
+    setAuth(false, 'Login request failed — check API');
+    toast('Login request failed');
+  }
+}
+
+function logout() {
+  try { localStorage.removeItem('safenote_admin_secret'); } catch(e) {}
+  adminSecret = '';
+  try { document.getElementById('admin-secret').value = ''; } catch(e) {}
+  setAuth(false, 'Locked — enter admin secret below');
+  toast('Session cleared');
+  setTimeout(() => location.reload(), 350);
+}
+
+// ── REFRESH ──
+async function refreshAll() {
+  if (!adminSecret) { toast('Unlock admin first'); return; }
+  try {
+    await Promise.all([loadOverview(), loadTokens(), loadReports(), loadIntel()]);
+    const t = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    setAuth(true, 'Admin active · synced ' + t);
+    document.getElementById('ctrl-last-sync').textContent = t;
+    toast('Data refreshed');
+  } catch(e) {
+    setAuth(false, 'Auth failed or API unavailable');
+    toast('Could not load admin data');
+  }
+}
+
+// ── OVERVIEW ──
+async function loadOverview() {
+  const days = document.getElementById('days').value;
+  const r = await fetch(API + '/api/admin/overview?days=' + days, {headers: headers()});
+  if (!r.ok) throw new Error('overview');
+  const d = await r.json();
+
+  document.getElementById('k-today').textContent = d.today || 0;
+  document.getElementById('k-week').textContent = d.week || 0;
+  document.getElementById('k-nhw').textContent = d.nhw_tokens || 0;
+  document.getElementById('k-risk').textContent = (d.critical || 0) + (d.high || 0);
+  document.getElementById('k-intel-sub').textContent = (d.intel_total || 0) + ' intel reports in system';
+
+  document.getElementById('exp-period').textContent = days + ' days';
+  document.getElementById('exp-records').textContent = d.period_total || 0;
+  document.getElementById('exp-intel').textContent = d.intel_total || 0;
+
+  // Platform signals
+  const total = d.period_total || 1;
+  document.getElementById('sig-api').style.width = '100%';
+  document.getElementById('sig-api-val').textContent = 'OK';
+  document.getElementById('sig-api-val').style.color = 'var(--green)';
+
+  // For verified/false we need to look at reports data — use approximate from overview
+  const highRisk = (d.critical || 0) + (d.high || 0);
+  const riskPct = Math.round(highRisk / total * 100);
+  document.getElementById('sig-ver').style.width = Math.min(riskPct * 2, 100) + '%';
+  document.getElementById('sig-ver-val').textContent = riskPct + '%';
+  document.getElementById('sig-ver-val').style.color = 'var(--green)';
+
+  document.getElementById('sig-intel').style.width = Math.min((d.intel_total || 0) * 5, 100) + '%';
+  document.getElementById('sig-intel-val').textContent = d.intel_total || 0;
+  document.getElementById('sig-intel-val').style.color = 'var(--gold)';
+
+  document.getElementById('sig-period').style.width = '100%';
+  document.getElementById('sig-period-val').textContent = d.period_total || 0;
+  document.getElementById('sig-period-val').style.color = 'var(--text)';
+
+  loadLiveFeed();
+  loadTypeChart();
+}
+
+// ── LIVE FEED ──
+async function loadLiveFeed() {
+  const r = await fetch(API + '/api/admin/reports?days=1&limit=8', {headers: headers()});
+  if (!r.ok) return;
+  const d = await r.json();
+  const rows = (d.reports || []).slice(0, 6);
+  const el = document.getElementById('live-feed');
+  if (!rows.length) { el.innerHTML = '<div class="feed-empty">No reports in the last 24 hours</div>'; return; }
+  el.innerHTML = rows.map(r => `
+    <div class="feed-item">
+      <span class="pill ${pillClass(r.severity)} feed-badge">${r.severity}</span>
+      <div>
+        <div class="feed-type">${lbl(r.type)}</div>
+        <div class="feed-meta">
+          ${fmtAgo(r.ts)}
+          <span class="pill ${statusPillClass(r.status || 'new')}">${lbl(r.status||'new')}</span>
+          ${r.note ? '· ' + r.note.slice(0,40) + (r.note.length>40?'…':'') : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('feed-meta').textContent = rows.length + ' recent reports';
+}
+
+// ── TYPE BREAKDOWN CHART ──
+async function loadTypeChart() {
+  const days = document.getElementById('days').value;
+  const r = await fetch(API + '/api/nhw/analytics?days=' + days, {headers: headers()}).catch(() => null);
+  if (!r || !r.ok) { loadTypeChartFallback(); return; }
+  const d = await r.json();
+  const byType = (d.by_type || []).slice(0, 8);
+  if (!byType.length) { loadTypeChartFallback(); return; }
+  renderTypeChart(byType);
+  document.getElementById('types-meta').textContent = days + '-day breakdown';
+
+  // Signals — areas
+  const areas = (d.hotspots || []).length;
+  document.getElementById('sig-areas').style.width = Math.min(areas * 8, 100) + '%';
+  document.getElementById('sig-areas-val').textContent = areas;
+  document.getElementById('sig-areas-val').style.color = 'var(--blue)';
+}
+
+async function loadTypeChartFallback() {
+  const days = document.getElementById('days').value;
+  const r = await fetch(API + '/api/admin/reports?days=' + days + '&limit=500', {headers: headers()}).catch(() => null);
+  if (!r || !r.ok) return;
+  const d = await r.json();
+  const counts = {};
+  (d.reports || []).forEach(rep => { counts[rep.type] = (counts[rep.type]||0) + 1; });
+  const byType = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([type,count])=>({type,count}));
+  renderTypeChart(byType);
+}
+
+function renderTypeChart(byType) {
+  const max = byType[0]?.count || 1;
+  const colors = {'murder':'var(--red)','shooting':'var(--red)','stabbing':'var(--red)',
+    'hijacking':'var(--orange)','armed_robbery':'var(--orange)','house_robbery':'var(--orange)',
+    'drug_dealing':'var(--gold)','gang_activity':'var(--gold)'};
+  document.getElementById('types-chart').innerHTML = byType.map(({type, count}) => `
+    <div class="bar-row">
+      <div class="bar-label" title="${lbl(type)}">${lbl(type)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/max*100)}%;background:${colors[type]||'var(--blue)'}"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>
+  `).join('');
+}
+
+// ── NHW TOKENS ──
+async function loadTokens() {
+  const r = await fetch(API + '/api/admin/nhw-tokens', {headers: headers()});
+  if (!r.ok) throw new Error('tokens');
+  const d = await r.json();
+  const rows = d.tokens || [];
+  document.getElementById('nhw-count').textContent = rows.length + ' groups';
+  document.getElementById('k-nhw').textContent = rows.length;
+
+  // Full NHW list
+  const list = document.getElementById('nhw-list');
+  if (!rows.length) {
+    list.innerHTML = '<div class="feed-empty">No NHW groups yet — create one above</div>';
+  } else {
+    list.innerHTML = rows.map(t => `
+      <div class="nhw-row">
+        <div style="flex:1">
+          <div class="nhw-name">${t.label || '—'}</div>
+          <div class="nhw-code">${t.token}</div>
+        </div>
+        <div class="nhw-date">${fmtTime(t.created_at)}</div>
+        <div style="display:flex;gap:4px;margin-left:8px">
+          <button class="icon-btn" onclick="copyText('${t.token}')" title="Copy code">⎘</button>
+          <button class="icon-btn red" onclick="revokeToken('${t.token}')" title="Revoke">✕</button>
+        </div>
+      </div>
+    `).join('');
   }
 
-  window.statusDropdown = function(rep){
-    const statuses = ["new","reviewed","verified","duplicate","false_report","archived"];
-    const sel = document.createElement("select");
-    sel.className = "status-select";
-    const current = rep.status || "new";
+  // Dashboard quick list (3 max)
+  const quick = document.getElementById('nhw-quick');
+  if (!rows.length) {
+    quick.innerHTML = '<div class="feed-empty">No NHW groups yet</div>';
+  } else {
+    quick.innerHTML = rows.slice(0,4).map(t => `
+      <div class="nhw-row">
+        <div style="flex:1">
+          <div class="nhw-name">${t.label || '—'}</div>
+          <div class="nhw-code">${t.token}</div>
+        </div>
+        <button class="icon-btn" onclick="copyText('${t.token}')" title="Copy">⎘</button>
+      </div>
+    `).join('') + (rows.length > 4 ? `<div class="feed-empty" style="text-align:center;padding-top:8px">+ ${rows.length-4} more · see NHW manager</div>` : '');
+  }
+}
 
-    statuses.forEach(function(s){
-      const o = document.createElement("option");
-      o.value = s;
-      o.textContent = adminLabel(s);
-      if(s === current) o.selected = true;
-      sel.appendChild(o);
-    });
+async function createNhwToken() {
+  const groupLabel = document.getElementById('nhw-label').value.trim();
+  if (!groupLabel) { toast('Add a group label first'); return; }
+  const r = await fetch(API + '/api/admin/nhw-tokens?label=' + encodeURIComponent(groupLabel), {
+    method: 'POST', headers: headers()
+  });
+  if (!r.ok) { toast('Could not create token'); return; }
+  const d = await r.json();
+  document.getElementById('nhw-label').value = '';
+  document.getElementById('new-code-val').textContent = d.token;
+  document.getElementById('new-code-box').classList.add('show');
+  toast('NHW code created');
+  loadTokens();
+  loadOverview();
+}
 
-    sel.addEventListener("change", function(){
-      window.updateReportStatus(rep.id, sel.value);
-    });
+async function revokeToken(tok) {
+  if (!confirm('Revoke NHW access for this group? All members using this code will lose access immediately.')) return;
+  const r = await fetch(API + '/api/admin/nhw-tokens/' + encodeURIComponent(tok), {
+    method: 'DELETE', headers: headers()
+  });
+  if (!r.ok) { toast('Could not revoke'); return; }
+  toast('Token revoked');
+  loadTokens();
+  loadOverview();
+}
 
-    return sel;
-  };
+// ── REPORTS TABLE ──
+async function loadReports() {
+  const days = document.getElementById('days').value;
+  const limit = document.getElementById('report-limit').value;
+  const type = document.getElementById('type-filter').value;
+  const sev = document.getElementById('sev-filter').value;
+  let url = API + '/api/admin/reports?days=' + days + '&limit=' + limit;
+  if (type) url += '&type_filter=' + encodeURIComponent(type);
+  if (sev) url += '&severity_filter=' + encodeURIComponent(sev);
+  const r = await fetch(url, {headers: headers()});
+  if (!r.ok) throw new Error('reports');
+  const d = await r.json();
+  const rows = d.reports || [];
+  document.getElementById('reports-count').textContent = (d.total || rows.length) + ' records';
+  const body = document.getElementById('reports-body');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6"><div class="tbl-empty">No reports for this filter</div></td></tr>';
+    return;
+  }
+  body.innerHTML = '';
+  rows.forEach(rep => {
+    const tr = document.createElement('tr');
+    const td = (html) => { const el = document.createElement('td'); el.innerHTML = html; return el; };
+    tr.appendChild(td(fmtTime(rep.ts)));
+    tr.appendChild(td(lbl(rep.type)));
+    tr.appendChild(td(`<span class="pill ${pillClass(rep.severity)}">${rep.severity}</span>`));
+    const statusTd = document.createElement('td');
+    statusTd.appendChild(statusDropdown(rep));
+    tr.appendChild(statusTd);
+    tr.appendChild(td(Number(rep.lat||0).toFixed(4) + ', ' + Number(rep.lng||0).toFixed(4)));
+    tr.appendChild(td(rep.note ? rep.note.slice(0,60) + (rep.note.length>60?'…':'') : '<span style="color:var(--dim)">—</span>'));
+    body.appendChild(tr);
+  });
+}
 
-  window.updateReportStatus = async function(id, status){
-    if(!id){
-      toast("Missing report ID");
-      return;
-    }
+// ── INTEL TABLE ──
+async function loadIntel() {
+  const r = await fetch(API + '/api/admin/intel', {headers: headers()});
+  if (!r.ok) return;
+  const d = await r.json();
+  const rows = d.locations || [];
+  const body = document.getElementById('intel-body');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="5"><div class="tbl-empty">No intel reports yet</div></td></tr>';
+    return;
+  }
+  body.innerHTML = '';
+  rows.forEach(l => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${fmtTime(l.ts)}</td>
+      <td><span class="pill pill-high">${lbl(l.type)}</span></td>
+      <td>${lbl(l.duration||'unknown')}</td>
+      <td>${Number(l.lat||0).toFixed(4)}, ${Number(l.lng||0).toFixed(4)}</td>
+      <td>${l.note ? l.note.slice(0,70)+(l.note.length>70?'…':'') : '<span style="color:var(--dim)">—</span>'}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
 
-    const r = await fetch(API + "/api/admin/reports/" + encodeURIComponent(id) + "/status", {
-      method: "PATCH",
-      headers: Object.assign({"Content-Type":"application/json"}, headers()),
-      body: JSON.stringify({status: status})
-    });
+// ── EXPORTS ──
+function downloadAdminExport() {
+  window.open(API + '/api/admin/export-download?admin_secret=' + encodeURIComponent(adminSecret), '_blank');
+}
+function downloadNhwExport() {
+  const days = document.getElementById('days').value;
+  window.open(API + '/api/admin/nhw-export-download?days=' + days + '&admin_secret=' + encodeURIComponent(adminSecret), '_blank');
+}
 
-    if(!r.ok){
-      let detail = "";
-      try{ detail = JSON.stringify(await r.json()); }catch(e){}
-      console.error("Status update failed", r.status, detail);
-      toast("Status update failed");
-      return;
-    }
+// ── DATA CONTROLS ──
+async function adminDelete(path, msg) {
+  if (!confirm(msg)) return;
+  const r = await fetch(API + path, {method:'DELETE', headers: headers()});
+  if (!r.ok) { toast('Action failed'); return; }
+  toast('Done');
+  refreshAll();
+}
+function clearReports() { adminDelete('/api/admin/reports/all', 'Clear ALL incident reports? This cannot be undone.'); }
+function clearIntel() { adminDelete('/api/admin/intel/all', 'Clear ALL intel reports? This cannot be undone.'); }
+function fullReset() { adminDelete('/api/admin/reset', 'FULL RESET — delete all reports and intel? This cannot be undone.'); }
 
-    toast("Report marked " + adminLabel(status));
-    await loadReports();
-    try{ await loadOverview(); }catch(e){}
-  };
+// ── INIT ──
+function init() {
+  TYPES.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = lbl(t);
+    document.getElementById('type-filter').appendChild(o);
+  });
+  const saved = localStorage.getItem('safenote_admin_secret');
+  if (saved) {
+    document.getElementById('admin-secret').value = saved;
+    adminSecret = saved;
+    setAuth(false, 'Saved session found — click Unlock Admin Hub');
+  }
+}
 
-  window.loadReports = async function(){
-    const days = document.getElementById("days").value;
-    const limit = document.getElementById("report-limit").value;
-    const type = document.getElementById("type-filter").value;
-    const sev = document.getElementById("sev-filter").value;
-
-    let url = API + "/api/admin/reports?days=" + days + "&limit=" + limit;
-    if(type) url += "&type_filter=" + encodeURIComponent(type);
-    if(sev) url += "&severity_filter=" + encodeURIComponent(sev);
-
-    const r = await fetch(url, {headers: headers()});
-    if(!r.ok) throw new Error("reports");
-
-    const d = await r.json();
-    const rows = d.reports || [];
-    document.getElementById("reports-count").textContent = (d.total || rows.length) + " records";
-
-    const body = document.getElementById("reports-body");
-    body.innerHTML = "";
-
-    if(!rows.length){
-      body.innerHTML = '<tr><td colspan="6"><div class="empty">No reports yet for this filter.</div></td></tr>';
-      return;
-    }
-
-    rows.forEach(function(rep){
-      const tr = document.createElement("tr");
-      tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td><td></td>";
-
-      tr.children[0].textContent = fmtTime(rep.ts);
-      tr.children[1].textContent = label(rep.type);
-      tr.children[2].innerHTML = '<span class="pill sev-' + rep.severity + '">' + rep.severity + '</span>';
-      tr.children[3].appendChild(statusDropdown(rep));
-      tr.children[4].textContent = Number(rep.lat).toFixed(5) + ", " + Number(rep.lng).toFixed(5);
-      tr.children[5].textContent = rep.note || "—";
-
-      body.appendChild(tr);
-    });
-  };
-})();
+window.addEventListener('load', init);
 </script>
-
 </body>
 </html>
