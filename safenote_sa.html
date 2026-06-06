@@ -2687,10 +2687,24 @@ function getGPS(){
   var fallbackOptions={enableHighAccuracy:false,timeout:15000,maximumAge:300000};
 
   function success(p){
+    var acc=Math.round(p.coords.accuracy||0);
+
+    // Reject fixes worse than 500m — they cause pins to appear km away
+    if(acc > 500){
+      gpsLat=null;
+      gpsLng=null;
+      setLocationUi(
+        '⚠ GPS signal too weak (' + acc + 'm accuracy)',
+        'Move outside or near a window and try again, or pin your location on the map.',
+        false, true
+      );
+      showToast('Poor GPS signal', 'Accuracy ' + acc + 'm — move outside and retry.');
+      return;
+    }
+
     gpsLat=p.coords.latitude;
     gpsLng=p.coords.longitude;
-    var acc=Math.round(p.coords.accuracy||0);
-    setLocationUi('Location confirmed ✓', gpsLat.toFixed(5)+', '+gpsLng.toFixed(5)+' ±'+acc+'m', true, false);
+    setLocationUi('Location confirmed ✓ (±' + acc + 'm)', gpsLat.toFixed(5)+', '+gpsLng.toFixed(5), true, false);
   }
 
   function failHighAccuracy(err){
@@ -2709,20 +2723,32 @@ function getGPS(){
 function useMapLocation(){
   try{
     if(!map) throw new Error('Map not ready');
+
+    // Require zoom level 14+ (street level) before allowing map pin
+    var zoom = map.getZoom();
+    if(zoom < 14){
+      showToast('Zoom in to your street first', 'Pinch to zoom in closer before using map location.');
+      return;
+    }
+
     var c=map.getCenter();
     gpsLat=c.lat;
     gpsLng=c.lng;
-    setLocationUi('Approximate map area selected', gpsLat.toFixed(5)+', '+gpsLng.toFixed(5)+' — add street/landmark detail below', true, false);
+    setLocationUi(
+      '⚠ Map pin selected — verify this is correct',
+      'Pinned: ' + gpsLat.toFixed(5)+', '+gpsLng.toFixed(5)+' — zoom to your exact street first',
+      true, false
+    );
 
     var ctx=document.getElementById('location-context');
     if(ctx) ctx.value='heard_or_seen_uncertain';
 
     var note=document.getElementById('location-note');
     if(note && !note.value){
-      note.placeholder='Please add street, landmark, direction, or safer context';
+      note.placeholder='Please add street name, landmark or direction to help accuracy';
     }
 
-    showToast('Approximate location selected','Add detail in the note before submitting.');
+    showToast('Verify your pin location', 'Make sure the map shows the correct street before submitting.');
   }catch(e){
     showToast('Map location unavailable','Move the map to the area and try again.');
   }
