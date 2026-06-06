@@ -45,7 +45,7 @@ import sqlite3, uuid, time, os, hashlib, io, csv, math, re, urllib.parse, json, 
 import httpx
 from datetime import datetime, timezone
 
-app = FastAPI(title="SafeNote API", version="1.2.0")
+app = FastAPI(title="SafeNote API", version="1.2.1")
 # Phase 1A note: Eskom UI is disabled in frontend; backend power routes remain for compatibility.
 
 app.add_middleware(
@@ -553,47 +553,54 @@ def cluster_outage_reports(reports: list) -> list:
 def privacy_radius_for_report(report_type: str, context: str) -> tuple[int, str]:
     """
     Chooses a protection radius based on incident sensitivity and reporter certainty.
-    Larger radius = stronger protection for the reporter and small communities.
+    Hard cap of 300m — pins must stay within 300m of actual location.
     """
-    base = 250
+    base = 150
     confidence = "medium"
 
     if report_type in SENSITIVE_TYPES:
-        base = 450
+        base = 250
     elif report_type in POWER_TYPES:
-        base = 120
+        base = 80
     elif report_type in {"theft","vandalism","burglary","vehicle_theft"}:
-        base = 220
+        base = 150
 
     if context == "at_location":
         confidence = "medium"
     elif context == "nearby_same_street":
-        base = max(base, 250)
+        base = max(base, 150)
         confidence = "medium"
     elif context == "across_road":
-        base = max(base, 300)
+        base = max(base, 180)
         confidence = "medium"
     elif context == "different_street_nearby":
-        base = max(base, 450)
+        base = max(base, 220)
         confidence = "low"
     elif context == "heard_or_seen_uncertain":
-        base = max(base, 650)
+        base = max(base, 280)
         confidence = "low"
 
-    return min(base, 900), confidence
+    return min(base, 300), confidence  # hard cap — never more than 300m
 
 
 def offset_location(lat: float, lng: float, radius_m: int, seed: str) -> tuple[float, float]:
     """
-    Deterministic random offset per report ID.
-    Keeps the protected point stable while hiding precise location.
+    Deterministic random offset per report ID, capped at 300m.
+    Uses uniform disk distribution (sqrt) so points spread evenly
+    rather than clustering near the centre.
+
+    1 degree latitude  = 111,320 m  (constant)
+    1 degree longitude = 111,320 m * cos(lat)  (shrinks toward poles)
     """
+    radius_m = min(radius_m, 300)  # hard safety cap — never more than 300m
+
     rnd = random.Random(seed)
-    dist = rnd.uniform(radius_m * 0.35, radius_m * 0.95)
+    # sqrt gives uniform distribution across the disk area
+    dist_m  = math.sqrt(rnd.random()) * radius_m
     bearing = rnd.uniform(0, 2 * math.pi)
 
-    dlat = (dist * math.cos(bearing)) / 111_320
-    dlng = (dist * math.sin(bearing)) / (111_320 * max(math.cos(math.radians(lat)), 0.1))
+    dlat = (dist_m * math.cos(bearing)) / 111_320
+    dlng = (dist_m * math.sin(bearing)) / (111_320 * max(math.cos(math.radians(lat)), 0.1))
     return round(lat + dlat, 5), round(lng + dlng, 5)
 
 
@@ -1665,7 +1672,7 @@ async def public_nhw_access(body: NhwVerifyIn, db=Depends(get_db)):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "SafeNote", "version": "1.2.0",
+    return {"status": "ok", "service": "SafeNote", "version": "1.2.1",
             "ts": int(time.time())}
 
 
