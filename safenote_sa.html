@@ -1825,8 +1825,8 @@ input, textarea, select { touch-action: manipulation; }
     border-radius:7px;padding:8px 12px;margin-bottom:10px;display:none">
     Incorrect code. Contact your CPF coordinator.
   </div>
-  <input class="nhw-input" id="nhw-inp" type="text" placeholder="NHW-XXXXX"
-    maxlength="12" autocomplete="off" autocorrect="off"
+  <input class="nhw-input" id="nhw-inp" type="text" placeholder="NHW-XXXXXXXXXX"
+    maxlength="24" autocomplete="off" autocorrect="off"
     autocapitalize="characters" spellcheck="false">
   <button class="nhw-submit" onclick="verifyNhw()">Verify Access</button>
   <button class="cancel-btn" onclick="closeNhwModal()">Cancel</button>
@@ -2426,7 +2426,7 @@ function normaliseNhwCode(code){
   return (code||'').trim().toUpperCase().replace(/\s/g,'');
 }
 function validNhwFormat(code){
-  return /^NHW-[A-Z0-9]{6,12}$/.test(code);
+  return /^NHW-[A-Z0-9-]{4,20}$/.test(code);
 }
 function verifyNhw(){
   var code=normaliseNhwCode(document.getElementById('nhw-inp').value);
@@ -3230,12 +3230,17 @@ async function drawApproximateSuburbCircle(name){
   window.drawEskomZones=function(){return false};
   window.verifyNhw=function(){
     var code=(document.getElementById('nhw-inp').value||'').trim().toUpperCase().replace(/\s/g,'');
-    if(!/^NHW-[A-Z0-9]{6,16}$/.test(code)){document.getElementById('nhw-err').style.display='block';return;}
+    if(!/^NHW-[A-Z0-9-]{4,20}$/.test(code)){document.getElementById('nhw-err').style.display='block';return;}
     fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code})})
     .then(function(r){if(!r.ok)throw new Error('verify failed');return r.json();})
     .then(function(d){
-      if(d.valid===true){try{localStorage.setItem('safenote_nhw_token',code);}catch(e){};window.location.href='/nhw';}
-      else{document.getElementById('nhw-err').style.display='block';}
+      if(d.valid===true){
+        /* Stay on the public map — unlock the live feed. NHW Portal is at /nhw separately. */
+        try{localStorage.setItem('snhw',code);}catch(e){}
+        grantNhwAccess(code);
+      } else {
+        document.getElementById('nhw-err').style.display='block';
+      }
     }).catch(function(){document.getElementById('nhw-err').style.display='block';});
   };
   window.addEventListener('load',function(){
@@ -3410,30 +3415,31 @@ async function drawApproximateSuburbCircle(name){
     try{
       const d=await verifyPublicCode(code);
       if(!d.valid){
-        const err=document.getElementById('nhw-error') || document.querySelector('.nhw-error,.access-error,.error');
-        if(err)err.textContent='Incorrect code. Contact your CPF coordinator.';
+        const err=document.getElementById('nhw-err') || document.getElementById('nhw-error') || document.querySelector('.nhw-error,.access-error,.error');
+        if(err){err.style.display='block';err.textContent='Incorrect code. Contact your CPF coordinator.';}
         else alert('Incorrect code. Contact your CPF coordinator.');
         return;
       }
-      localStorage.removeItem('safenote_nhw_token');
-      window.location.href='/nhw?access='+encodeURIComponent(code);
+      /* Grant access on the public map — do not navigate away */
+      try{localStorage.setItem('snhw',code);}catch(e){}
+      grantNhwAccess(code);
     }catch(e){
       console.error(e);
-      alert('Could not verify NHW access code. Try again.');
+      const err=document.getElementById('nhw-err');
+      if(err)err.style.display='block';
     }
   };
 
   // Intercept the current modal button even if it calls older internal code.
   document.addEventListener('click',function(e){
-    const txt=(e.target && e.target.textContent || '').toLowerCase();
-    if(txt.includes('verify access') || txt.includes('verify') && findNHWInput()){
-      const modal=e.target.closest('.modal,.nhw-modal,.access-modal,.overlay,.sheet,.panel');
-      const inp=modal?modal.querySelector('input'):findNHWInput();
-      if(inp && ((inp.value||'').toUpperCase().includes('NHW') || (inp.placeholder||'').toUpperCase().includes('NHW') || (inp.placeholder||'').toUpperCase().includes('ACCESS'))){
-        e.preventDefault();
-        e.stopPropagation();
-        verifyNHWAccess();
-      }
+    /* Only intercept clicks that are inside the NHW auth modal specifically */
+    const inNhwModal=e.target.closest('#nhw-overlay,.nhw-modal');
+    if(!inNhwModal) return;
+    const txt=(e.target && e.target.textContent || '').toLowerCase().trim();
+    if(txt==='verify access' || txt==='verify'){
+      e.preventDefault();
+      e.stopPropagation();
+      window.verifyNhw();
     }
   },true);
 
