@@ -1742,11 +1742,28 @@ input, textarea, select { touch-action: manipulation; }
 
   <div class="anon-strip">
     <span>&#x1F512;</span>
-    <span>100% anonymous. No name, email or phone stored. Only your GPS coordinates, incident type and timestamp are recorded.</span>
+    <span>100% anonymous. No name, email or phone stored. Your pin will appear within ~300m of your location to protect your identity.</span>
   </div>
 
   <button class="submit-btn" id="sub-btn" onclick="submitReport()" disabled>Submit Report</button>
   <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+
+  <!-- Confirmation screen — shown after successful submission -->
+  <div id="report-success-screen" style="display:none;text-align:center;padding:24px 0 8px">
+    <div style="font-size:52px;margin-bottom:14px">✅</div>
+    <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:#7dab8a;margin-bottom:8px">Report Received</div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:#b8d4bc;line-height:1.8;margin-bottom:6px">
+      Your report has been recorded anonymously.<br>
+      It will appear on the map shortly as an approximate location<br>
+      to protect your identity.
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4a6e52;margin-bottom:20px">
+      📍 Pin shown within ~300m of reported location
+    </div>
+    <button class="submit-btn" onclick="closeModal()" style="background:#2e5238;max-width:280px;margin:0 auto;display:block">
+      Close
+    </button>
+  </div>
 </div>
 </div>
 
@@ -2795,8 +2812,11 @@ async function submitReport(){
     });
 
     if(r.ok||r.status===201){
-      closeModal();
-      showToast('Report submitted','Recorded successfully. Thank you for helping the community.');
+      // Show confirmation screen inside modal instead of closing immediately
+      var formEls = document.querySelectorAll('#rep-modal > *:not(#report-success-screen)');
+      formEls.forEach(function(el){ el.style.display='none'; });
+      var screen = document.getElementById('report-success-screen');
+      if(screen) screen.style.display='block';
       setTimeout(function(){loadFeed();loadStats();loadOutageLayer();},1000);
     } else {
       var msg='Server rejected report';
@@ -2827,6 +2847,11 @@ function resetForm(){
   if(lnote) lnote.value='';
   document.getElementById('sub-btn').disabled=true;
   document.getElementById('sub-btn').textContent='Submit Report';
+  // Reset confirmation screen — restore all form elements and hide success screen
+  var screen=document.getElementById('report-success-screen');
+  if(screen) screen.style.display='none';
+  var formEls=document.querySelectorAll('#rep-modal > *:not(#report-success-screen)');
+  formEls.forEach(function(el){ el.style.display=''; });
 }
 
 // ── DRUG/GANG HOUSE MODAL ─────────────────────────────────────────────────
