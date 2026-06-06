@@ -1290,6 +1290,37 @@ input, textarea, select { touch-action: manipulation; }
 }
 </style>
 
+
+<style>
+/* SafeNote GPS reporting resilience patch */
+.loc-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.loc-use-map-btn{
+  font-family:'DM Mono',monospace;
+  font-size:9px;
+  font-weight:500;
+  padding:6px 10px;
+  border-radius:6px;
+  border:1.5px solid rgba(212,168,50,.55);
+  background:rgba(212,168,50,.08);
+  color:#d4a832;
+  cursor:pointer;
+  white-space:nowrap;
+  display:none;
+}
+.loc-use-map-btn.show{display:inline-flex}
+.loc-help{
+  margin-top:6px;
+  font-family:'DM Mono',monospace;
+  font-size:8px;
+  color:#9db99f;
+  line-height:1.45;
+}
+@media(max-width:768px){
+  .loc-box{align-items:flex-start!important}
+  .loc-actions{width:100%;justify-content:flex-start;margin-top:8px}
+}
+</style>
+
 </head>
 <body>
 
@@ -1696,7 +1727,10 @@ input, textarea, select { touch-action: manipulation; }
         <span class="loc-status" id="loc-stat">Tap to get your location</span>
         <span class="loc-coords" id="loc-coord">GPS only — not stored with any identity</span>
       </div>
-      <button class="loc-get-btn" onclick="getGPS()">Get GPS</button>
+      <div class="loc-actions">
+        <button class="loc-get-btn" onclick="getGPS()">Get GPS</button>
+        <button class="loc-use-map-btn" id="use-map-loc-btn" onclick="useMapLocation()">Use map area</button>
+      </div>
     </div>
   </div>
 
@@ -2607,61 +2641,164 @@ function selSev(el){
   el.classList.add('s'+selSevVal[0]);
 }
 function checkSub(){
-  document.getElementById('sub-btn').disabled=!(selInciVal&&gpsLat!==null);
+  var btn=document.getElementById('sub-btn');
+  if(btn) btn.disabled=!(selInciVal && gpsLat!==null && gpsLng!==null);
 }
+
+function setLocationUi(statusText, coordText, got, allowMapFallback){
+  var stat=document.getElementById('loc-stat');
+  var coord=document.getElementById('loc-coord');
+  var box=document.getElementById('loc-box');
+  var fallback=document.getElementById('use-map-loc-btn');
+  if(stat) stat.textContent=statusText;
+  if(coord) coord.textContent=coordText;
+  if(box) box.classList.toggle('got', !!got);
+  if(fallback) fallback.classList.toggle('show', !!allowMapFallback);
+  checkSub();
+}
+
+function gpsErrorText(err){
+  if(!err) return 'Location unavailable';
+  if(err.code===1) return 'Location permission denied';
+  if(err.code===2) return 'Location unavailable';
+  if(err.code===3) return 'Location request timed out';
+  return 'Could not get location';
+}
+
 function getGPS(){
   var stat=document.getElementById('loc-stat');
   var coord=document.getElementById('loc-coord');
-  stat.textContent='Getting location…';
-  if(!navigator.geolocation){stat.textContent='GPS unavailable';return;}
-  navigator.geolocation.getCurrentPosition(function(p){
-    gpsLat=p.coords.latitude;gpsLng=p.coords.longitude;
-    stat.textContent='Location confirmed ✓';
-    coord.textContent=gpsLat.toFixed(4)+', '+gpsLng.toFixed(4)+' ±'+Math.round(p.coords.accuracy)+'m';
-    document.getElementById('loc-box').classList.add('got');
-    checkSub();
-  },function(){
-    stat.textContent='Could not get location';
-    coord.textContent='Enable location permissions and try again';
-  },{enableHighAccuracy:true,timeout:10000});
+
+  if(!window.isSecureContext && location.protocol!=='https:' && location.hostname!=='localhost'){
+    setLocationUi('GPS requires HTTPS', 'Open SafeNote through the secure HTTPS link, or use map area.', false, true);
+    showToast('GPS blocked','Location requires a secure HTTPS page.');
+    return;
+  }
+
+  if(!navigator.geolocation){
+    setLocationUi('GPS unavailable', 'Your browser does not support location. Use map area instead.', false, true);
+    return;
+  }
+
+  if(stat) stat.textContent='Getting location…';
+  if(coord) coord.textContent='Please allow location access if prompted.';
+
+  var highAccuracyOptions={enableHighAccuracy:true,timeout:20000,maximumAge:60000};
+  var fallbackOptions={enableHighAccuracy:false,timeout:15000,maximumAge:300000};
+
+  function success(p){
+    gpsLat=p.coords.latitude;
+    gpsLng=p.coords.longitude;
+    var acc=Math.round(p.coords.accuracy||0);
+    setLocationUi('Location confirmed ✓', gpsLat.toFixed(5)+', '+gpsLng.toFixed(5)+' ±'+acc+'m', true, false);
+  }
+
+  function failHighAccuracy(err){
+    // Try a lower accuracy lookup before failing completely. This helps on mobile.
+    navigator.geolocation.getCurrentPosition(success, function(err2){
+      gpsLat=null; gpsLng=null;
+      var msg=gpsErrorText(err2||err);
+      setLocationUi(msg, 'Enable location permission, move near a window, or use map area.', false, true);
+      showToast('Location not confirmed','Use GPS again or choose map area.');
+    }, fallbackOptions);
+  }
+
+  navigator.geolocation.getCurrentPosition(success, failHighAccuracy, highAccuracyOptions);
+}
+
+function useMapLocation(){
+  try{
+    if(!map) throw new Error('Map not ready');
+    var c=map.getCenter();
+    gpsLat=c.lat;
+    gpsLng=c.lng;
+    setLocationUi('Approximate map area selected', gpsLat.toFixed(5)+', '+gpsLng.toFixed(5)+' — add street/landmark detail below', true, false);
+
+    var ctx=document.getElementById('location-context');
+    if(ctx) ctx.value='heard_or_seen_uncertain';
+
+    var note=document.getElementById('location-note');
+    if(note && !note.value){
+      note.placeholder='Please add street, landmark, direction, or safer context';
+    }
+
+    showToast('Approximate location selected','Add detail in the note before submitting.');
+  }catch(e){
+    showToast('Map location unavailable','Move the map to the area and try again.');
+  }
 }
 
 async function submitReport(){
-  if(!selInciVal||gpsLat===null||gpsLng===null)return;
+  if(!selInciVal){
+    showToast('Select incident type','Choose the incident category first.');
+    return;
+  }
+
+  if(gpsLat===null||gpsLng===null){
+    showToast('Location required','Use GPS or choose map area before submitting.');
+    getGPS();
+    return;
+  }
+
   if(!selSevVal) selSevVal='medium';
+
   var btn=document.getElementById('sub-btn');
-  btn.textContent='Submitting…';btn.disabled=true;
+  btn.textContent='Submitting…';
+  btn.disabled=true;
+
   var note=document.getElementById('note-ta').value.trim();
+  var locationContext=document.getElementById('location-context');
+  var locationNote=document.getElementById('location-note');
+
   try{
+    var payload={
+      type:selInciVal,
+      severity:selSevVal,
+      lat:gpsLat,
+      lng:gpsLng,
+      note:note||null
+    };
+
+    if(locationContext) payload.location_context=locationContext.value||'at_location';
+    if(locationNote) payload.location_note=locationNote.value||'';
+
     var r=await fetch(API+'/api/reports',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:selInciVal,severity:selSevVal,lat:gpsLat,lng:gpsLng,note:note||null})
+      body:JSON.stringify(payload)
     });
+
     if(r.ok||r.status===201){
       closeModal();
-      showToast('Report submitted','Recorded successfully. It will appear after the public delay.');
+      showToast('Report submitted','Recorded successfully. Thank you for helping the community.');
       setTimeout(function(){loadFeed();loadStats();loadOutageLayer();},1000);
     } else {
       var msg='Server rejected report';
       try{var err=await r.json(); msg=err.detail||msg;}catch(e){}
-      btn.textContent='Error — try again';btn.disabled=false;
-      showToast('Report not recorded', String(msg).slice(0,80));
+      btn.textContent='Error — try again';
+      btn.disabled=false;
+      showToast('Report not recorded', String(msg).slice(0,90));
     }
   }catch(e){
-    btn.textContent='Error — try again';btn.disabled=false;
-    showToast('Report not recorded','Connection/API error. No local fake report was added.');
+    btn.textContent='Error — try again';
+    btn.disabled=false;
+    showToast('Report not recorded','Connection/API error. Please try again.');
   }
 }
 
 function resetForm(){
-  selInciVal=null;selSevVal=null;
+  selInciVal=null;
+  selSevVal=null;
+  gpsLat=null;
+  gpsLng=null;
   document.querySelectorAll('#rep-modal .inc-btn').forEach(function(b){b.classList.remove('sel');});
   document.querySelectorAll('.sev-btn').forEach(function(b){b.className='sev-btn';});
-  document.getElementById('loc-stat').textContent='Tap to get your location';
-  document.getElementById('loc-coord').textContent='GPS only — not stored with any identity';
-  document.getElementById('loc-box').classList.remove('got');
+  setLocationUi('Tap to get your location','GPS preferred — if it fails, use map area.',false,false);
   document.getElementById('note-ta').value='';
+  var ctx=document.getElementById('location-context');
+  if(ctx) ctx.value='at_location';
+  var lnote=document.getElementById('location-note');
+  if(lnote) lnote.value='';
   document.getElementById('sub-btn').disabled=true;
   document.getElementById('sub-btn').textContent='Submit Report';
 }
@@ -3583,6 +3720,20 @@ async function drawApproximateSuburbCircle(name){
         }
       }catch(e){}
     }, 60000);
+  });
+})();
+</script>
+
+
+<script>
+/* SafeNote reporting diagnostics */
+(function(){
+  window.addEventListener('error', function(e){
+    try{
+      if(String(e.message||'').toLowerCase().includes('gps') || String(e.message||'').toLowerCase().includes('geolocation')){
+        showToast('Location issue','Please try Get GPS again or use map area.');
+      }
+    }catch(_){}
   });
 })();
 </script>
