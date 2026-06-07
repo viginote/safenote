@@ -1749,19 +1749,20 @@ input, textarea, select { touch-action: manipulation; }
   <button class="cancel-btn" onclick="closeModal()">Cancel</button>
 
   <!-- Confirmation screen — shown after successful submission -->
-  <div id="report-success-screen" style="display:none;text-align:center;padding:24px 0 8px">
-    <div style="font-size:52px;margin-bottom:14px">✅</div>
-    <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:#7dab8a;margin-bottom:8px">Report Received</div>
-    <div style="font-family:'DM Mono',monospace;font-size:10px;color:#b8d4bc;line-height:1.8;margin-bottom:6px">
-      Your report has been recorded anonymously.<br>
-      It will appear on the map shortly as an approximate location<br>
-      to protect your identity.
+  <div id="report-success-screen" style="display:none;text-align:center;padding:32px 16px 24px;min-height:60vh;display:none;flex-direction:column;align-items:center;justify-content:center">
+    <div style="font-size:56px;margin-bottom:18px;line-height:1">✅</div>
+    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:#7dab8a;margin-bottom:12px;line-height:1.2">Report Received</div>
+    <div style="font-family:'DM Sans',sans-serif;font-size:14px;color:#b8d4bc;line-height:1.8;margin-bottom:10px;max-width:300px">
+      Your report has been recorded anonymously and will appear on the map shortly.
     </div>
-    <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4a6e52;margin-bottom:20px">
-      📍 Pin shown within ~300m of reported location
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:#4a6e52;margin-bottom:28px;padding:8px 16px;border-radius:999px;background:rgba(125,171,138,.08);border:1px solid rgba(125,171,138,.15)">
+      📍 Pin shown within ~300m to protect your identity
     </div>
-    <button class="submit-btn" onclick="closeModal()" style="background:#2e5238;max-width:280px;margin:0 auto;display:block">
-      Close
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:#7dab8a;margin-bottom:28px;letter-spacing:.5px">
+      🙏 Thank you for keeping your community safer
+    </div>
+    <button class="submit-btn" onclick="closeModal()" style="background:linear-gradient(135deg,#2e5238,#4a7c59);max-width:260px;width:100%;margin:0 auto;height:52px;font-size:16px;border-radius:14px;border:none;color:#fff;font-family:'Playfair Display',serif;font-weight:700;cursor:pointer">
+      Done
     </button>
   </div>
 </div>
@@ -2664,7 +2665,11 @@ function renderDrugMarkers(locs){
 // ── REPORT MODAL ──────────────────────────────────────────────────────────
 function openModal(){
   document.getElementById('rep-overlay').classList.add('show');
-  if(gpsLat===null)getGPS();
+  if(gpsLat===null){
+    getGPS();
+    // Also auto-zoom the map so "Use map area" lands in the right place
+    setTimeout(autoZoomMapForReport, 800);
+  }
 }
 function closeModal(){document.getElementById('rep-overlay').classList.remove('show');resetForm();}
 
@@ -2710,6 +2715,13 @@ function gpsErrorText(err){
   return 'Could not get location';
 }
 
+function isIos(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function isSafari(){
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+}
+
 function getGPS(){
   var stat=document.getElementById('loc-stat');
   var coord=document.getElementById('loc-coord');
@@ -2753,12 +2765,35 @@ function getGPS(){
   }
 
   function failHighAccuracy(err){
-    // Try a lower accuracy lookup before failing completely. This helps on mobile.
+    // Try a lower accuracy lookup before failing completely.
     navigator.geolocation.getCurrentPosition(success, function(err2){
+      var e=err2||err;
       gpsLat=null; gpsLng=null;
-      var msg=gpsErrorText(err2||err);
-      setLocationUi(msg, 'Enable location permission, move near a window, or use map area.', false, true);
-      showToast('Location not confirmed','Use GPS again or choose map area.');
+      if(e && e.code===1){
+        // Permission denied — give device-specific fix instructions
+        if(isIos()){
+          setLocationUi(
+            '📍 Location blocked — enable in iPhone Settings',
+            'Settings → Privacy & Security → Location Services → Safari → Allow While Using. Then tap Get GPS again, or use map area below.',
+            false, true
+          );
+        } else {
+          setLocationUi(
+            '📍 Location blocked — enable in browser settings',
+            'Tap the lock icon in your address bar → Site permissions → Location → Allow. Then tap Get GPS again, or use map area.',
+            false, true
+          );
+        }
+        // Make "Use map area" button more visible
+        var mapBtn=document.getElementById('use-map-loc-btn');
+        if(mapBtn){
+          mapBtn.classList.add('show');
+          mapBtn.style.cssText='display:inline-flex!important;background:rgba(212,168,50,.15);border-color:#d4a832;color:#d4a832;font-size:11px;padding:8px 14px;border-radius:8px;';
+        }
+      } else {
+        setLocationUi(gpsErrorText(e), 'Move near a window, try again, or use map area.', false, true);
+      }
+      showToast('GPS unavailable', 'Use the map area button to pin your location.');
     }, fallbackOptions);
   }
 
@@ -2768,20 +2803,33 @@ function getGPS(){
 function useMapLocation(){
   try{
     if(!map) throw new Error('Map not ready');
-
-    // Require zoom level 14+ (street level) before allowing map pin
     var zoom = map.getZoom();
-    if(zoom < 14){
-      showToast('Zoom in to your street first', 'Pinch to zoom in closer before using map location.');
+    var c = map.getCenter();
+
+    // If map is zoomed out (below street level), guide user to zoom in
+    // but still allow pinning — just warn more strongly
+    if(zoom < 13){
+      // Show the map behind the modal so they can navigate
+      // Give them a clear instruction overlay instead of blocking
+      setLocationUi(
+        '⚠ Zoom the map to your street first',
+        'Close this form → zoom into your street on the map → tap Report again → Use map area',
+        false, true
+      );
+      showToast('Zoom in first', 'Close form, zoom to your street, then report again.');
       return;
     }
 
-    var c=map.getCenter();
     gpsLat=c.lat;
     gpsLng=c.lng;
+
+    // Calculate approximate accuracy based on zoom
+    var approxAccuracyM = Math.round(156543 * Math.cos(gpsLat * Math.PI/180) / Math.pow(2, zoom));
+    var accuracyLabel = approxAccuracyM < 100 ? '~'+approxAccuracyM+'m' : '~'+Math.round(approxAccuracyM/10)*10+'m';
+
     setLocationUi(
-      '⚠ Map pin selected — verify this is correct',
-      'Pinned: ' + gpsLat.toFixed(5)+', '+gpsLng.toFixed(5)+' — zoom to your exact street first',
+      'Map area pinned ✓ (' + accuracyLabel + ' accuracy)',
+      gpsLat.toFixed(5)+', '+gpsLng.toFixed(5)+' — add street or landmark in note for accuracy',
       true, false
     );
 
@@ -2790,12 +2838,30 @@ function useMapLocation(){
 
     var note=document.getElementById('location-note');
     if(note && !note.value){
-      note.placeholder='Please add street name, landmark or direction to help accuracy';
+      note.placeholder='Add street name, landmark or direction to help pinpoint location';
     }
 
-    showToast('Verify your pin location', 'Make sure the map shows the correct street before submitting.');
+    showToast('Map area selected', 'Add a street or landmark in the note below.');
+    checkSub();
   }catch(e){
     showToast('Map location unavailable','Move the map to the area and try again.');
+  }
+}
+
+// Auto-zoom map to user area when report modal opens
+function autoZoomMapForReport(){
+  if(!map) return;
+  var zoom = map.getZoom();
+  // If map is at default Western Cape zoom (10 or less), try to zoom to last known position
+  if(zoom <= 11){
+    // Try to use last GPS position if available
+    if(gpsLat && gpsLng){
+      map.setView([gpsLat, gpsLng], 15);
+    } else {
+      // Prompt user to zoom — show a gentle hint on the location box
+      var stat = document.getElementById('loc-stat');
+      if(stat) stat.textContent = 'Zoom the map to your area first, or tap Get GPS';
+    }
   }
 }
 
@@ -2840,11 +2906,26 @@ async function submitReport(){
     });
 
     if(r.ok||r.status===201){
-      // Show confirmation screen inside modal instead of closing immediately
-      var formEls = document.querySelectorAll('#rep-modal > *:not(#report-success-screen)');
-      formEls.forEach(function(el){ el.style.display='none'; });
+      // Show confirmation screen — use class-based toggle for Safari reliability
+      var modal = document.getElementById('rep-modal');
       var screen = document.getElementById('report-success-screen');
-      if(screen) screen.style.display='block';
+      if(modal && screen){
+        // Hide all direct children except the success screen
+        Array.prototype.forEach.call(modal.children, function(el){
+          if(el.id !== 'report-success-screen'){
+            el.style.setProperty('display','none','important');
+          }
+        });
+        screen.style.removeProperty('display');
+        screen.style.setProperty('display','block','important');
+        // Scroll to top of modal so confirmation is visible
+        modal.scrollTop = 0;
+        try{ modal.parentElement.scrollTop = 0; }catch(e){}
+      } else {
+        // Fallback: close modal and show toast if screen element missing
+        closeModal();
+        showToast('Report submitted ✓', 'Thank you — your community is safer for it.');
+      }
       setTimeout(function(){loadFeed();loadStats();loadOutageLayer();},1000);
     } else {
       var msg='Server rejected report';
@@ -2875,11 +2956,17 @@ function resetForm(){
   if(lnote) lnote.value='';
   document.getElementById('sub-btn').disabled=true;
   document.getElementById('sub-btn').textContent='Submit Report';
-  // Reset confirmation screen — restore all form elements and hide success screen
+  // Reset confirmation screen — restore all form elements
+  var modal=document.getElementById('rep-modal');
   var screen=document.getElementById('report-success-screen');
-  if(screen) screen.style.display='none';
-  var formEls=document.querySelectorAll('#rep-modal > *:not(#report-success-screen)');
-  formEls.forEach(function(el){ el.style.display=''; });
+  if(screen) screen.style.setProperty('display','none','important');
+  if(modal){
+    Array.prototype.forEach.call(modal.children, function(el){
+      if(el.id !== 'report-success-screen'){
+        el.style.removeProperty('display');
+      }
+    });
+  }
 }
 
 // ── DRUG/GANG HOUSE MODAL ─────────────────────────────────────────────────
