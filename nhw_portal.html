@@ -1,809 +1,926 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SafeNote NHW / CPF Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root{
-  --bg:#071007;--side:#0d180d;--panel:#111c10;--panel2:#172617;
-  --line:rgba(125,171,138,.22);--line2:rgba(125,171,138,.38);
-  --text:#edf5ef;--muted:#9db99f;--green:#7dab8a;--gold:#d4a832;
-  --orange:#e8904a;--red:#f07070;--blue:#6ab4d4;--purple:#9b59b6;
-  --shadow:0 18px 60px rgba(0,0,0,.36);
+  --bg:#111214;--panel:#18191c;--panel2:#1e2023;--panel3:#242628;
+  --line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.12);
+  --text:#f0f1f2;--text2:#b8bcc2;--muted:#7a8090;--dim:#464c58;
+  --green:#4caf7d;--green-lt:#6fcf97;
+  --red:#e05c5c;--orange:#e0874a;--gold:#d4a827;--blue:#4a9fd4;--purple:#9b7fd4;--teal:#4abdb5;
+  --shadow:0 8px 32px rgba(0,0,0,.55);
 }
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden}
-button,input,select{font-family:'DM Sans',sans-serif}
-.app{display:grid;grid-template-columns:300px 1fr;height:100vh;overflow:hidden}
-.side{background:var(--side);border-right:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;z-index:10}
-.brand{display:flex;gap:12px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line)}
-.logo{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--green);display:grid;place-items:center;background:#182618;color:var(--green);font:900 13px 'DM Mono',monospace}
-.brand h1{font:900 22px 'Playfair Display',serif;margin:0}.brand p{font:500 9px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.8px;text-transform:uppercase;margin:2px 0 0}
-.status{border:1px solid rgba(240,112,112,.35);background:rgba(240,112,112,.07);border-radius:14px;padding:12px;font:600 11px 'DM Mono',monospace;color:var(--red);line-height:1.7}
-.status.ok{border-color:rgba(125,171,138,.5);background:rgba(125,171,138,.1);color:#cfe3d2}
-.login{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
-label{font:600 8px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:8px}
-input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#091209;color:var(--text);font-size:13px;outline:none}
-input:focus,select:focus{border-color:var(--green)}
-.action,.tab-btn{width:100%;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:12px 13px;text-align:left;cursor:pointer;font-weight:800;font-size:12px;display:flex;justify-content:space-between;align-items:center}
-.action:hover,.tab-btn:hover,.tab-btn.on{border-color:var(--green);background:rgba(125,171,138,.08);color:var(--text)}
-.action.primary{background:var(--green);color:#071007;border-color:var(--green)}
-.action.danger{border-color:rgba(240,112,112,.35);color:var(--red)}
-.auth-only{display:none}.unlocked .auth-only{display:block}.unlocked .auth-only.flex{display:flex}
-.main{height:100vh;overflow-y:auto;padding:22px}
-.locked .main{display:none}
-.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:18px}
-.title h2{font:900 34px 'Playfair Display',serif;margin:0}.title p{margin:6px 0 0;color:var(--muted)}
-.role-chip{border:1px solid var(--line2);border-radius:999px;color:var(--green);font:800 10px 'DM Mono',monospace;padding:7px 10px;text-transform:uppercase}
-.page{display:none}.page.active{display:block}
-.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
-.kpi{min-height:104px}.kpi .label{font:700 8px 'DM Mono',monospace;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}.kpi .val{font:900 34px 'Playfair Display',serif;margin-top:6px}.kpi .sub{font-size:12px;color:var(--muted)}
-.span2{grid-column:span 2}.span3{grid-column:span 3}.span4{grid-column:span 4}.span6{grid-column:span 6}
-.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.section-title h3{font:900 22px 'Playfair Display',serif;margin:0}.section-title span{font:700 10px 'DM Mono',monospace;color:var(--muted)}
-.table-wrap{overflow:auto;max-height:480px}.tbl{width:100%;border-collapse:collapse;font-size:12px}.tbl th{text-align:left;color:var(--muted);font:700 9px 'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;border-bottom:1px solid var(--line);padding:10px}.tbl td{border-bottom:1px solid rgba(125,171,138,.12);padding:10px;vertical-align:top}
-.pill{display:inline-block;border-radius:999px;padding:4px 8px;font:800 9px 'DM Mono',monospace;text-transform:uppercase}
-.sev-critical{background:rgba(240,112,112,.14);color:var(--red)}.sev-high{background:rgba(232,144,74,.14);color:var(--orange)}.sev-medium{background:rgba(212,168,50,.16);color:var(--gold)}.sev-low{background:rgba(125,171,138,.14);color:var(--green)}
-.status-pill{display:inline-block;border-radius:999px;padding:4px 8px;font:800 9px 'DM Mono',monospace;text-transform:uppercase}
-.st-new{background:rgba(106,180,212,.14);color:#6ab4d4}.st-reviewed{background:rgba(212,168,50,.16);color:#d4a832}.st-verified{background:rgba(125,171,138,.14);color:#7dab8a}.st-duplicate{background:rgba(155,89,182,.16);color:#9b59b6}.st-false_report{background:rgba(240,112,112,.14);color:#f07070}.st-archived{background:rgba(157,185,159,.12);color:#9db99f}
-.empty{border:1px dashed var(--line2);background:rgba(125,171,138,.04);border-radius:14px;padding:14px;color:var(--muted);font-size:13px;line-height:1.6}
-.mini-list{display:grid;gap:10px}.mini-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:12px;padding:11px}.mini-row b{font-size:12px}.mini-row span{font:700 10px 'DM Mono',monospace;color:var(--muted)}
-.btn-small{border:1px solid var(--line2);background:transparent;color:var(--green);border-radius:9px;padding:7px 10px;cursor:pointer;font:800 11px 'DM Sans',sans-serif}.btn-small.red{color:var(--red);border-color:rgba(240,112,112,.35)}
-.form-grid{display:grid;grid-template-columns:1fr 170px auto;gap:10px;align-items:end}.form-grid.four{grid-template-columns:1fr 140px 140px auto}
-.map-layout{display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start}
-#planning-map,#overview-map{height:620px;border-radius:18px;overflow:hidden;background:#071007;border:1px solid var(--line)}
-.leaflet-tile{filter:brightness(.48) saturate(.55) sepia(.2) hue-rotate(35deg)}.leaflet-control-attribution{display:none}
-.drawer{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);position:sticky;top:14px;max-height:calc(100vh - 48px);overflow:auto}
-.tool-btns{display:grid;gap:8px}.tool-btn{border:1px solid var(--line);background:#091209;color:var(--muted);border-radius:12px;padding:11px;text-align:left;cursor:pointer;font-weight:800}.tool-btn.on,.tool-btn:hover{border-color:var(--green);color:var(--text);background:rgba(125,171,138,.08)}
-.color-row{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}.color-dot{height:30px;border-radius:999px;border:2px solid transparent;cursor:pointer}.color-dot.on{border-color:#fff}
-.search-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:12px}
-.toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:13px 15px;color:var(--text);box-shadow:var(--shadow);transform:translateY(120px);transition:.25s;z-index:3000}.toast.show{transform:translateY(0)}
-.hidden{display:none!important}
-@media(max-width:980px){body{overflow:auto}.app{display:block;height:auto}.side{height:auto}.main{height:auto;overflow:visible}.grid,.map-layout{grid-template-columns:1fr}.span2,.span3,.span4,.span6{grid-column:span 1}.form-grid,.form-grid.four,.search-row{grid-template-columns:1fr}.drawer{position:relative;max-height:none}#planning-map,#overview-map{height:480px}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;overflow:hidden}
 
-.legend-explain{display:grid;gap:7px;margin:10px 0 0}
-.legend-explain .legend-item{display:flex;align-items:center;gap:8px;font:700 11px 'DM Sans',sans-serif;color:var(--muted)}
-.legend-explain .swatch{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,.45)}
-.radius-row{display:grid;grid-template-columns:1fr 72px;gap:8px;align-items:center}
-.radius-row output{font:800 11px 'DM Mono',monospace;color:var(--green);text-align:right}
-.map-warning{font:700 10px 'DM Mono',monospace;color:var(--muted);letter-spacing:.4px}
+/* ── SHELL ── */
+.app{display:grid;grid-template-columns:232px 1fr;height:100vh}
+body.locked .main{display:none}
+body.locked .auth-only{display:none!important}
+
+/* ── SIDEBAR ── */
+.side{background:#0e0f11;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:12px;padding:20px 16px 16px;border-bottom:1px solid var(--line)}
+.logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#2a5c3f,#3d7a55);display:grid;place-items:center;font:900 12px 'DM Mono',monospace;color:#a8cdb2;flex-shrink:0}
+.brand-name{font:900 18px 'Playfair Display',serif}
+.brand-sub{font:500 9px 'DM Mono',monospace;color:var(--dim);letter-spacing:1.6px;text-transform:uppercase;margin-top:2px}
+
+.nav-sec-label{font:500 8px 'DM Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:var(--dim);padding:14px 16px 5px}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 16px;border:none;background:transparent;color:var(--muted);font:500 13px 'DM Sans',sans-serif;cursor:pointer;text-align:left;transition:all .14s;position:relative}
+.nav-btn:hover{background:rgba(255,255,255,.04);color:var(--text2)}
+.nav-btn.active{background:rgba(255,255,255,.06);color:var(--text);font-weight:600}
+.nav-btn.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:2.5px;background:var(--green);border-radius:0 2px 2px 0}
+.nav-ico{width:15px;height:15px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
+.nav-btn.active .nav-ico,.nav-btn:hover .nav-ico{opacity:1}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.nav-btn:disabled:hover{background:transparent;color:var(--muted)}
+
+.side-footer{margin-top:auto;padding:14px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:7px}
+.auth-pill{padding:8px 11px;border-radius:8px;border:1px solid rgba(220,80,80,.25);background:rgba(220,80,80,.06);color:#c08080;font:500 10px 'DM Mono',monospace;line-height:1.55}
+.auth-pill.ok{border-color:rgba(76,175,125,.28);background:rgba(76,175,125,.07);color:var(--green)}
+.s-link{display:flex;justify-content:space-between;align-items:center;width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;transition:all .13s}
+.s-link:hover{border-color:var(--line2);color:var(--text2);background:rgba(255,255,255,.03)}
+.s-link.primary{background:rgba(76,175,125,.1);border-color:rgba(76,175,125,.28);color:var(--green-lt)}
+.s-link.primary:hover{background:rgba(76,175,125,.18)}
+.s-link.danger{color:var(--red);border-color:rgba(220,80,80,.2)}
+.s-link.danger:hover{background:rgba(220,80,80,.06)}
+
+/* ── LOGIN PANEL ── */
+.login-wrap{padding:12px 16px 18px;border-top:1px solid var(--line)}
+.login-lbl{font:500 8px 'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:6px}
+.login-inp{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.4);color:var(--text);font:600 12px 'DM Mono',monospace;outline:none;margin-bottom:8px;letter-spacing:1px}
+.login-inp:focus{border-color:rgba(76,175,125,.4)}
+.unlock-btn{width:100%;padding:9px;border-radius:8px;border:none;background:rgba(76,175,125,.12);color:var(--green-lt);font:700 13px 'DM Sans',sans-serif;cursor:pointer;transition:all .14s;border:1px solid rgba(76,175,125,.28)}
+.unlock-btn:hover{background:rgba(76,175,125,.2)}
+
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;border-bottom:1px solid var(--line);flex-shrink:0;gap:14px}
+.page-title{font:900 24px 'Playfair Display',serif}
+.page-sub{font:400 12px 'DM Sans',sans-serif;color:var(--muted);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.role-chip{padding:5px 11px;border-radius:999px;border:1px solid var(--line2);color:var(--green);font:800 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.8px}
+.tb-sel{padding:7px 10px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--text2);font:500 12px 'DM Sans',sans-serif;outline:none;cursor:pointer}
+.tb-btn{padding:7px 12px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .13s}
+.tb-btn:hover{border-color:var(--line2);color:var(--text2);background:rgba(255,255,255,.04)}
+.tb-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── LOCKED SCREEN ── */
+.locked-screen{display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:40px;text-align:center}
+body.locked .locked-screen{display:flex}
+body.locked .content{display:none}
+.lock-ico{font-size:40px;opacity:.25;margin-bottom:6px}
+.lock-title{font:900 26px 'Playfair Display',serif;color:var(--text2)}
+.lock-sub{font:400 13px 'DM Sans',sans-serif;color:var(--muted);max-width:340px;line-height:1.7}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+.section{display:none;flex-direction:column;gap:14px}
+.section.active{display:flex}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden}
+.kpi-accent{position:absolute;top:0;left:0;right:0;height:2px}
+.kpi-lbl{font:500 9px 'DM Mono',monospace;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+.kpi-val{font:900 30px 'Playfair Display',serif;margin:7px 0 3px;line-height:1}
+.kpi-sub{font:400 11px 'DM Sans',sans-serif;color:var(--muted)}
+
+/* ── GRID ── */
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel.full{grid-column:1/-1}
+.panel.map-panel{padding:0;overflow:hidden}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ph-left{display:flex;flex-direction:column;gap:2px}
+.ph-title{font:900 15px 'Playfair Display',serif}
+.ph-meta{font:500 10px 'DM Mono',monospace;color:var(--dim)}
+
+/* ── MAP ── */
+#overview-map,#planning-map{height:480px;width:100%}
+.leaflet-tile{filter:brightness(.45) saturate(.45) sepia(.15) hue-rotate(20deg)}
+.leaflet-control-attribution{display:none}
+.leaflet-container{background:#0e0f11}
+
+/* ── BTNS ── */
+.btn{padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;transition:all .13s}
+.btn:hover{border-color:var(--line2);color:var(--text2);background:rgba(255,255,255,.04)}
+.btn.primary{background:rgba(76,175,125,.12);border-color:rgba(76,175,125,.3);color:var(--green-lt)}
+.btn.primary:hover{background:rgba(76,175,125,.2)}
+.btn.danger{color:var(--red);border-color:rgba(220,80,80,.22)}
+.btn.danger:hover{background:rgba(220,80,80,.07)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* ── PILLS ── */
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font:700 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.p-crit{background:rgba(224,92,92,.15);color:#e08080}
+.p-high{background:rgba(224,135,74,.15);color:#d4874a}
+.p-med{background:rgba(212,168,39,.15);color:#c9a020}
+.p-low{background:rgba(76,175,125,.15);color:var(--green)}
+.p-new{background:rgba(212,168,39,.12);color:#c9a020}
+.p-verified{background:rgba(76,175,125,.14);color:var(--green-lt)}
+.p-reviewed{background:rgba(74,159,212,.14);color:var(--blue)}
+.p-duplicate{background:rgba(255,255,255,.06);color:var(--dim)}
+.p-false{background:rgba(224,92,92,.1);color:var(--red)}
+.p-archived{background:rgba(255,255,255,.05);color:var(--dim)}
+
+/* ── BAR CHART ── */
+.bar-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.bar-row:last-child{border-bottom:none}
+.bar-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:128px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;transition:width .5s ease}
+.bar-n{font:600 12px 'DM Mono',monospace;color:var(--text2);width:28px;text-align:right;flex-shrink:0}
+
+/* ── TREND BARS ── */
+.trend-wrap{display:flex;align-items:flex-end;gap:3px;height:80px}
+.trend-bar{flex:1;border-radius:3px 3px 0 0;min-height:3px;cursor:default;position:relative}
+.trend-bar:hover::after{content:attr(data-n);position:absolute;top:-20px;left:50%;transform:translateX(-50%);font:600 10px 'DM Mono',monospace;color:var(--text2);white-space:nowrap;background:var(--panel2);padding:2px 5px;border-radius:4px}
+.trend-labels{display:flex;gap:3px;margin-top:4px}
+.trend-lbl{flex:1;font:500 8px 'DM Mono',monospace;color:var(--dim);text-align:center;overflow:hidden}
+
+/* ── DONUT ── */
+.donut-wrap{display:flex;align-items:center;gap:16px}
+.donut-legend{display:flex;flex-direction:column;gap:8px;flex:1}
+.donut-leg-row{display:flex;align-items:center;gap:8px}
+.donut-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.donut-leg-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);flex:1}
+.donut-leg-n{font:600 12px 'DM Mono',monospace;color:var(--text2)}
+
+/* ── FEED TABLE ── */
+.tbl-wrap{overflow-x:auto;max-height:440px;overflow-y:auto;border-radius:10px;border:1px solid var(--line)}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;color:var(--dim);font:500 8px 'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;border-bottom:1px solid var(--line);padding:10px 12px;position:sticky;top:0;background:var(--panel2);z-index:1}
+.tbl td{border-bottom:1px solid rgba(255,255,255,.04);padding:10px 12px;vertical-align:middle;color:var(--text2)}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr.sev-critical td:first-child{border-left:2px solid var(--red)}
+.tbl tr.sev-high td:first-child{border-left:2px solid var(--orange)}
+.stat-sel{padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--text);font:500 11px 'DM Sans',sans-serif;outline:none;cursor:pointer}
+.stat-sel:focus{border-color:rgba(76,175,125,.4)}
+
+/* ── MEMBERS ── */
+.member-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.member-row:last-child{border-bottom:none}
+.member-name{font:600 13px 'DM Sans',sans-serif;color:var(--text)}
+.member-code{font:400 11px 'DM Mono',monospace;color:var(--green);margin-top:2px}
+.ico-btn{padding:5px 7px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;transition:all .12s}
+.ico-btn:hover{border-color:rgba(76,175,125,.4);color:var(--green)}
+.ico-btn.red:hover{border-color:rgba(220,80,80,.4);color:var(--red)}
+.create-row{display:grid;grid-template-columns:1fr 160px auto;gap:8px;margin-bottom:12px;align-items:end}
+.f-inp{padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--text);font:400 13px 'DM Sans',sans-serif;outline:none;width:100%}
+.f-inp:focus{border-color:rgba(76,175,125,.4)}
+.f-sel{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--text);font:400 12px 'DM Sans',sans-serif;outline:none;width:100%}
+.f-sel:focus{border-color:rgba(76,175,125,.4)}
+.new-code-box{padding:12px 14px;border-radius:10px;border:1px solid rgba(76,175,125,.25);background:rgba(76,175,125,.06);margin-bottom:12px;display:none}
+.new-code-box.show{display:block}
+.new-code-lbl{font:500 9px 'DM Mono',monospace;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:5px}
+.new-code-val{font:700 14px 'DM Mono',monospace;color:var(--green-lt);word-break:break-all}
+
+/* ── PLANNING ── */
+.planning-layout{display:grid;grid-template-columns:1fr 280px;gap:12px;align-items:start}
+.drawer{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;position:sticky;top:0;max-height:calc(100vh - 120px);overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.drawer-section-title{font:900 14px 'Playfair Display',serif;margin-bottom:8px}
+.color-row{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.color-dot{height:26px;border-radius:999px;border:2px solid transparent;cursor:pointer;transition:all .14s}
+.color-dot.on{border-color:rgba(255,255,255,.7);transform:scale(1.08)}
+.legend-row{display:flex;align-items:center;gap:8px;font:400 11px 'DM Sans',sans-serif;color:var(--muted);padding:3px 0}
+.legend-swatch{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid rgba(255,255,255,.3)}
+.radius-row{display:grid;grid-template-columns:1fr 60px;gap:8px;align-items:center}
+.radius-out{font:700 11px 'DM Mono',monospace;color:var(--green);text-align:right;display:block}
+.tool-btn{width:100%;border:1px solid var(--line);background:rgba(0,0,0,.2);color:var(--muted);border-radius:9px;padding:9px 11px;text-align:left;cursor:pointer;font:600 12px 'DM Sans',sans-serif;transition:all .13s}
+.tool-btn:hover,.tool-btn.on{border-color:rgba(76,175,125,.35);color:var(--text2);background:rgba(76,175,125,.07)}
+.tool-btn:disabled{opacity:.35;cursor:not-allowed}
+.zone-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.zone-row:last-child{border-bottom:none}
+.zone-name{font:600 12px 'DM Sans',sans-serif;flex:1;color:var(--text2)}
+.zone-type{font:400 10px 'DM Mono',monospace;color:var(--dim)}
+.search-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px}
+
+/* ── SIGNAL ── */
+.sig-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sig-row:last-child{border-bottom:none}
+.sig-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:120px;flex-shrink:0}
+.sig-track{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden}
+.sig-fill{height:100%;border-radius:999px;transition:width .5s ease}
+.sig-val{font:600 11px 'DM Mono',monospace;width:36px;text-align:right;flex-shrink:0;color:var(--text2)}
+
+/* ── INFO ROWS ── */
+.info-row{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);gap:14px}
+.info-row:last-child{border-bottom:none}
+.info-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:130px;flex-shrink:0}
+.info-val{font:600 13px 'DM Mono',monospace;color:var(--text2)}
+
+/* ── EMPTY ── */
+.empty{font:400 12px 'DM Sans',sans-serif;color:var(--dim);padding:16px;border-radius:10px;border:1px dashed var(--line2);background:rgba(255,255,255,.02);line-height:1.6}
+
+/* ── TOAST ── */
+.toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:12px 18px;color:var(--text);box-shadow:var(--shadow);transform:translateY(120px);transition:.26s cubic-bezier(.32,.72,0,1);z-index:9999;font:500 13px 'DM Sans',sans-serif;max-width:280px}
+.toast.show{transform:translateY(0)}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:999px}
+
+@media(max-width:900px){
+  body{overflow:auto}.app{display:block;height:auto}.main{height:auto;overflow:visible}.content{overflow:visible}
+  .kpi-row,.pgrid,.pgrid3,.planning-layout{grid-template-columns:1fr}
+  .panel.full{grid-column:span 1}.create-row{grid-template-columns:1fr}
+  #overview-map,#planning-map{height:380px}
+  .drawer{position:relative;max-height:none}
+}
 </style>
 </head>
 <body class="locked">
 <div class="app">
-  <aside class="side">
-    <div class="brand"><div class="logo">SN</div><div><h1>SafeNote</h1><p>NHW / CPF Portal</p></div></div>
-    <div class="status" id="auth-status">Locked. Enter an NHW / CPF access code to unlock the portal.</div>
 
-    <div class="login">
-      <label>NHW / CPF Access Code</label>
-      <input id="token" placeholder="NHW-XXXXXXXXXX" autocapitalize="characters" />
-      <button class="action primary" onclick="verifyAndLoad()">Verify & Load Portal</button>
+<!-- ══ SIDEBAR ══ -->
+<aside class="side">
+  <div class="brand">
+    <div class="logo">SN</div>
+    <div>
+      <div class="brand-name">SafeNote</div>
+      <div class="brand-sub">NHW / CPF Portal</div>
     </div>
+  </div>
 
-    <div class="auth-only">
-      <button class="tab-btn on" onclick="showPage('overview',this)">Overview <span>↗</span></button>
-      <button class="tab-btn" onclick="showPage('members',this)">Members <span>↗</span></button>
-      <button class="tab-btn" onclick="showPage('planning',this)">Planning Map <span>↗</span></button>
-      <button class="tab-btn" onclick="showPage('incidents',this)">Incident Feed <span>↗</span></button>
+  <div class="nav-sec-label">Operations</div>
+  <button class="nav-btn active auth-only" data-sec="overview" onclick="nav('overview',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Overview
+  </button>
+  <button class="nav-btn auth-only" data-sec="feed" onclick="nav('feed',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Live incident feed
+  </button>
+  <button class="nav-btn auth-only" data-sec="analytics" onclick="nav('analytics',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Analytics
+  </button>
+  <button class="nav-btn auth-only" data-sec="planning" onclick="nav('planning',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Planning map
+  </button>
+
+  <div class="nav-sec-label auth-only" id="nav-members-label">Team</div>
+  <button class="nav-btn auth-only" id="nav-members-btn" data-sec="members" onclick="nav('members',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Member access
+  </button>
+
+  <div class="side-footer">
+    <div class="auth-pill" id="auth-status">Enter your NHW / CPF access code to unlock the portal</div>
+    <button class="s-link primary auth-only" onclick="refreshAll()">Refresh live data</button>
+    <button class="s-link auth-only" onclick="downloadExport()">Download NHW CSV</button>
+    <button class="s-link auth-only" onclick="window.open('/','_blank')">Public map ↗</button>
+    <button class="s-link danger" onclick="logout()">Log out</button>
+  </div>
+
+  <div class="login-wrap">
+    <label class="login-lbl">NHW / CPF Access Code</label>
+    <input class="login-inp" id="token" placeholder="NHW-XXXXXXXXXX" autocapitalize="characters" autocomplete="off"/>
+    <button class="unlock-btn" onclick="verifyAndLoad()">Verify &amp; Unlock Portal</button>
+  </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="page-title">Operational Dashboard</div>
+      <div class="page-sub" id="page-sub">Community safety awareness, heatmaps, patrol planning and member access</div>
     </div>
+    <div class="topbar-right">
+      <span class="role-chip" id="role-chip">NOT VERIFIED</span>
+      <select class="tb-sel" id="days" onchange="refreshAll()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="60">Last 60 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+      <button class="tb-btn" onclick="refreshAll()">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh
+      </button>
+    </div>
+  </div>
 
-    <button class="action primary auth-only flex" onclick="refreshAll()">Refresh live data</button>
-    <button class="action auth-only flex" onclick="downloadExport()">Download NHW CSV</button>
-    <button class="action auth-only flex" onclick="window.open('/', '_blank')">Open public map</button>
-    <button class="action danger" onclick="logout()">Log out / clear token</button>
-  </aside>
+  <!-- locked state -->
+  <div class="locked-screen">
+    <div class="lock-ico">🔒</div>
+    <div class="lock-title">NHW / CPF Portal</div>
+    <div class="lock-sub">Enter your NHW or CPF access code in the sidebar to unlock operational tools, live incident data and patrol planning.</div>
+  </div>
 
-  <main class="main">
-    <div class="top">
-      <div class="title"><h2 id="page-title">Operational Safety Dashboard</h2><p id="page-subtitle">Operational awareness, heatmaps, patrol planning and member access control.</p></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span class="role-chip" id="role-chip">NOT VERIFIED</span>
-        <select id="days" onchange="refreshAll()"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option></select>
+  <div class="content">
+
+    <!-- ══ OVERVIEW ══ -->
+    <div class="section active" id="sec-overview">
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-accent" style="background:linear-gradient(90deg,var(--blue),transparent)"></div>
+          <div class="kpi-lbl">Today</div>
+          <div class="kpi-val" id="k-today">—</div>
+          <div class="kpi-sub">incidents logged</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:linear-gradient(90deg,var(--purple),transparent)"></div>
+          <div class="kpi-lbl">This week</div>
+          <div class="kpi-val" id="k-week">—</div>
+          <div class="kpi-sub">all incident types</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
+          <div class="kpi-lbl">Critical / high</div>
+          <div class="kpi-val" id="k-risk">—</div>
+          <div class="kpi-sub">priority attention</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:linear-gradient(90deg,var(--gold),transparent)"></div>
+          <div class="kpi-lbl">Intel reports</div>
+          <div class="kpi-val" id="k-intel">—</div>
+          <div class="kpi-sub">drug / gang houses</div>
+        </div>
+      </div>
+
+      <div class="pgrid">
+        <div class="panel full map-panel" style="border-radius:14px;overflow:hidden">
+          <div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center">
+            <div class="ph-title">Live map + heatmap</div>
+            <div class="ph-meta">NHW internal view · approximate locations shown</div>
+          </div>
+          <div id="overview-map"></div>
+        </div>
+      </div>
+
+      <div class="pgrid">
+        <div class="panel">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Top hotspots</div><div class="ph-meta">incident density</div></div></div>
+          <div id="hotspots"><div class="empty">Load data to view hotspots</div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Most reported types</div><div class="ph-meta" id="types-meta">period</div></div></div>
+          <div id="by-type"><div class="empty">Load data to view breakdown</div></div>
+        </div>
       </div>
     </div>
 
-    <section id="page-overview" class="page active">
-      <div class="grid">
-        <div class="card kpi span2"><div class="label">Today</div><div class="val" id="k-today">0</div><div class="sub">incidents logged</div></div>
-        <div class="card kpi span2"><div class="label">This Week</div><div class="val" id="k-week">0</div><div class="sub">all incident types</div></div>
-        <div class="card kpi span2"><div class="label">Critical / High</div><div class="val" id="k-risk">0</div><div class="sub">priority attention</div></div>
-        <div class="card span4"><div class="section-title"><h3>Live Map + Heatmap</h3><span>internal NHW view</span></div><div id="overview-map"></div></div>
-        <div class="card span2"><div class="section-title"><h3>Top Hotspots</h3><span>rounded cells</span></div><div id="hotspots" class="mini-list"></div></div>
-        <div class="card span3"><div class="section-title"><h3>Most Reported</h3><span>selected range</span></div><div id="by-type" class="mini-list"></div></div>
-        <div class="card span3"><div class="section-title"><h3>Incident Trend</h3><span>daily count</span></div><canvas id="trend-chart" height="170"></canvas></div>
+    <!-- ══ LIVE FEED ══ -->
+    <div class="section" id="sec-feed">
+      <div class="panel full">
+        <div class="ph">
+          <div class="ph-left"><div class="ph-title">Live incident feed</div><div class="ph-meta" id="feed-count">0 records</div></div>
+          <button class="btn primary" onclick="loadFeed()">Refresh</button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Status</th><th>Coordinates</th><th>Note</th></tr></thead>
+            <tbody id="feed-body"><tr><td colspan="6"><div class="empty" style="border:none">Load data to view feed</div></td></tr></tbody>
+          </table>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <section id="page-members" class="page">
-      <div class="grid">
-        <div class="card span6">
-          <div class="section-title"><h3>NHW Member Access</h3><span id="member-note">Chairman/root only · 30 max member codes</span></div>
-          <div class="empty">Manage approved NHW / CPF member access. Group leaders can issue role-based access codes for operational use.</div>
-          <div style="height:14px"></div>
-          <div class="form-grid" id="member-form">
-            <input id="member-label" placeholder="Member name / role label e.g. Patrol Lead 1" />
-            <select id="member-role">
+    <!-- ══ ANALYTICS ══ -->
+    <div class="section" id="sec-analytics">
+      <div class="pgrid">
+        <div class="panel">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Daily trend</div><div class="ph-meta" id="trend-meta">last 14 days</div></div></div>
+          <div class="trend-wrap" id="trend-bars"><div class="empty" style="border:none;width:100%;align-self:center">Load data to view trend</div></div>
+          <div class="trend-labels" id="trend-labels"></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Severity distribution</div><div class="ph-meta">period breakdown</div></div></div>
+          <div class="donut-wrap" id="sev-donut"><div class="empty" style="border:none">Load data to view chart</div></div>
+        </div>
+        <div class="panel full">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Incident type breakdown</div><div class="ph-meta" id="analytics-types-meta">period</div></div></div>
+          <div id="analytics-types"><div class="empty">Load data to view breakdown</div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Area signals</div><div class="ph-meta">risk indicators</div></div></div>
+          <div id="area-signals"><div class="empty" style="border:none">Load data to view signals</div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Top hotspot areas</div><div class="ph-meta">coordinate density</div></div></div>
+          <div id="analytics-hotspots"><div class="empty" style="border:none">Load data to view hotspots</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PLANNING ══ -->
+    <div class="section" id="sec-planning">
+      <div class="planning-layout">
+        <div class="panel" style="padding:14px">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Operational planning map</div><div class="ph-meta">search boundary · draw patrols · place AOIs</div></div></div>
+          <div class="search-row">
+            <input class="f-inp" id="area-search" placeholder="Search suburb e.g. Claremont, Sea Point…" onkeydown="if(event.key==='Enter')searchBoundary()"/>
+            <button class="btn primary" onclick="searchBoundary()">Outline</button>
+          </div>
+          <div id="planning-map" style="border-radius:10px;overflow:hidden"></div>
+        </div>
+
+        <div class="drawer">
+          <div>
+            <div class="drawer-section-title">Planning tools</div>
+            <div class="ph-meta" id="draw-state" style="margin-bottom:10px">ready</div>
+          </div>
+
+          <div>
+            <label class="login-lbl" style="margin-bottom:6px">Zone / AOI name</label>
+            <input class="f-inp" id="zone-name" placeholder="e.g. Patrol Sector A"/>
+          </div>
+
+          <div>
+            <label class="login-lbl" style="margin-bottom:6px">Zone type</label>
+            <select class="f-sel" id="zone-type">
+              <option value="patrol">Patrol sector</option>
+              <option value="focus">Focus area</option>
+              <option value="high_risk">High risk</option>
+              <option value="safe_route">Safe route</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="login-lbl" style="margin-bottom:6px">Colour / meaning</label>
+            <div class="color-row" id="color-row">
+              <button title="Green: patrol / safe route" class="color-dot on" data-color="#4caf7d" style="background:#4caf7d" onclick="setColor(this)"></button>
+              <button title="Yellow: monitor" class="color-dot" data-color="#d4a827" style="background:#d4a827" onclick="setColor(this)"></button>
+              <button title="Orange: increased focus" class="color-dot" data-color="#e0874a" style="background:#e0874a" onclick="setColor(this)"></button>
+              <button title="Red: high risk" class="color-dot" data-color="#e05c5c" style="background:#e05c5c" onclick="setColor(this)"></button>
+              <button title="Blue: community route" class="color-dot" data-color="#4a9fd4" style="background:#4a9fd4" onclick="setColor(this)"></button>
+              <button title="Purple: sensitive AOI" class="color-dot" data-color="#9b7fd4" style="background:#9b7fd4" onclick="setColor(this)"></button>
+            </div>
+            <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+              <div class="legend-row"><span class="legend-swatch" style="background:#4caf7d"></span>Green — patrol / safe route</div>
+              <div class="legend-row"><span class="legend-swatch" style="background:#d4a827"></span>Yellow — monitor / medium</div>
+              <div class="legend-row"><span class="legend-swatch" style="background:#e0874a"></span>Orange — increased focus</div>
+              <div class="legend-row"><span class="legend-swatch" style="background:#e05c5c"></span>Red — high risk / urgent</div>
+              <div class="legend-row"><span class="legend-swatch" style="background:#4a9fd4"></span>Blue — community route</div>
+              <div class="legend-row"><span class="legend-swatch" style="background:#9b7fd4"></span>Purple — sensitive AOI</div>
+            </div>
+          </div>
+
+          <div>
+            <label class="login-lbl" style="margin-bottom:6px">AOI radius</label>
+            <div class="radius-row">
+              <input id="aoi-radius" type="range" min="100" max="1500" step="50" value="250" oninput="document.getElementById('aoi-radius-out').textContent=this.value+'m'"/>
+              <span class="radius-out" id="aoi-radius-out">250m</span>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button class="tool-btn" id="draw-zone-btn" onclick="startZoneMode()">Draw patrol zone</button>
+            <button class="tool-btn" id="finish-zone-btn" onclick="finishZone()">Finish + save zone</button>
+            <button class="tool-btn" id="aoi-btn" onclick="startAOIMode()">Place AOI circle</button>
+            <button class="tool-btn" onclick="cancelDrawing()">Cancel drawing</button>
+          </div>
+
+          <div>
+            <div style="font:900 14px 'Playfair Display',serif;margin-bottom:8px">Saved layers</div>
+            <div id="zone-list"><div class="empty" style="font-size:11px">No layers saved yet</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MEMBERS ══ -->
+    <div class="section" id="sec-members">
+      <div class="pgrid">
+        <div class="panel">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Create member code</div><div class="ph-meta" id="member-note">Chairman / root only</div></div></div>
+          <div class="create-row" id="member-form">
+            <input class="f-inp" id="member-label" placeholder="Member name e.g. Patrol Lead 1"/>
+            <select class="f-sel" id="member-role">
               <option value="vice_chairman">Vice Chairman</option>
               <option value="secretary">Secretary</option>
               <option value="patrol_lead">Patrol Lead</option>
               <option value="patrol_member">Patrol Member</option>
             </select>
-            <button class="action primary" onclick="createMemberCode()">Generate Code</button>
+            <button class="btn primary" onclick="createMemberCode()">Generate</button>
           </div>
-          <div style="height:14px"></div>
-          <div id="new-member-code" class="empty hidden"></div>
-          <div style="height:14px"></div>
-          <div id="member-list" class="mini-list"></div>
+          <div class="new-code-box" id="new-member-code">
+            <div class="new-code-lbl">New member code — share securely</div>
+            <div class="new-code-val" id="new-member-code-val"></div>
+            <div style="margin-top:8px;display:flex;gap:6px">
+              <button class="btn primary" onclick="copyText(document.getElementById('new-member-code-val').textContent)">Copy</button>
+              <button class="btn" onclick="document.getElementById('new-member-code').classList.remove('show')">Dismiss</button>
+            </div>
+          </div>
+          <div style="font:400 12px 'DM Sans',sans-serif;color:var(--muted);line-height:1.7;padding:10px 12px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--line)">
+            Member sub-codes let your patrol team access the NHW portal with role-appropriate permissions. Maximum 30 members per group. Codes can be revoked instantly.
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Active members</div><div class="ph-meta" id="member-count">0 members</div></div></div>
+          <div id="member-list"><div class="empty">No member codes yet</div></div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section id="page-planning" class="page">
-      <div class="map-layout">
-        <div class="card">
-          <div class="section-title"><h3>Operational Planning Map</h3><span>search boundary · draw patrols · place AOIs</span></div>
-          <div class="search-row">
-            <input id="area-search" placeholder="Search suburb / neighbourhood e.g. Rugby, Summer Greens" onkeydown="if(event.key==='Enter'){searchBoundary()}" />
-            <button class="action primary" onclick="searchBoundary()">Outline Area</button>
-          </div>
-          <div id="planning-map"></div>
-        </div>
-
-        <aside class="drawer">
-          <div class="section-title"><h3>Planning Tools</h3><span id="draw-state">ready</span></div>
-          <label>Zone / AOI Name</label>
-          <input id="zone-name" placeholder="e.g. Patrol Sector A / Drug Activity AOI" />
-          <div style="height:10px"></div>
-          <label>Colour / Operational Meaning</label>
-          <div class="color-row" id="color-row">
-            <button title="Green: normal patrol / safe route" class="color-dot on" data-color="#7dab8a" style="background:#7dab8a" onclick="setColor(this)"></button>
-            <button title="Yellow: monitor / medium attention" class="color-dot" data-color="#d4a832" style="background:#d4a832" onclick="setColor(this)"></button>
-            <button title="Orange: increased patrol focus" class="color-dot" data-color="#e8904a" style="background:#e8904a" onclick="setColor(this)"></button>
-            <button title="Red: high risk / urgent patrol focus" class="color-dot" data-color="#f07070" style="background:#f07070" onclick="setColor(this)"></button>
-            <button title="Blue: community route / public interest" class="color-dot" data-color="#6ab4d4" style="background:#6ab4d4" onclick="setColor(this)"></button>
-            <button title="Purple: sensitive intelligence / AOI" class="color-dot" data-color="#9b59b6" style="background:#9b59b6" onclick="setColor(this)"></button>
-          </div>
-          <div class="legend-explain">
-            <div class="legend-item"><span class="swatch" style="background:#7dab8a"></span> Green = normal patrol / safer route</div>
-            <div class="legend-item"><span class="swatch" style="background:#d4a832"></span> Yellow = monitor / medium attention</div>
-            <div class="legend-item"><span class="swatch" style="background:#e8904a"></span> Orange = increased patrol focus</div>
-            <div class="legend-item"><span class="swatch" style="background:#f07070"></span> Red = high risk / urgent focus</div>
-            <div class="legend-item"><span class="swatch" style="background:#6ab4d4"></span> Blue = community route / public interest</div>
-            <div class="legend-item"><span class="swatch" style="background:#9b59b6"></span> Purple = sensitive intelligence / AOI</div>
-          </div>
-          <div style="height:10px"></div>
-          <label>AOI Circle Radius</label>
-          <div class="radius-row">
-            <input id="aoi-radius" type="range" min="100" max="1500" step="50" value="250" oninput="document.getElementById('aoi-radius-out').value=this.value+'m'" />
-            <output id="aoi-radius-out">250m</output>
-          </div>
-          <div style="height:10px"></div>
-          <label>Type</label>
-          <select id="zone-type">
-            <option value="patrol">Patrol Sector</option>
-            <option value="focus">Focus Area</option>
-            <option value="high_risk">High Risk</option>
-            <option value="safe_route">Safe Route</option>
-          </select>
-          <div style="height:12px"></div>
-          <div class="tool-btns">
-            <button class="tool-btn" id="draw-zone-btn" onclick="startZoneMode()">Draw Patrol Zone</button>
-            <button class="tool-btn" id="finish-zone-btn" onclick="finishZone()">Finish + Save Zone</button>
-            <button class="tool-btn" id="aoi-btn" onclick="startAOIMode()">Place AOI Circle</button>
-            <button class="tool-btn" onclick="cancelDrawing()">Cancel Drawing</button>
-          </div>
-          <div style="height:12px"></div>
-          <div class="empty">First search/outline the suburb boundary. Zone mode: click map points, then press “Finish + Save Zone”. AOI mode: choose radius, then click once on the map.</div>
-          <div style="height:14px"></div>
-          <div class="section-title"><h3>Saved Layers</h3><span>per NHW group</span></div>
-          <div id="zone-list" class="mini-list"></div>
-        </aside>
-      </div>
-    </section>
-
-    <section id="page-incidents" class="page">
-      <div class="card">
-        <div class="section-title"><h3>Live Incident Feed</h3><span id="feed-count">0 records</span></div>
-        <div class="table-wrap">
-          <table class="tbl">
-            <thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Status</th><th>Coordinates</th><th>Note</th></tr></thead>
-            <tbody id="feed-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
+  </div>
 </div>
-<div class="toast" id="toast">Ready</div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-const API=window.location.origin;
-let token='', nhwIdentity=null;
-let overviewMap=null, planningMap=null, overviewMarkers=null, planningMarkers=null, heat=null;
-let patrolLayer=null, aoiLayer=null, boundaryLayer=null, tempDrawLayer=null;
-let trendChart=null, drawMode=null, drawPoints=[], selectedColor='#7dab8a';
+const API = window.location.origin;
+let token = '', nhwIdentity = null;
+let overviewMap = null, planningMap = null;
+let overviewMarkers = null, planningMarkers = null, heat = null;
+let patrolLayer = null, aoiLayer = null, boundaryLayer = null, tempDrawLayer = null;
+let drawMode = null, drawPoints = [], selectedColor = '#4caf7d';
 
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
-function authHeaders(){return {'Authorization':'Bearer '+token}}
-function fmtTime(ts){return ts?new Date(ts*1000).toLocaleString([], {dateStyle:'medium', timeStyle:'short'}):'—'}
-function label(x){return String(x||'').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase())}
-function roleLabel(x){return label(x||'nhw')}
+const PAGES = {
+  overview:  {title:'Operational Dashboard', sub:'Community safety awareness and live heatmap'},
+  feed:      {title:'Live Incident Feed', sub:'Real-time reports — NHW internal view'},
+  analytics: {title:'Analytics', sub:'Trend analysis, severity breakdown and area hotspots'},
+  planning:  {title:'Planning Map', sub:'Search boundaries, draw patrol zones and place areas of interest'},
+  members:   {title:'Member Access', sub:'Manage patrol team access codes and roles'},
+};
+
+const TYPE_COLS = {
+  murder:'var(--red)',shooting:'var(--red)',stabbing:'var(--red)',hijacking:'var(--orange)',
+  armed_robbery:'var(--orange)',house_robbery:'var(--orange)',drug_dealing:'var(--gold)',
+  gang_activity:'var(--gold)',suspicious_person:'var(--blue)',burglary:'var(--purple)',
+  vehicle_theft:'var(--purple)',gbv:'var(--teal)',loitering:'var(--blue)'
+};
+
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
+function authHeaders(){return{'Authorization':'Bearer '+token}}
+function fmtTime(ts){return ts?new Date(ts*1000).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'—'}
+function fmtAgo(ts){const s=Math.floor(Date.now()/1000-ts);if(s<60)return s+'s ago';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}
+function lbl(x){return String(x||'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase())}
+function copyText(txt){navigator.clipboard.writeText(txt).then(()=>toast('Copied'))}
+function canManageMembers(){return nhwIdentity&&nhwIdentity.can_manage_members}
+function canManagePatrols(){return nhwIdentity&&nhwIdentity.can_manage_patrols}
+
 function setAuth(ok,msg){const el=document.getElementById('auth-status');el.textContent=msg;el.classList.toggle('ok',ok)}
 function unlock(){document.body.classList.remove('locked');document.body.classList.add('unlocked')}
 function lock(){document.body.classList.add('locked');document.body.classList.remove('unlocked')}
-function canManageMembers(){return nhwIdentity && nhwIdentity.can_manage_members}
-function canManagePatrols(){return nhwIdentity && nhwIdentity.can_manage_patrols}
 
-function showPage(name,btn){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
-  if(btn)btn.classList.add('on');
-  const titles={overview:['Operational Safety Dashboard','Live incident awareness, heatmaps and hotspot intelligence.'],members:['Member Access Control','Create and manage NHW/CPF sub-codes and role permissions.'],planning:['Planning Map','Outline suburbs, draw patrol sectors and place areas of interest.'],incidents:['Incident Feed','Live NHW incident stream with status visibility.']};
-  document.getElementById('page-title').textContent=titles[name][0];
-  document.getElementById('page-subtitle').textContent=titles[name][1];
-  setTimeout(()=>{try{overviewMap?.invalidateSize();planningMap?.invalidateSize()}catch(e){}},220);
+function nav(name,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  if(btn&&btn.classList)btn.classList.add('active');
+  const p=PAGES[name]||{};
+  document.getElementById('page-title').textContent=p.title||name;
+  document.getElementById('page-sub').textContent=p.sub||'';
+  if(name==='planning')setTimeout(()=>{try{planningMap&&planningMap.invalidateSize()}catch(e){}},200);
+  if(name==='overview')setTimeout(()=>{try{overviewMap&&overviewMap.invalidateSize()}catch(e){}},200);
 }
 
+function pSev(s){return{critical:'p-crit',high:'p-high',medium:'p-med',low:'p-low'}[s]||'p-low'}
+function pStat(s){return{new:'p-new',verified:'p-verified',reviewed:'p-reviewed',duplicate:'p-duplicate',false_report:'p-false',archived:'p-archived'}[s]||'p-new'}
+
+function applyRoleUI(){
+  const mBtn=document.getElementById('nav-members-btn');
+  const mLbl=document.getElementById('nav-members-label');
+  if(!canManageMembers()){
+    if(mBtn)mBtn.disabled=true;
+    if(mLbl)mLbl.style.opacity='.4';
+  }
+  const drawBtns=['draw-zone-btn','finish-zone-btn','aoi-btn'];
+  drawBtns.forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=!canManagePatrols()});
+  document.getElementById('member-form').style.display=canManageMembers()?'grid':'none';
+  document.getElementById('member-note').textContent=canManageMembers()?'Chairman / root only · 30 max':'View only — this role cannot generate codes';
+}
+
+// ── AUTH ──
 async function verifyAndLoad(){
-  token=document.getElementById('token').value.trim().toUpperCase().replace(/\s/g,'');
-  if(!/^NHW-[A-Z0-9-]{4,24}$/.test(token)){setAuth(false,'Invalid code format.');toast('Invalid code');return}
+  const inp=document.getElementById('token');
+  token=(inp.value||'').trim().toUpperCase().replace(/\s/g,'');
+  if(!token){toast('Enter your NHW access code');return}
   try{
     const r=await fetch(API+'/api/nhw/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:token})});
     const d=await r.json();
-    if(!d.valid){setAuth(false,'Access code not valid.');toast('Invalid NHW code');lock();return}
+    if(!d.valid){setAuth(false,'Invalid code — contact your CPF coordinator');toast('Invalid access code');return}
     nhwIdentity=d;
-    localStorage.setItem('safenote_nhw_token',token);
+    document.getElementById('role-chip').textContent=(d.role||'NHW').toUpperCase().replace(/_/g,' ');
+    setAuth(true,'Verified: '+(d.group_label||'NHW Group')+' · '+(d.member_label||d.role||'Member'));
     unlock();
-    document.getElementById('role-chip').textContent=roleLabel(d.role || 'chairman');
-    setAuth(true,'Verified access: '+(d.label||'NHW / CPF Group')+' · '+roleLabel(d.role)+' · Token active');
-    updatePermissionUI();
+    applyRoleUI();
     initMaps();
     await refreshAll();
-    toast('NHW access verified');
-  }catch(e){console.error(e);setAuth(false,'Could not verify access code.');toast('Verification failed');lock()}
+  }catch(e){setAuth(false,'Verification failed — check connection');toast('Verification failed')}
 }
 
-function updatePermissionUI(){
-  const form=document.getElementById('member-form');
-  const note=document.getElementById('member-note');
-  if(form) form.style.display=canManageMembers()?'grid':'none';
-  if(note) note.textContent=canManageMembers()?'Chairman/root only · 30 max member codes':'This role can view member access but cannot generate codes.';
-  document.querySelectorAll('#draw-zone-btn,#finish-zone-btn,#aoi-btn').forEach(b=>b.disabled=!canManagePatrols());
-}
+function logout(){token='';nhwIdentity=null;try{sessionStorage.clear()}catch(e){}location.href='/nhw'}
 
-function logout(){
-  localStorage.removeItem('safenote_nhw_token');
-  token=''; sessionStorage.clear(); location.reload();
-}
-
-window.addEventListener('load',()=>{
-  const saved=localStorage.getItem('safenote_nhw_token');
-  if(saved){document.getElementById('token').value=saved}
-  lock();
-});
-
+// ── MAPS ──
 function initMaps(){
+  const WC=[-33.9249,18.4241];
   if(!overviewMap){
-    overviewMap=L.map('overview-map',{zoomControl:true}).setView([-33.9249,18.4241],11);
+    overviewMap=L.map('overview-map',{zoomControl:true}).setView(WC,11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(overviewMap);
     overviewMarkers=L.layerGroup().addTo(overviewMap);
   }
   if(!planningMap){
-    planningMap=L.map('planning-map',{zoomControl:true,doubleClickZoom:false}).setView([-33.9249,18.4241],11);
+    planningMap=L.map('planning-map',{zoomControl:true,doubleClickZoom:false}).setView(WC,11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(planningMap);
     planningMarkers=L.layerGroup().addTo(planningMap);
     patrolLayer=L.layerGroup().addTo(planningMap);
     aoiLayer=L.layerGroup().addTo(planningMap);
     planningMap.on('click',planningMapClick);
   }
+  const popup='<style>.leaflet-popup-content-wrapper{background:#1e2023;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f0f1f2;box-shadow:0 4px 20px rgba(0,0,0,.5)}.leaflet-popup-tip{background:#1e2023}.leaflet-popup-content{margin:10px 14px;font-family:DM Sans,sans-serif;font-size:12px}</style>';
+  if(!document.getElementById('nhw-popup-css')){const s=document.createElement('style');s.id='nhw-popup-css';s.textContent='.leaflet-popup-content-wrapper{background:#1e2023;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f0f1f2;box-shadow:0 4px 20px rgba(0,0,0,.5)}.leaflet-popup-tip{background:#1e2023}.leaflet-popup-content{margin:10px 14px;font-family:DM Sans,sans-serif;font-size:12px}';document.head.appendChild(s)}
   setTimeout(()=>{overviewMap.invalidateSize();planningMap.invalidateSize()},250);
 }
 
+// ── REFRESH ──
 async function refreshAll(){
   if(!token){toast('Verify access first');return}
-  initMaps();
   await Promise.allSettled([loadAnalytics(),loadFeed(),loadMembers(),loadPlanningLayers()]);
-  setAuth(true,'Verified access: '+(nhwIdentity?.label||'NHW / CPF Group')+' · Last sync: '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+' · Token active');
+  const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  setAuth(true,'Verified: '+(nhwIdentity?.group_label||'NHW Group')+' · synced '+t);
 }
 
+// ── ANALYTICS ──
 async function loadAnalytics(){
   const days=document.getElementById('days').value;
-  const d=await fetch(API+'/api/nhw/analytics?days='+days,{headers:authHeaders()}).then(r=>r.json());
-  const s=d.summary||{};
-  document.getElementById('k-today').textContent=s.today||0;
-  document.getElementById('k-week').textContent=s.week||0;
-  document.getElementById('k-risk').textContent=(s.critical||0)+(s.high||0);
-  renderList('hotspots',(d.hotspots||[]).map((h,i)=>['#'+(i+1)+' · '+h.count+' reports',Number(h.lat).toFixed(3)+', '+Number(h.lng).toFixed(3)]));
-  renderList('by-type',(d.by_type||[]).map((t,i)=>[(i+1)+'. '+label(t.type),t.count+' reports']));
-  drawTrend(d.trend||[]);
+  try{
+    const r=await fetch(API+'/api/nhw/analytics?days='+days,{headers:authHeaders()});
+    if(!r.ok)return;const d=await r.json();
+    const s=d.summary||{};
+    document.getElementById('k-today').textContent=s.today||0;
+    document.getElementById('k-week').textContent=s.week||0;
+    document.getElementById('k-risk').textContent=(s.critical||0)+(s.high||0);
+    document.getElementById('k-intel').textContent=s.intel||0;
+
+    // Hotspots
+    const spots=d.hotspots||[];
+    const hMax=Math.max(...spots.map(h=>h.count),1);
+    const hEl=document.getElementById('hotspots');
+    const haEl=document.getElementById('analytics-hotspots');
+    const hotHtml=spots.slice(0,6).map((h,i)=>`<div class="bar-row"><div class="bar-lbl">#${i+1} · ${Number(h.lat).toFixed(3)}, ${Number(h.lng).toFixed(3)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(h.count/hMax*100)}%;background:${i<2?'var(--red)':i<4?'var(--orange)':'var(--muted)'}"></div></div><div class="bar-n">${h.count}</div></div>`).join('')||'<div class="empty">No hotspot data</div>';
+    if(hEl)hEl.innerHTML=hotHtml;
+    if(haEl)haEl.innerHTML=hotHtml;
+
+    // By type
+    const byType=d.by_type||[];
+    const tMax=Math.max(...byType.map(t=>t.count),1);
+    const byTypeHtml=byType.slice(0,8).map(t=>`<div class="bar-row"><div class="bar-lbl" title="${lbl(t.type)}">${lbl(t.type)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(t.count/tMax*100)}%;background:${TYPE_COLS[t.type]||'var(--muted)'}"></div></div><div class="bar-n">${t.count}</div></div>`).join('')||'<div class="empty">No data</div>';
+    document.getElementById('by-type').innerHTML=byTypeHtml;
+    document.getElementById('analytics-types').innerHTML=byTypeHtml;
+    document.getElementById('types-meta').textContent=days+'-day period';
+    document.getElementById('analytics-types-meta').textContent=days+'-day period';
+
+    // Trend bars
+    const trend=(d.trend||[]).slice(-14);
+    if(trend.length){
+      const trendMax=Math.max(...trend.map(t=>t.count),1);
+      document.getElementById('trend-bars').innerHTML=trend.map(t=>`<div class="trend-bar" data-n="${t.count}" style="height:${Math.max(Math.round(t.count/trendMax*80),3)}px;background:${t.count===trendMax?'var(--blue)':'rgba(255,255,255,.18)'}"></div>`).join('');
+      document.getElementById('trend-labels').innerHTML=trend.map(t=>`<div class="trend-lbl">${t.day.slice(5)}</div>`).join('');
+      document.getElementById('trend-meta').textContent='last '+trend.length+' days';
+    }
+
+    // Donut
+    const crit=s.critical||0,high=s.high||0,total=Math.max(s.period_total||s.week||1,1);
+    const med=Math.max(total-crit-high,0);
+    const r2=52,cx=60,cy=60,circ=2*Math.PI*r2;
+    const segs=[{v:crit,c:'var(--red)',l:'Critical'},{v:high,c:'var(--orange)',l:'High'},{v:med,c:'rgba(255,255,255,.15)',l:'Other'}];
+    let off=0;
+    const paths=segs.map(seg=>{const pct=seg.v/total;const dash=circ*pct;const p=`<circle cx="${cx}" cy="${cy}" r="${r2}" fill="none" stroke="${seg.c}" stroke-width="14" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" opacity=".85"/>`;off+=dash;return p}).join('');
+    document.getElementById('sev-donut').innerHTML=`<svg width="120" height="120" style="flex-shrink:0"><circle cx="${cx}" cy="${cy}" r="${r2}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="14"/>${paths}<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-family="Playfair Display" font-weight="900" font-size="18" fill="var(--text)">${total}</text><text x="${cx}" y="${cy+16}" text-anchor="middle" font-family="DM Mono" font-size="8" fill="var(--muted)" letter-spacing="1">PERIOD</text></svg><div class="donut-legend">${segs.map(seg=>`<div class="donut-leg-row"><div class="donut-dot" style="background:${seg.c}"></div><div class="donut-leg-lbl">${seg.l}</div><div class="donut-leg-n">${seg.v}</div></div>`).join('')}</div>`;
+
+    // Area signals
+    const sigEl=document.getElementById('area-signals');
+    if(sigEl){
+      const riskPct=Math.round((crit+high)/total*100);
+      sigEl.innerHTML=`
+        <div class="sig-row"><div class="sig-lbl">Critical/high rate</div><div class="sig-track"><div class="sig-fill" style="width:${Math.min(riskPct*2,100)}%;background:var(--red)"></div></div><div class="sig-val" style="color:${riskPct>25?'var(--red)':'var(--muted)'}">${riskPct}%</div></div>
+        <div class="sig-row"><div class="sig-lbl">Intel reports</div><div class="sig-track"><div class="sig-fill" style="width:${Math.min((s.intel||0)*8,100)}%;background:var(--gold)"></div></div><div class="sig-val" style="color:var(--gold)">${s.intel||0}</div></div>
+        <div class="sig-row"><div class="sig-lbl">Active hotspots</div><div class="sig-track"><div class="sig-fill" style="width:${Math.min(spots.length*10,100)}%;background:var(--orange)"></div></div><div class="sig-val">${spots.length}</div></div>
+        <div class="sig-row"><div class="sig-lbl">Period total</div><div class="sig-track"><div class="sig-fill" style="width:100%;background:rgba(255,255,255,.15)"></div></div><div class="sig-val">${total}</div></div>`;
+    }
+  }catch(e){console.error('analytics error',e)}
 }
 
-function renderList(id,rows){
-  const el=document.getElementById(id); el.innerHTML='';
-  if(!rows.length){el.innerHTML='<div class="empty">No data yet.</div>';return}
-  rows.forEach(r=>{const div=document.createElement('div');div.className='mini-row';div.innerHTML='<b>'+r[0]+'</b><span>'+r[1]+'</span>';el.appendChild(div)})
-}
-
-function drawTrend(rows){
-  const ctx=document.getElementById('trend-chart');
-  if(trendChart)trendChart.destroy();
-  trendChart=new Chart(ctx,{type:'line',data:{labels:rows.map(r=>r.day),datasets:[{label:'Incidents',data:rows.map(r=>r.count),tension:.35}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#9db99f'}},y:{ticks:{color:'#9db99f'},beginAtZero:true}}}});
-}
-
+// ── FEED ──
 async function loadFeed(){
-  const rows=await fetch(API+'/api/reports/live',{headers:authHeaders()}).then(r=>r.json());
-  const body=document.getElementById('feed-body');body.innerHTML='';
-  document.getElementById('feed-count').textContent=rows.length+' records';
-  overviewMarkers?.clearLayers(); planningMarkers?.clearLayers();
-  const heatPts=[];
-  if(!rows.length){body.innerHTML='<tr><td colspan="6"><div class="empty">No live reports yet.</div></td></tr>';return}
-  rows.forEach(rep=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML='<td>'+fmtTime(rep.ts)+'</td><td>'+label(rep.type)+'</td><td><span class="pill sev-'+rep.severity+'">'+rep.severity+'</span></td><td><span class="status-pill st-'+(rep.status||'new')+'">'+label(rep.status||'new')+'</span></td><td>'+Number(rep.lat).toFixed(5)+', '+Number(rep.lng).toFixed(5)+'</td><td>'+(rep.note||'—')+'</td>';
-    body.appendChild(tr);
-    const col=rep.severity==='critical'?'#f07070':rep.severity==='high'?'#e8904a':rep.severity==='medium'?'#d4a832':'#7dab8a';
-    const icon=L.divIcon({className:'',html:'<div style="width:17px;height:17px;border-radius:50%;background:'+col+';border:2px solid #fff;box-shadow:0 2px 10px #000"></div>',iconSize:[17,17]});
-    const marker=L.marker([rep.lat,rep.lng],{icon}).bindPopup('<b>'+label(rep.type)+'</b><br>'+label(rep.severity)+' · '+label(rep.status||'new')+'<br>'+(rep.note||''));
-    marker.addTo(overviewMarkers); marker.clone?null:L.marker([rep.lat,rep.lng],{icon}).bindPopup(marker.getPopup().getContent()).addTo(planningMarkers);
-    heatPts.push([rep.lat,rep.lng,rep.severity==='critical'?1:rep.severity==='high'?.8:rep.severity==='medium'?.55:.35]);
-  });
-  try{if(heat)overviewMap.removeLayer(heat);heat=L.heatLayer(heatPts,{radius:28,blur:20,maxZoom:16}).addTo(overviewMap)}catch(e){}
-  if(rows.length){overviewMap.setView([rows[0].lat,rows[0].lng],14);planningMap.setView([rows[0].lat,rows[0].lng],14)}
+  try{
+    const r=await fetch(API+'/api/reports/live',{headers:authHeaders()});
+    if(!r.ok)return;const d=await r.json();
+    const reports=d.reports||[];
+    document.getElementById('feed-count').textContent=reports.length+' records';
+    overviewMarkers?.clearLayers();
+    const body=document.getElementById('feed-body');
+    if(!reports.length){body.innerHTML='<tr><td colspan="6"><div class="empty" style="border:none">No live reports yet</div></td></tr>';return}
+    const heatPts=[];
+    body.innerHTML='';
+    reports.forEach(rep=>{
+      const tr=document.createElement('tr');
+      tr.className='sev-'+rep.severity;
+      tr.innerHTML=`<td>${fmtTime(rep.ts)}</td><td>${lbl(rep.type)}</td><td><span class="pill ${pSev(rep.severity)}">${rep.severity}</span></td><td><span class="pill ${pStat(rep.status||'new')}">${lbl(rep.status||'new')}</span></td><td style="font-family:'DM Mono',monospace;font-size:11px">${Number(rep.lat||0).toFixed(5)}, ${Number(rep.lng||0).toFixed(5)}</td><td>${rep.note?rep.note.slice(0,60)+(rep.note.length>60?'…':''):'<span style="color:var(--dim)">—</span>'}</td>`;
+      body.appendChild(tr);
+      const col=rep.severity==='critical'?'#e05c5c':rep.severity==='high'?'#e0874a':rep.severity==='medium'?'#d4a827':'#4caf7d';
+      const icon=L.divIcon({className:'',html:`<div style="width:14px;height:14px;border-radius:50%;background:${col};border:2px solid rgba(255,255,255,.6);box-shadow:0 2px 8px rgba(0,0,0,.5)"></div>`,iconSize:[14,14],iconAnchor:[7,7]});
+      L.marker([rep.lat,rep.lng],{icon}).bindPopup(`<strong style="color:${col}">${lbl(rep.type)}</strong><br><span style="color:var(--muted)">${fmtAgo(rep.ts)} · ${lbl(rep.severity)}</span>${rep.note?'<br>'+rep.note.slice(0,60):''}<br><small style="color:var(--dim)">Protected location shown</small>`).addTo(overviewMarkers);
+      heatPts.push([rep.lat,rep.lng,rep.severity==='critical'?1:rep.severity==='high'?.8:rep.severity==='medium'?.55:.35]);
+    });
+    try{if(heat)overviewMap.removeLayer(heat);heat=L.heatLayer(heatPts,{radius:28,blur:20,maxZoom:16,gradient:{0.2:'#4caf7d',0.4:'#d4a827',0.65:'#e0874a',0.85:'#e05c5c',1:'#8b0000'}}).addTo(overviewMap)}catch(e){}
+    if(reports.length)overviewMap.setView([reports[0].lat,reports[0].lng],14);
+  }catch(e){console.error('feed error',e)}
 }
 
+// ── MEMBERS ──
 async function loadMembers(){
-  const list=document.getElementById('member-list');list.innerHTML='';
-  if(!canManageMembers()){list.innerHTML='<div class="empty">Only the chairman/root NHW code can generate or revoke member sub-codes.</div>';return}
-  const d=await fetch(API+'/api/nhw/members',{headers:authHeaders()}).then(r=>r.ok?r.json():{members:[]});
-  const members=d.members||[];
-  if(!members.length){list.innerHTML='<div class="empty">No member codes yet.</div>';return}
-  members.forEach(m=>{
-    const div=document.createElement('div');div.className='mini-row';
-    div.innerHTML='<b>'+m.member_label+' <span class="role-chip">'+roleLabel(m.role)+'</span></b><span>'+m.token+'</span>';
-    const del=document.createElement('button');del.className='btn-small red';del.textContent='Revoke';del.onclick=()=>revokeMember(m.token);
-    div.appendChild(del);list.appendChild(div);
-  });
+  const list=document.getElementById('member-list');
+  if(!canManageMembers()){list.innerHTML='<div class="empty">Only the chairman / root NHW code can manage member sub-codes.</div>';return}
+  try{
+    const r=await fetch(API+'/api/nhw/members',{headers:authHeaders()});
+    if(!r.ok){list.innerHTML='<div class="empty">Could not load members</div>';return}
+    const d=await r.json();const members=d.members||[];
+    document.getElementById('member-count').textContent=members.length+' members';
+    if(!members.length){list.innerHTML='<div class="empty">No member codes yet — generate the first one above</div>';return}
+    list.innerHTML='';
+    members.forEach(m=>{
+      const div=document.createElement('div');div.className='member-row';
+      div.innerHTML=`<div style="flex:1"><div class="member-name">${m.member_label} <span class="pill p-low" style="font-size:8px">${lbl(m.role)}</span></div><div class="member-code">${m.token}</div></div>`;
+      const actions=document.createElement('div');actions.style.cssText='display:flex;gap:4px';
+      const copy=document.createElement('button');copy.className='ico-btn';copy.textContent='⎘';copy.title='Copy code';copy.onclick=()=>copyText(m.token);
+      const rev=document.createElement('button');rev.className='ico-btn red';rev.textContent='✕';rev.title='Revoke access';rev.onclick=()=>revokeMember(m.token);
+      actions.append(copy,rev);div.appendChild(actions);list.appendChild(div);
+    });
+  }catch(e){list.innerHTML='<div class="empty">Could not load members</div>'}
 }
 
 async function createMemberCode(){
   if(!canManageMembers()){toast('Only chairman can create member codes');return}
   const member_label=document.getElementById('member-label').value.trim();
   const role=document.getElementById('member-role').value;
-  if(!member_label){toast('Enter member label');return}
+  if(!member_label){toast('Enter member name');return}
   const r=await fetch(API+'/api/nhw/members',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({member_label,role})});
   if(!r.ok){toast('Could not create member code');return}
   const d=await r.json();
-  const box=document.getElementById('new-member-code');box.classList.remove('hidden');box.innerHTML='<b>New member code:</b><br><span style="font-family:DM Mono;color:var(--green)">'+d.token+'</span><br>'+member_label+' · '+roleLabel(role);
-  document.getElementById('member-label').value='';toast('Member code created');loadMembers();
+  document.getElementById('member-label').value='';
+  document.getElementById('new-member-code-val').textContent=d.token;
+  document.getElementById('new-member-code').classList.add('show');
+  toast('Member code created');loadMembers();
 }
 
 async function revokeMember(tok){
-  if(!confirm('Revoke this member code?'))return;
+  if(!confirm('Revoke this member code? It will stop working immediately.'))return;
   const r=await fetch(API+'/api/nhw/members/'+encodeURIComponent(tok),{method:'DELETE',headers:authHeaders()});
   if(!r.ok){toast('Could not revoke member');return}
   toast('Member revoked');loadMembers();
 }
 
+// ── PLANNING MAP ──
 function setColor(btn){document.querySelectorAll('.color-dot').forEach(b=>b.classList.remove('on'));btn.classList.add('on');selectedColor=btn.dataset.color}
 function setDrawState(msg){document.getElementById('draw-state').textContent=msg}
-function startZoneMode(){if(!canManagePatrols()){toast('Role cannot manage patrols');return}drawMode='zone';drawPoints=[];setDrawState('zone drawing');toast('Click map points, then Finish + Save Zone')}
-function startAOIMode(){if(!canManagePatrols()){toast('Role cannot place AOI');return}drawMode='aoi';setDrawState('AOI placement');toast('Click map once to place AOI')}
-function cancelDrawing(){drawMode=null;drawPoints=[];if(tempDrawLayer){planningMap.removeLayer(tempDrawLayer);tempDrawLayer=null}setDrawState('ready')}
+
+function startZoneMode(){
+  if(!canManagePatrols()){toast('Your role cannot manage patrol layers');return}
+  drawMode='zone';drawPoints=[];setDrawState('zone mode — click points on map');toast('Click map points, then Finish + Save Zone')
+}
+function startAOIMode(){
+  if(!canManagePatrols()){toast('Your role cannot place AOI circles');return}
+  drawMode='aoi';setDrawState('AOI mode — click map once to place circle');toast('Click once on the map to place the AOI circle')
+}
+function cancelDrawing(){
+  drawMode=null;drawPoints=[];
+  if(tempDrawLayer){planningMap.removeLayer(tempDrawLayer);tempDrawLayer=null}
+  setDrawState('ready')
+}
 
 function planningMapClick(e){
+  if(!drawMode)return;
   if(drawMode==='zone'){
     drawPoints.push([e.latlng.lat,e.latlng.lng]);
-    if(tempDrawLayer)planningMap.removeLayer(tempDrawLayer);
-    tempDrawLayer=L.polyline(drawPoints,{color:selectedColor,weight:3,dashArray:'6 4'}).addTo(planningMap);
+    if(tempDrawLayer){planningMap.removeLayer(tempDrawLayer);tempDrawLayer=null}
+    if(drawPoints.length>=2)tempDrawLayer=L.polyline(drawPoints,{color:selectedColor,weight:2,dashArray:'6 4'}).addTo(planningMap);
+    L.circleMarker(e.latlng,{radius:4,color:selectedColor,fillColor:selectedColor,fillOpacity:.8,weight:2}).addTo(planningMap);
   }else if(drawMode==='aoi'){
-    saveAOI(e.latlng);
+    const radius=parseInt(document.getElementById('aoi-radius').value)||250;
+    const name=document.getElementById('zone-name').value.trim()||'AOI';
+    saveAOI(e.latlng.lat,e.latlng.lng,radius,name);
+    drawMode=null;setDrawState('AOI placed — ready');
   }
 }
 
 async function finishZone(){
-  if(drawMode!=='zone'||drawPoints.length<3){toast('Add at least 3 points');return}
+  if(!canManagePatrols()){toast('Your role cannot manage patrol layers');return}
+  if(drawPoints.length<3){toast('Draw at least 3 points to make a zone');return}
   const name=document.getElementById('zone-name').value.trim()||'Patrol Zone';
-  const zone_type=document.getElementById('zone-type').value;
-  const coords=drawPoints.concat([drawPoints[0]]).map(p=>[p[1],p[0]]);
-  const geometry={type:'Feature',properties:{name},geometry:{type:'Polygon',coordinates:[coords]}};
-  const r=await fetch(API+'/api/nhw/patrol-zones',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({name,color:selectedColor,zone_type,geometry,note:null})});
-  cancelDrawing();
-  if(!r.ok){toast('Could not save zone');return}
-  toast('Zone saved');loadPlanningLayers();
+  const zoneType=document.getElementById('zone-type').value||'patrol';
+  const geometry={type:'Polygon',coordinates:[[...drawPoints.map(p=>[p[1],p[0]]),[drawPoints[0][1],drawPoints[0][0]]]]};
+  try{
+    const r=await fetch(API+'/api/nhw/patrol-zones',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({name,color:selectedColor,geometry,zone_type:zoneType})});
+    if(!r.ok){toast('Could not save zone');return}
+    toast('Zone saved: '+name);
+    cancelDrawing();document.getElementById('zone-name').value='';
+    loadPlanningLayers();
+  }catch(e){toast('Error saving zone')}
 }
 
-async function saveAOI(latlng){
-  const name=document.getElementById('zone-name').value.trim()||'Area of Interest';
-  const r=await fetch(API+'/api/nhw/aoi',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({name,color:selectedColor,lat:latlng.lat,lng:latlng.lng,radius_m:250,note:null})});
-  cancelDrawing();
-  if(!r.ok){toast('Could not save AOI');return}
-  toast('AOI saved');loadPlanningLayers();
+async function saveAOI(lat,lng,radius,name){
+  try{
+    const r=await fetch(API+'/api/nhw/aoi',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({name,color:selectedColor,lat,lng,radius_m:radius})});
+    if(!r.ok){toast('Could not save AOI');return}
+    toast('AOI saved: '+name);document.getElementById('zone-name').value='';
+    loadPlanningLayers();
+  }catch(e){toast('Error saving AOI')}
 }
 
 async function loadPlanningLayers(){
-  if(!patrolLayer||!aoiLayer)return;
-  patrolLayer.clearLayers();aoiLayer.clearLayers();
-  const zones=await fetch(API+'/api/nhw/patrol-zones',{headers:authHeaders()}).then(r=>r.ok?r.json():{zones:[]});
-  const aois=await fetch(API+'/api/nhw/aoi',{headers:authHeaders()}).then(r=>r.ok?r.json():{areas:[]});
-  (zones.zones||[]).forEach(z=>{if(z.geometry)L.geoJSON(z.geometry,{style:{color:z.color,weight:3,fillColor:z.color,fillOpacity:.16}}).bindPopup('<b>'+z.name+'</b><br>'+label(z.zone_type)).addTo(patrolLayer)});
-  (aois.areas||[]).forEach(a=>L.circle([a.lat,a.lng],{radius:a.radius_m||250,color:a.color,weight:2,fillColor:a.color,fillOpacity:.18}).bindPopup('<b>'+a.name+'</b><br>Area of interest').addTo(aoiLayer));
-  renderZoneList(zones.zones||[],aois.areas||[]);
+  if(!canManagePatrols()&&!nhwIdentity)return;
+  try{
+    patrolLayer?.clearLayers();aoiLayer?.clearLayers();
+    const [zonesR,aoiR]=await Promise.allSettled([
+      fetch(API+'/api/nhw/patrol-zones',{headers:authHeaders()}).then(r=>r.json()),
+      fetch(API+'/api/nhw/aoi',{headers:authHeaders()}).then(r=>r.json())
+    ]);
+    const zones=zonesR.status==='fulfilled'?(zonesR.value.zones||[]):[];
+    const aois=aoiR.status==='fulfilled'?(aoiR.value.areas||[]):[];
+
+    zones.forEach(z=>{
+      if(!z.geometry)return;
+      try{L.geoJSON(z.geometry,{style:{color:z.color||'#4caf7d',weight:2,fillOpacity:.1}}).bindPopup(`<strong>${z.name}</strong><br>${lbl(z.zone_type)}`).addTo(patrolLayer)}catch(e){}
+    });
+    aois.forEach(a=>{
+      L.circle([a.lat,a.lng],{radius:a.radius_m||250,color:a.color||'#4caf7d',fillColor:a.color||'#4caf7d',fillOpacity:.1,weight:2}).bindPopup(`<strong>${a.name}</strong><br>Radius: ${a.radius_m||250}m`).addTo(aoiLayer);
+    });
+
+    const zoneList=document.getElementById('zone-list');
+    const allLayers=[...zones.map(z=>({...z,layerType:'zone'})),...aois.map(a=>({...a,layerType:'aoi'}))];
+    if(!allLayers.length){zoneList.innerHTML='<div class="empty" style="font-size:11px">No saved layers yet</div>';return}
+    zoneList.innerHTML='';
+    allLayers.forEach(l=>{
+      const div=document.createElement('div');div.className='zone-row';
+      div.innerHTML=`<div style="width:10px;height:10px;border-radius:50%;background:${l.color||'#4caf7d'};flex-shrink:0;border:1px solid rgba(255,255,255,.3)"></div><div style="flex:1"><div class="zone-name">${l.name||'—'}</div><div class="zone-type">${lbl(l.zone_type||l.layerType)}</div></div>`;
+      if(canManagePatrols()){
+        const del=document.createElement('button');del.className='ico-btn red';del.textContent='✕';del.title='Delete';
+        del.onclick=()=>deleteLayer(l.id,l.layerType);
+        div.appendChild(del);
+      }
+      zoneList.appendChild(div);
+    });
+  }catch(e){console.error('layer error',e)}
 }
 
-function renderZoneList(zones,aois){
-  const list=document.getElementById('zone-list');list.innerHTML='';
-  if(!zones.length&&!aois.length){list.innerHTML='<div class="empty">No saved patrol layers yet.</div>';return}
-  zones.forEach(z=>{const div=document.createElement('div');div.className='mini-row';div.innerHTML='<b><span style="color:'+z.color+'">●</span> '+z.name+'</b><span>'+label(z.zone_type)+'</span>';const del=document.createElement('button');del.className='btn-small red';del.textContent='Delete';del.onclick=()=>deleteZone(z.id);if(canManagePatrols())div.appendChild(del);list.appendChild(div)});
-  aois.forEach(a=>{const div=document.createElement('div');div.className='mini-row';div.innerHTML='<b><span style="color:'+a.color+'">●</span> '+a.name+'</b><span>AOI</span>';const del=document.createElement('button');del.className='btn-small red';del.textContent='Delete';del.onclick=()=>deleteAOI(a.id);if(canManagePatrols())div.appendChild(del);list.appendChild(div)});
+async function deleteLayer(id,type){
+  if(!confirm('Delete this layer?'))return;
+  const path=type==='aoi'?'/api/nhw/aoi/':'/api/nhw/patrol-zones/';
+  const r=await fetch(API+path+encodeURIComponent(id),{method:'DELETE',headers:authHeaders()});
+  if(!r.ok){toast('Could not delete layer');return}
+  toast('Layer deleted');loadPlanningLayers();
 }
-
-async function deleteZone(id){if(!confirm('Delete zone?'))return;await fetch(API+'/api/nhw/patrol-zones/'+encodeURIComponent(id),{method:'DELETE',headers:authHeaders()});loadPlanningLayers()}
-async function deleteAOI(id){if(!confirm('Delete AOI?'))return;await fetch(API+'/api/nhw/aoi/'+encodeURIComponent(id),{method:'DELETE',headers:authHeaders()});loadPlanningLayers()}
 
 async function searchBoundary(){
-  const name=document.getElementById('area-search').value.trim();if(!name)return;
-  if(boundaryLayer){planningMap.removeLayer(boundaryLayer);boundaryLayer=null}
+  const q=document.getElementById('area-search').value.trim();if(!q)return;
   try{
-    const d=await fetch(API+'/api/suburb/boundary?name='+encodeURIComponent(name)).then(r=>r.json());
+    const r=await fetch(API+'/api/suburb/boundary?name='+encodeURIComponent(q));
+    if(!r.ok){toast('Area not found');return}
+    const d=await r.json();
+    if(boundaryLayer){planningMap.removeLayer(boundaryLayer);boundaryLayer=null}
     if(d.geojson){
-      boundaryLayer=L.geoJSON(d.geojson,{style:{color:'#f07070',weight:3,fillColor:'#f07070',fillOpacity:.07}}).addTo(planningMap);
-      planningMap.fitBounds(boundaryLayer.getBounds(),{padding:[24,24],maxZoom:15});toast('Boundary shown: '+name);return;
+      boundaryLayer=L.geoJSON(d.geojson,{style:{color:'rgba(255,255,255,.5)',weight:2,fillColor:'rgba(255,255,255,.04)',fillOpacity:1,dashArray:'6 4'}}).addTo(planningMap);
+      try{planningMap.fitBounds(boundaryLayer.getBounds(),{padding:[20,20],maxZoom:15})}catch(e){if(d.lat&&d.lng)planningMap.setView([d.lat,d.lng],14)}
+    }else if(d.lat&&d.lng){
+      planningMap.setView([d.lat,d.lng],14);
+      boundaryLayer=L.circle([d.lat,d.lng],{radius:d.fallback_radius_m||1800,color:'rgba(255,255,255,.4)',weight:2,fillOpacity:.03,dashArray:'6 4'}).addTo(planningMap);
     }
-    if(d.lat&&d.lng){
-      boundaryLayer=L.circle([d.lat,d.lng],{radius:d.fallback_radius_m||1800,color:'#f07070',weight:3,fillColor:'#f07070',fillOpacity:.07,dashArray:'8 6'}).addTo(planningMap);
-      planningMap.fitBounds(boundaryLayer.getBounds(),{padding:[24,24],maxZoom:14});toast('Approximate boundary shown');return;
-    }
-  }catch(e){toast('Boundary unavailable')}
+    toast('Area outlined: '+q);
+  }catch(e){toast('Could not find area')}
 }
 
-function downloadExport(){if(!token){toast('Verify first');return}window.open(API+'/api/nhw/export?days='+document.getElementById('days').value,'_blank')}
+function downloadExport(){
+  const days=document.getElementById('days').value;
+  window.open(API+'/api/nhw/export?days='+days,'_blank');
+}
+
+// ── INIT ──
+window.addEventListener('load',()=>{
+  const access=new URLSearchParams(window.location.search).get('access');
+  if(access){
+    document.getElementById('token').value=access.toUpperCase();
+    try{window.history.replaceState({},'','/nhw')}catch(e){}
+    setTimeout(()=>verifyAndLoad(),250);
+  }
+});
 </script>
 
 <script>
-/* SafeNote Phase 2B map/member fixes:
-   - live-feed markers reliably show on Overview and Planning maps
-   - AOI radius is adjustable
-   - map invalidates when switching pages
-*/
+/* Privacy notice on NHW map markers */
 (function(){
-  function incidentColor(sev){
-    return sev==='critical'?'#f07070':sev==='high'?'#e8904a':sev==='medium'?'#d4a832':'#7dab8a';
-  }
-  function incidentIcon(sev){
-    const col=incidentColor(sev);
-    return L.divIcon({
-      className:'',
-      html:'<div style="width:18px;height:18px;border-radius:50%;background:'+col+';border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.65)"></div>',
-      iconSize:[18,18],
-      iconAnchor:[9,9]
-    });
-  }
-
-  const oldShowPage=window.showPage;
-  window.showPage=function(name,btn){
-    oldShowPage(name,btn);
-    setTimeout(()=>{try{overviewMap&&overviewMap.invalidateSize();planningMap&&planningMap.invalidateSize()}catch(e){}},300);
-    setTimeout(()=>{try{overviewMap&&overviewMap.invalidateSize();planningMap&&planningMap.invalidateSize()}catch(e){}},900);
-  };
-
-  window.loadFeed=async function(){
-    const rows=await fetch(API+'/api/reports/live',{headers:authHeaders()}).then(r=>r.ok?r.json():[]);
-    const body=document.getElementById('feed-body');
-    if(body)body.innerHTML='';
-    const feedCount=document.getElementById('feed-count');
-    if(feedCount)feedCount.textContent=rows.length+' records';
-
-    try{overviewMarkers&&overviewMarkers.clearLayers()}catch(e){}
-    try{planningMarkers&&planningMarkers.clearLayers()}catch(e){}
-
-    const heatPts=[];
-    if(!rows.length){
-      if(body)body.innerHTML='<tr><td colspan="6"><div class="empty">No live reports yet.</div></td></tr>';
-      return;
-    }
-
-    rows.forEach(rep=>{
-      if(body){
-        const tr=document.createElement('tr');
-        tr.innerHTML='<td>'+fmtTime(rep.ts)+'</td><td>'+label(rep.type)+'</td><td><span class="pill sev-'+rep.severity+'">'+rep.severity+'</span></td><td><span class="status-pill st-'+(rep.status||'new')+'">'+label(rep.status||'new')+'</span></td><td>'+Number(rep.lat).toFixed(5)+', '+Number(rep.lng).toFixed(5)+'</td><td>'+(rep.note||'—')+'</td>';
-        body.appendChild(tr);
-      }
-
-      const popup='<b>'+label(rep.type)+'</b><br>'+label(rep.severity)+' · '+label(rep.status||'new')+'<br>'+(rep.note||'');
-      const icon1=incidentIcon(rep.severity);
-      const icon2=incidentIcon(rep.severity);
-      try{L.marker([rep.lat,rep.lng],{icon:icon1}).bindPopup(popup).addTo(overviewMarkers)}catch(e){}
-      try{L.marker([rep.lat,rep.lng],{icon:icon2}).bindPopup(popup).addTo(planningMarkers)}catch(e){}
-      heatPts.push([rep.lat,rep.lng,rep.severity==='critical'?1:rep.severity==='high'?.8:rep.severity==='medium'?.55:.35]);
-    });
-
-    try{
-      if(heat&&overviewMap)overviewMap.removeLayer(heat);
-      heat=L.heatLayer(heatPts,{radius:28,blur:20,maxZoom:16}).addTo(overviewMap);
-    }catch(e){}
-
-    const first=rows[0];
-    if(first){
-      try{overviewMap.setView([first.lat,first.lng],14)}catch(e){}
-      try{planningMap.setView([first.lat,first.lng],14)}catch(e){}
-    }
-    setTimeout(()=>{try{overviewMap.invalidateSize();planningMap.invalidateSize()}catch(e){}},250);
-  };
-
-  const oldSaveAOI=window.saveAOI;
-  window.saveAOI=async function(latlng){
-    const name=document.getElementById('zone-name').value.trim()||'Area of Interest';
-    const radiusEl=document.getElementById('aoi-radius');
-    const radius=parseInt(radiusEl?radiusEl.value:250,10)||250;
-    const r=await fetch(API+'/api/nhw/aoi',{
-      method:'POST',
-      headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
-      body:JSON.stringify({name,color:selectedColor,lat:latlng.lat,lng:latlng.lng,radius_m:radius,note:null})
-    });
-    cancelDrawing();
-    if(!r.ok){toast('Could not save AOI');return}
-    toast('AOI saved · '+radius+'m');
-    loadPlanningLayers();
-  };
-})();
-</script>
-
-
-<script>
-/* SafeNote Pre-Phase 3 Stabilization
-   1. Overview map shows patrol zones and AOIs.
-   2. Members see only Overview + Incident Feed.
-   3. Refresh clears token/session automatically.
-   4. Public map can redirect via /nhw?access=CODE once.
-   5. Revoke disables token and removes from active list; Delete permanently removes member.
-*/
-(function(){
-  function isViewOnlyRole(){
-    return nhwIdentity && !nhwIdentity.can_manage_patrols && !nhwIdentity.can_manage_members;
-  }
-
-  function getAccessParam(){
-    try{return new URLSearchParams(window.location.search).get('access') || ''}catch(e){return ''}
-  }
-
-  function clearNHWStorage(){
-    localStorage.removeItem('safenote_nhw_token');
-    localStorage.removeItem('nhw_token');
-    sessionStorage.removeItem('safenote_nhw_token');
-  }
-
-  function applyRoleNavigation(){
-    const role=(nhwIdentity&&nhwIdentity.role)||'';
-    const memberPageBtn=[...document.querySelectorAll('.tab-btn')].find(b=>(b.textContent||'').toLowerCase().includes('members'));
-    const planningPageBtn=[...document.querySelectorAll('.tab-btn')].find(b=>(b.textContent||'').toLowerCase().includes('planning'));
-
-    if(!nhwIdentity) return;
-
-    if(nhwIdentity.can_manage_members){
-      if(memberPageBtn) memberPageBtn.style.display='flex';
-    }else{
-      if(memberPageBtn) memberPageBtn.style.display='none';
-    }
-
-    if(nhwIdentity.can_manage_patrols){
-      if(planningPageBtn) planningPageBtn.style.display='flex';
-      document.querySelectorAll('#draw-zone-btn,#finish-zone-btn,#aoi-btn,.tool-btn').forEach(b=>b.disabled=false);
-    }else{
-      if(planningPageBtn) planningPageBtn.style.display='none';
-      document.querySelectorAll('#draw-zone-btn,#finish-zone-btn,#aoi-btn').forEach(b=>b.disabled=true);
-    }
-
-    // A basic patrol_member/member should only navigate to overview and incidents.
-    if(isViewOnlyRole()){
-      if(typeof showPage==='function') showPage('overview', document.querySelector('.tab-btn'));
-    }
-  }
-
-  function addGeoJsonToMap(map, layerGroup, z){
-    if(!map || !layerGroup || !z.geometry) return;
-    try{
-      L.geoJSON(z.geometry,{
-        style:{color:z.color,weight:3,fillColor:z.color,fillOpacity:.16}
-      }).bindPopup('<b>'+z.name+'</b><br>'+label(z.zone_type||'patrol')).addTo(layerGroup);
-    }catch(e){console.warn('zone render issue', e)}
-  }
-
-  function addAOIToMap(map, layerGroup, a){
-    if(!map || !layerGroup) return;
-    try{
-      L.circle([a.lat,a.lng],{
-        radius:a.radius_m||250,
-        color:a.color,
-        weight:2,
-        fillColor:a.color,
-        fillOpacity:.18
-      }).bindPopup('<b>'+a.name+'</b><br>Area of interest · '+(a.radius_m||250)+'m').addTo(layerGroup);
-    }catch(e){console.warn('aoi render issue', e)}
-  }
-
-  // Add missing overview operational layer groups if they do not exist.
-  window.ensureOverviewOpsLayers=function(){
-    if(typeof overviewMap==='undefined' || !overviewMap) return;
-    if(!window.overviewPatrolLayer){
-      window.overviewPatrolLayer=L.layerGroup().addTo(overviewMap);
-    }
-    if(!window.overviewAOILayer){
-      window.overviewAOILayer=L.layerGroup().addTo(overviewMap);
-    }
-  };
-
-  const previousInitMaps=window.initMaps;
-  window.initMaps=function(){
-    previousInitMaps();
-    ensureOverviewOpsLayers();
-  };
-
-  window.loadPlanningLayers=async function(){
-    if(typeof patrolLayer==='undefined' || !patrolLayer || typeof aoiLayer==='undefined' || !aoiLayer) return;
-    patrolLayer.clearLayers();
-    aoiLayer.clearLayers();
-    ensureOverviewOpsLayers();
-    try{window.overviewPatrolLayer.clearLayers();window.overviewAOILayer.clearLayers()}catch(e){}
-
-    const zones=await fetch(API+'/api/nhw/patrol-zones',{headers:authHeaders()}).then(r=>r.ok?r.json():{zones:[]});
-    const aois=await fetch(API+'/api/nhw/aoi',{headers:authHeaders()}).then(r=>r.ok?r.json():{areas:[]});
-
-    (zones.zones||[]).forEach(z=>{
-      addGeoJsonToMap(planningMap, patrolLayer, z);
-      addGeoJsonToMap(overviewMap, window.overviewPatrolLayer, z);
-    });
-    (aois.areas||[]).forEach(a=>{
-      addAOIToMap(planningMap, aoiLayer, a);
-      addAOIToMap(overviewMap, window.overviewAOILayer, a);
-    });
-
-    renderZoneList(zones.zones||[], aois.areas||[]);
-  };
-
-  // Override member list with revoke + delete.
-  window.loadMembers=async function(){
-    const list=document.getElementById('member-list');
-    if(!list) return;
-    list.innerHTML='';
-    if(!nhwIdentity || !nhwIdentity.can_manage_members){
-      list.innerHTML='<div class="empty">Only the chairman/root NHW code can manage member sub-codes.</div>';
-      return;
-    }
-
-    const d=await fetch(API+'/api/nhw/members',{headers:authHeaders()}).then(r=>r.ok?r.json():{members:[]});
-    const members=d.members||[];
-    if(!members.length){list.innerHTML='<div class="empty">No active member codes yet.</div>';return}
-
-    members.forEach(m=>{
-      const div=document.createElement('div');
-      div.className='mini-row';
-      div.innerHTML='<b>'+m.member_label+' <span class="role-chip">'+roleLabel(m.role)+'</span></b><span>'+m.token+'</span>';
-
-      const actions=document.createElement('div');
-      actions.style.display='flex';
-      actions.style.gap='6px';
-
-      const revoke=document.createElement('button');
-      revoke.className='btn-small red';
-      revoke.textContent='Revoke';
-      revoke.title='Disable token access and remove from active list';
-      revoke.onclick=()=>revokeMember(m.token);
-
-      const del=document.createElement('button');
-      del.className='btn-small red';
-      del.textContent='Delete';
-      del.title='Permanently delete member record';
-      del.onclick=()=>deleteMember(m.token);
-
-      actions.appendChild(revoke);
-      actions.appendChild(del);
-      div.appendChild(actions);
-      list.appendChild(div);
-    });
-  };
-
-  window.revokeMember=async function(tok){
-    if(!confirm('Revoke this member token? It will no longer work and will disappear from the active list.')) return;
-    const r=await fetch(API+'/api/nhw/members/'+encodeURIComponent(tok),{method:'DELETE',headers:authHeaders()});
-    if(!r.ok){toast('Could not revoke member');return}
-    toast('Member token revoked');
-    await loadMembers();
-  };
-
-  window.deleteMember=async function(tok){
-    if(!confirm('Permanently delete this member record?')) return;
-    const r=await fetch(API+'/api/nhw/members/'+encodeURIComponent(tok)+'/delete',{method:'DELETE',headers:authHeaders()});
-    if(!r.ok){toast('Could not delete member');return}
-    toast('Member deleted');
-    await loadMembers();
-  };
-
-  const previousVerify=window.verifyAndLoad;
-  window.verifyAndLoad=async function(){
-    await previousVerify();
-    if(nhwIdentity){
-      applyRoleNavigation();
-      ensureOverviewOpsLayers();
-      await loadPlanningLayers();
-      setTimeout(()=>{try{overviewMap&&overviewMap.invalidateSize();planningMap&&planningMap.invalidateSize()}catch(e){}},300);
-    }
-  };
-
-  const previousRefresh=window.refreshAll;
-  window.refreshAll=async function(){
-    await previousRefresh();
-    if(nhwIdentity){
-      applyRoleNavigation();
-      await loadPlanningLayers();
-    }
-  };
-
-  // Do not persist token after page refresh. Public redirect can pass ?access=CODE once.
   window.addEventListener('load',()=>{
-    const access=getAccessParam();
-    clearNHWStorage();
-
-    if(access){
-      const input=document.getElementById('token');
-      if(input) input.value=access.toUpperCase();
-      try{window.history.replaceState({},document.title,'/nhw')}catch(e){}
-      setTimeout(()=>{verifyAndLoad()},250);
-      return;
+    if(window.L&&L.Marker&&L.Marker.prototype.bindPopup&&!L.Marker.prototype._nhwPrivacy){
+      const old=L.Marker.prototype.bindPopup;
+      L.Marker.prototype._nhwPrivacy=true;
+      L.Marker.prototype.bindPopup=function(content,opts){
+        if(typeof content==='string'&&content.indexOf('Protected location')<0)
+          content+='<br><small style="color:rgba(255,255,255,.35)">Protected location · exact reporter position hidden</small>';
+        return old.call(this,content,opts);
+      };
     }
-
-    const input=document.getElementById('token');
-    if(input) input.value='';
-    if(typeof lock==='function') lock();
-  }, {once:true});
-
-  window.logout=function(){
-    clearNHWStorage();
-    token='';
-    try{sessionStorage.clear()}catch(e){}
-    location.href='/nhw';
-  };
-})();
-</script>
-
-
-<script>
-/* SafeNote Privacy Phase 1 — NHW protected display notice */
-(function(){
-  if(window.L && L.Marker && L.Marker.prototype.bindPopup && !L.Marker.prototype._safeNoteNHWPrivacyPopup){
-    const oldBind=L.Marker.prototype.bindPopup;
-    L.Marker.prototype._safeNoteNHWPrivacyPopup=true;
-    L.Marker.prototype.bindPopup=function(content,opts){
-      if(typeof content==='string' && content.indexOf('Protected location')<0){
-        content += '<br><small style="color:#9db99f">Protected location. Exact reporter position hidden.</small>';
-      }
-      return oldBind.call(this,content,opts);
-    };
-  }
-
-  const oldLoadFeed=window.loadFeed;
-  if(typeof oldLoadFeed==='function' && !window._safeNotePrivacyLoadFeedWrapped){
-    window._safeNotePrivacyLoadFeedWrapped=true;
-    window.loadFeed=async function(){
-      await oldLoadFeed();
-      try{
-        document.querySelectorAll('#feed-body tr').forEach(tr=>{
-          if(tr.innerHTML && tr.innerHTML.indexOf('Protected map location')<0 && tr.children.length>=6){
-            const noteCell=tr.children[5];
-            noteCell.innerHTML=(noteCell.innerHTML||'—')+'<br><small style="color:#9db99f">Protected map location · exact reporter position hidden</small>';
-          }
-        });
-      }catch(e){}
-    };
-  }
+  });
 })();
 </script>
 
