@@ -45,7 +45,7 @@ import sqlite3, uuid, time, os, hashlib, io, csv, math, re, urllib.parse, json, 
 import httpx
 from datetime import datetime, timezone
 
-app = FastAPI(title="SafeNote API", version="1.2.1")
+app = FastAPI(title="SafeNote API", version="1.3.0")
 # Phase 1A note: Eskom UI is disabled in frontend; backend power routes remain for compatibility.
 
 app.add_middleware(
@@ -158,9 +158,17 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(type);
 
         CREATE TABLE IF NOT EXISTS nhw_tokens (
-            token       TEXT PRIMARY KEY,
-            label       TEXT,
-            created_at  INTEGER
+            token           TEXT PRIMARY KEY,
+            label           TEXT,
+            created_at      INTEGER,
+            suburb_name     TEXT,
+            bbox_south      REAL,
+            bbox_north      REAL,
+            bbox_west       REAL,
+            bbox_east       REAL,
+            suburb_lat      REAL,
+            suburb_lng      REAL,
+            multi_suburbs   TEXT
         );
         CREATE TABLE IF NOT EXISTS eskom_cache (
             id          INTEGER PRIMARY KEY CHECK (id=1),
@@ -252,6 +260,26 @@ def init_db():
     cur.execute("UPDATE reports SET location_confidence='medium' WHERE location_confidence IS NULL OR location_confidence=''")
     cur.execute("UPDATE reports SET privacy_radius_m=250 WHERE privacy_radius_m IS NULL")
 
+    # Suburb boundary migration for existing nhw_tokens rows
+    nhw_cols = [r[1] for r in cur.execute("PRAGMA table_info(nhw_tokens)").fetchall()]
+    nhw_new_cols = {
+        "suburb_name":   "TEXT",
+        "bbox_south":    "REAL",
+        "bbox_north":    "REAL",
+        "bbox_west":     "REAL",
+        "bbox_east":     "REAL",
+        "suburb_lat":    "REAL",
+        "suburb_lng":    "REAL",
+        "multi_suburbs": "TEXT",
+    }
+    for col, spec in nhw_new_cols.items():
+        if col not in nhw_cols:
+            cur.execute(f"ALTER TABLE nhw_tokens ADD COLUMN {col} {spec}")
+
+    # Same for nhw_members — they inherit bbox from parent token
+    mem_cols = [r[1] for r in cur.execute("PRAGMA table_info(nhw_members)").fetchall()]
+    if "suburb_name" not in mem_cols:
+        cur.execute("ALTER TABLE nhw_members ADD COLUMN suburb_name TEXT")
 
     con.commit()
     con.close()
@@ -347,8 +375,19 @@ def get_nhw_identity(token: str, db=None) -> dict:
         db.row_factory = sqlite3.Row
         close_after = True
 
-    root = db.execute("SELECT token,label,created_at FROM nhw_tokens WHERE token=?", (token,)).fetchone()
+    root = db.execute(
+        """SELECT token,label,created_at,suburb_name,bbox_south,bbox_north,
+                  bbox_west,bbox_east,suburb_lat,suburb_lng,multi_suburbs
+           FROM nhw_tokens WHERE token=?""",
+        (token,)
+    ).fetchone()
     if root:
+        multi = None
+        try:
+            if root["multi_suburbs"]:
+                multi = json.loads(root["multi_suburbs"])
+        except Exception:
+            pass
         out = {
             "token": root["token"],
             "root_token": root["token"],
@@ -358,18 +397,38 @@ def get_nhw_identity(token: str, db=None) -> dict:
             "can_manage_members": True,
             "can_manage_patrols": True,
             "can_verify": True,
-            "is_root": True
+            "is_root": True,
+            "suburb_name": root["suburb_name"],
+            "suburb_lat": root["suburb_lat"],
+            "suburb_lng": root["suburb_lng"],
+            "bbox": {
+                "south": root["bbox_south"],
+                "north": root["bbox_north"],
+                "west":  root["bbox_west"],
+                "east":  root["bbox_east"],
+            } if root["bbox_south"] is not None else None,
+            "multi_suburbs": multi,
         }
         if close_after: db.close()
         return out
 
     member = db.execute(
-        """SELECT token,parent_token,group_label,member_label,role,active
-           FROM nhw_members WHERE token=? AND active=1""",
+        """SELECT m.token,m.parent_token,m.group_label,m.member_label,m.role,m.active,
+                  t.suburb_name,t.bbox_south,t.bbox_north,t.bbox_west,t.bbox_east,
+                  t.suburb_lat,t.suburb_lng,t.multi_suburbs
+           FROM nhw_members m
+           LEFT JOIN nhw_tokens t ON t.token=m.parent_token
+           WHERE m.token=? AND m.active=1""",
         (token,)
     ).fetchone()
     if member:
         role = member["role"]
+        multi = None
+        try:
+            if member["multi_suburbs"]:
+                multi = json.loads(member["multi_suburbs"])
+        except Exception:
+            pass
         out = {
             "token": member["token"],
             "root_token": member["parent_token"],
@@ -379,7 +438,17 @@ def get_nhw_identity(token: str, db=None) -> dict:
             "can_manage_members": False,
             "can_manage_patrols": role in ("chairman","vice_chairman","patrol_lead"),
             "can_verify": role in ("chairman","vice_chairman","patrol_lead"),
-            "is_root": False
+            "is_root": False,
+            "suburb_name": member["suburb_name"],
+            "suburb_lat": member["suburb_lat"],
+            "suburb_lng": member["suburb_lng"],
+            "bbox": {
+                "south": member["bbox_south"],
+                "north": member["bbox_north"],
+                "west":  member["bbox_west"],
+                "east":  member["bbox_east"],
+            } if member["bbox_south"] is not None else None,
+            "multi_suburbs": multi,
         }
         if close_after: db.close()
         return out
@@ -723,14 +792,24 @@ async def public_feed(db=Depends(get_db)):
 
 
 @app.get("/api/reports/live")
-async def live_feed(_=Depends(require_nhw), db=Depends(get_db)):
-    """Real-time feed for verified NHW/CPF members — no delay, all types."""
+async def live_feed(identity=Depends(require_nhw_identity), db=Depends(get_db)):
+    """Real-time feed for verified NHW/CPF members — filtered to assigned suburb."""
+    bbox_sql, bbox_params = bbox_filter_sql(identity)
     rows = db.execute(
-        """SELECT id,type,severity,lat,lng,note,ts,status,display_lat,display_lng,location_context,location_confidence,privacy_radius_m,location_note FROM reports
-           WHERE COALESCE(status,'new') != 'archived'
-           ORDER BY ts DESC LIMIT 100"""
+        f"""SELECT id,type,severity,lat,lng,note,ts,status,display_lat,display_lng,
+                   location_context,location_confidence,privacy_radius_m,location_note
+            FROM reports
+            WHERE COALESCE(status,'new') != 'archived'
+            {bbox_sql}
+            ORDER BY ts DESC LIMIT 200""",
+        bbox_params
     ).fetchall()
-    return {"reports": [protected_report_payload(r) for r in rows], "live": True}
+    return {
+        "reports": [protected_report_payload(r) for r in rows],
+        "live": True,
+        "suburb_filter": identity.get("suburb_name"),
+        "bbox_active": bool(identity.get("bbox")),
+    }
 
 
 @app.get("/api/reports/stats")
@@ -949,19 +1028,160 @@ async def admin_export_csv(_=Depends(require_admin), db=Depends(get_db)):
 @app.get("/api/admin/nhw-tokens")
 async def list_nhw_tokens(_=Depends(require_admin), db=Depends(get_db)):
     rows = db.execute(
-        "SELECT token,label,created_at FROM nhw_tokens ORDER BY created_at DESC"
+        """SELECT token,label,created_at,suburb_name,bbox_south,bbox_north,
+                  bbox_west,bbox_east,suburb_lat,suburb_lng,multi_suburbs
+           FROM nhw_tokens ORDER BY created_at DESC"""
     ).fetchall()
-    return {"tokens": [row_to_dict(r) for r in rows]}
+    result = []
+    for r in rows:
+        d = row_to_dict(r)
+        multi = None
+        try:
+            if d.get("multi_suburbs"):
+                multi = json.loads(d["multi_suburbs"])
+        except Exception:
+            pass
+        d["multi_suburbs_parsed"] = multi
+        d["has_boundary"] = d.get("bbox_south") is not None
+        result.append(d)
+    return {"tokens": result}
+
+
+class NhwTokenCreateIn(BaseModel):
+    label: str
+    suburb_name: Optional[str] = None
+    bbox_south: Optional[float] = None
+    bbox_north: Optional[float] = None
+    bbox_west:  Optional[float] = None
+    bbox_east:  Optional[float] = None
+    suburb_lat: Optional[float] = None
+    suburb_lng: Optional[float] = None
+    multi_suburbs: Optional[str] = None  # JSON string of [{name,south,north,west,east}]
 
 
 @app.post("/api/admin/nhw-tokens")
-async def create_nhw_token(label: str, _=Depends(require_admin), db=Depends(get_db)):
-    """Create a new NHW access token for a CPF group."""
+async def create_nhw_token(
+    body: NhwTokenCreateIn,
+    _=Depends(require_admin),
+    db=Depends(get_db)
+):
+    """
+    Create a new NHW access token for a CPF group.
+    Optionally assign a suburb boundary so the group only sees their area.
+    """
     token = "NHW-" + uuid.uuid4().hex[:10].upper()
-    db.execute("INSERT INTO nhw_tokens(token,label,created_at) VALUES(?,?,?)",
-               (token, label, int(time.time())))
+    db.execute(
+        """INSERT INTO nhw_tokens(token,label,created_at,suburb_name,
+                                  bbox_south,bbox_north,bbox_west,bbox_east,
+                                  suburb_lat,suburb_lng,multi_suburbs)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            token, body.label, int(time.time()),
+            body.suburb_name,
+            body.bbox_south, body.bbox_north, body.bbox_west, body.bbox_east,
+            body.suburb_lat, body.suburb_lng,
+            body.multi_suburbs,
+        )
+    )
     db.commit()
-    return {"token": token, "label": label}
+    return {
+        "token": token,
+        "label": body.label,
+        "suburb_name": body.suburb_name,
+        "has_boundary": body.bbox_south is not None,
+    }
+
+
+@app.get("/api/admin/geocode-suburb")
+async def geocode_suburb_for_token(
+    name: str = Query(..., min_length=2, max_length=80),
+    _=Depends(require_admin)
+):
+    """
+    Geocodes a suburb name and returns bbox for admin to assign to NHW token.
+    Reuses the existing suburb boundary cache.
+    """
+    key = name.lower().strip()
+    if key in _suburb_boundary_cache:
+        cached = _suburb_boundary_cache[key]
+        return _format_geocode_result(cached, name)
+
+    url = (
+        "https://nominatim.openstreetmap.org/search"
+        "?q=" + urllib.parse.quote(f"{name}, Western Cape, South Africa", safe="")
+        + "&format=json&limit=5&polygon_geojson=1&addressdetails=1"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            r = await client.get(url, headers={
+                "User-Agent": "SafeNote-WC-CommunityApp/1.0",
+                "Accept": "application/json",
+            })
+            results = r.json()
+
+        best = None
+        prefer = {"suburb","neighbourhood","quarter","residential","town","village"}
+        for res in results:
+            addr = res.get("address", {})
+            state = addr.get("state", "").lower()
+            if "western cape" not in state and "wes-kaap" not in state:
+                continue
+            if best is None:
+                best = res
+            if res.get("type") in prefer:
+                best = res; break
+
+        if not best:
+            raise HTTPException(status_code=404, detail=f"No suburb found for '{name}'")
+
+        bounds = best.get("boundingbox")
+        data = {
+            "name": name,
+            "lat": float(best["lat"]),
+            "lng": float(best["lon"]),
+            "bbox": [float(bounds[0]), float(bounds[2]), float(bounds[1]), float(bounds[3])] if bounds else None,
+            "display_name": best.get("display_name",""),
+            "type": best.get("type"),
+            "geojson": best.get("geojson"),
+        }
+        _suburb_boundary_cache[key] = {"lat": data["lat"], "lng": data["lng"],
+                                        "geojson": data.get("geojson"),
+                                        "bbox": [[float(bounds[0]),float(bounds[2])],[float(bounds[1]),float(bounds[3])]] if bounds else None}
+        return _format_geocode_result(data, name)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Geocode failed: {str(e)}")
+
+
+def _format_geocode_result(data: dict, name: str) -> dict:
+    """Formats geocode result into bbox fields for NHW token creation."""
+    lat = data.get("lat") or (data.get("bbox") and None)
+    lng = data.get("lng")
+    bbox = data.get("bbox")
+
+    # Handle both bbox formats
+    if bbox and isinstance(bbox[0], list):
+        # [[south,west],[north,east]] format from boundary cache
+        south, west = bbox[0][0], bbox[0][1]
+        north, east = bbox[1][0], bbox[1][1]
+    elif bbox and len(bbox) == 4:
+        # [south, west, north, east] flat format
+        south, west, north, east = bbox[0], bbox[1], bbox[2], bbox[3]
+    else:
+        south = north = west = east = None
+
+    return {
+        "suburb_name": name,
+        "suburb_lat": lat,
+        "suburb_lng": lng,
+        "bbox_south": south,
+        "bbox_north": north,
+        "bbox_west":  west,
+        "bbox_east":  east,
+        "display_name": data.get("display_name",""),
+        "has_boundary": south is not None,
+    }
 
 
 @app.delete("/api/admin/nhw-tokens/{token}")
@@ -1145,6 +1365,46 @@ async def suburb_boundary(name: str = Query(..., min_length=2, max_length=80)):
         raise HTTPException(status_code=503,
             detail=f"Boundary service unavailable: {str(e)}")
 
+# ── NHW SUBURB BBOX HELPERS ──────────────────────────────────────────────────
+
+def bbox_filter_sql(identity: dict) -> tuple[str, list]:
+    """
+    Returns a SQL WHERE fragment and params list to filter reports to the
+    NHW group's assigned suburb boundary.
+    Pads the bbox by ~300m to avoid clipping edge-of-suburb reports.
+    If no bbox is assigned (older tokens), returns empty filter (no restriction).
+    """
+    bbox = identity.get("bbox") if identity else None
+    multi = identity.get("multi_suburbs") if identity else None
+
+    PAD_DEG = 0.003  # ~300m padding on each side
+
+    if multi and len(multi) > 0:
+        # Union of multiple suburb bboxes
+        clauses = []
+        params = []
+        for b in multi:
+            if all(k in b for k in ("south","north","west","east")):
+                clauses.append(
+                    "(COALESCE(display_lat,lat) BETWEEN ? AND ? AND COALESCE(display_lng,lng) BETWEEN ? AND ?)"
+                )
+                params += [b["south"]-PAD_DEG, b["north"]+PAD_DEG,
+                           b["west"]-PAD_DEG,  b["east"]+PAD_DEG]
+        if clauses:
+            return " AND (" + " OR ".join(clauses) + ")", params
+
+    if bbox and all(bbox.get(k) is not None for k in ("south","north","west","east")):
+        sql = (" AND COALESCE(display_lat,lat) BETWEEN ? AND ?"
+               " AND COALESCE(display_lng,lng) BETWEEN ? AND ?")
+        params = [
+            bbox["south"] - PAD_DEG, bbox["north"] + PAD_DEG,
+            bbox["west"]  - PAD_DEG, bbox["east"]  + PAD_DEG,
+        ]
+        return sql, params
+
+    return "", []  # no bbox assigned — no spatial restriction
+
+
 # ── NHW TOKEN VERIFY (public — used by frontend) ─────────────────────────────
 
 class NhwVerifyIn(BaseModel):
@@ -1154,7 +1414,7 @@ class NhwVerifyIn(BaseModel):
 async def nhw_verify(body: NhwVerifyIn, db=Depends(get_db)):
     """
     Verifies either a chairman/root NHW code or a member sub-code.
-    Returns role and permission details for the portal UI.
+    Returns role, permission details and suburb boundary for the portal UI.
     """
     code = body.code.strip().upper()
     try:
@@ -1167,7 +1427,12 @@ async def nhw_verify(body: NhwVerifyIn, db=Depends(get_db)):
             "can_manage_members": identity["can_manage_members"],
             "can_manage_patrols": identity["can_manage_patrols"],
             "can_verify": identity["can_verify"],
-            "is_root": identity["is_root"]
+            "is_root": identity["is_root"],
+            "suburb_name": identity.get("suburb_name"),
+            "suburb_lat": identity.get("suburb_lat"),
+            "suburb_lng": identity.get("suburb_lng"),
+            "bbox": identity.get("bbox"),
+            "multi_suburbs": identity.get("multi_suburbs"),
         }
     except HTTPException:
         return {"valid": False, "label": None}
@@ -1299,42 +1564,50 @@ async def admin_full_reset(_=Depends(require_admin), db=Depends(get_db)):
 @app.get("/api/nhw/analytics")
 async def nhw_analytics(
     days: int = Query(30, ge=1, le=365),
-    _=Depends(require_nhw),
+    identity=Depends(require_nhw_identity),
     db=Depends(get_db)
 ):
+    """NHW analytics — all queries filtered to the group's assigned suburb boundary."""
     now = int(time.time())
     since = now - (days * 86400)
     today_s = now - 86400
     week_s = now - 604800
 
+    bbox_sql, bbox_params = bbox_filter_sql(identity)
+
     summary = {
-        "today": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (today_s,)).fetchone()[0],
-        "week": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (week_s,)).fetchone()[0],
-        "period_total": db.execute("SELECT COUNT(*) FROM reports WHERE ts>?", (since,)).fetchone()[0],
-        "critical": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='critical'", (since,)).fetchone()[0],
-        "high": db.execute("SELECT COUNT(*) FROM reports WHERE ts>? AND severity='high'", (since,)).fetchone()[0],
-        "intel": db.execute("SELECT COUNT(*) FROM intel_locations WHERE ts>?", (since,)).fetchone()[0],
+        "today":        db.execute(f"SELECT COUNT(*) FROM reports WHERE ts>? {bbox_sql}", [today_s]+bbox_params).fetchone()[0],
+        "week":         db.execute(f"SELECT COUNT(*) FROM reports WHERE ts>? {bbox_sql}", [week_s]+bbox_params).fetchone()[0],
+        "period_total": db.execute(f"SELECT COUNT(*) FROM reports WHERE ts>? {bbox_sql}", [since]+bbox_params).fetchone()[0],
+        "critical":     db.execute(f"SELECT COUNT(*) FROM reports WHERE ts>? AND severity='critical' {bbox_sql}", [since]+bbox_params).fetchone()[0],
+        "high":         db.execute(f"SELECT COUNT(*) FROM reports WHERE ts>? AND severity='high' {bbox_sql}", [since]+bbox_params).fetchone()[0],
+        "intel":        db.execute(f"SELECT COUNT(*) FROM intel_locations WHERE ts>? {bbox_sql.replace('COALESCE(display_lat,lat)','lat').replace('COALESCE(display_lng,lng)','lng')}", [since]+bbox_params).fetchone()[0],
     }
 
     trend_rows = db.execute(
-        """SELECT date(ts,'unixepoch') AS day, COUNT(*) AS count
-           FROM reports WHERE ts>?
+        f"""SELECT date(ts,'unixepoch') AS day, COUNT(*) AS count
+           FROM reports WHERE ts>? {bbox_sql}
            GROUP BY date(ts,'unixepoch')
-           ORDER BY day ASC""", (since,)
+           ORDER BY day ASC""",
+        [since] + bbox_params
     ).fetchall()
 
     by_type_rows = db.execute(
-        """SELECT type, COUNT(*) AS count
-           FROM reports WHERE ts>?
-           GROUP BY type ORDER BY count DESC LIMIT 12""", (since,)
+        f"""SELECT type, COUNT(*) AS count
+           FROM reports WHERE ts>? {bbox_sql}
+           GROUP BY type ORDER BY count DESC LIMIT 12""",
+        [since] + bbox_params
     ).fetchall()
 
     hotspot_rows = db.execute(
-        """SELECT round(lat,3) AS lat, round(lng,3) AS lng, COUNT(*) AS count
+        f"""SELECT round(COALESCE(display_lat,lat),3) AS lat,
+                   round(COALESCE(display_lng,lng),3) AS lng,
+                   COUNT(*) AS count
            FROM reports
-           WHERE ts>? AND type NOT LIKE 'power_%'
-           GROUP BY round(lat,3), round(lng,3)
-           ORDER BY count DESC LIMIT 10""", (since,)
+           WHERE ts>? AND type NOT LIKE 'power_%' {bbox_sql}
+           GROUP BY round(COALESCE(display_lat,lat),3), round(COALESCE(display_lng,lng),3)
+           ORDER BY count DESC LIMIT 10""",
+        [since] + bbox_params
     ).fetchall()
 
     return {
@@ -1343,18 +1616,23 @@ async def nhw_analytics(
         "by_type": [row_to_dict(r) for r in by_type_rows],
         "hotspots": [row_to_dict(r) for r in hotspot_rows],
         "days": days,
+        "suburb_filter": identity.get("suburb_name"),
+        "bbox_active": bool(identity.get("bbox")),
     }
 
 @app.get("/api/nhw/export")
 async def nhw_export_csv(
     days: int = Query(30, ge=1, le=365),
-    _=Depends(require_nhw),
+    identity=Depends(require_nhw_identity),
     db=Depends(get_db)
 ):
     since = int(time.time()) - (days * 86400)
+    bbox_sql, bbox_params = bbox_filter_sql(identity)
     rows = db.execute(
-        """SELECT type,severity,round(lat,4) AS lat,round(lng,4) AS lng,note,ts,status
-           FROM reports WHERE ts>? ORDER BY ts DESC""", (since,)
+        f"""SELECT type,severity,round(COALESCE(display_lat,lat),4) AS lat,
+                   round(COALESCE(display_lng,lng),4) AS lng,note,ts,status
+            FROM reports WHERE ts>? {bbox_sql} ORDER BY ts DESC""",
+        [since] + bbox_params
     ).fetchall()
 
     output = io.StringIO()
@@ -1373,19 +1651,22 @@ async def nhw_export_csv(
 @app.get("/api/nhw/area-risk")
 async def nhw_area_risk(
     days: int = Query(30, ge=1, le=365),
-    _=Depends(require_nhw),
+    identity=Depends(require_nhw_identity),
     db=Depends(get_db)
 ):
     since = int(time.time()) - (days * 86400)
+    bbox_sql, bbox_params = bbox_filter_sql(identity)
     rows = db.execute(
-        """SELECT round(lat,2) AS lat, round(lng,2) AS lng,
+        f"""SELECT round(COALESCE(display_lat,lat),2) AS lat,
+                   round(COALESCE(display_lng,lng),2) AS lng,
                   COUNT(*) AS count,
                   MAX(CASE severity WHEN 'critical' THEN 4 WHEN 'high' THEN 3
                       WHEN 'medium' THEN 2 ELSE 1 END) AS max_sev
            FROM reports
-           WHERE ts>? AND type NOT LIKE 'power_%'
+           WHERE ts>? AND type NOT LIKE 'power_%' {bbox_sql}
            GROUP BY round(COALESCE(display_lat,lat),2), round(COALESCE(display_lng,lng),2)
-           ORDER BY count DESC LIMIT 300""", (since,)
+           ORDER BY count DESC LIMIT 300""",
+        [since] + bbox_params
     ).fetchall()
 
     cells = []
@@ -1672,7 +1953,7 @@ async def public_nhw_access(body: NhwVerifyIn, db=Depends(get_db)):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "SafeNote", "version": "1.2.1",
+    return {"status": "ok", "service": "SafeNote", "version": "1.3.0",
             "ts": int(time.time())}
 
 
