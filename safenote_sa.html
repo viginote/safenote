@@ -1865,6 +1865,8 @@ var map, heatLayer, crimeCluster, patrolLayer, outageMarkers, drugMarkers, subur
 var selInciVal=null, selSevVal=null, gpsLat=null, gpsLng=null;
 var drugType=null, drugDuration=null, drugLat=null, drugLng=null;
 var nhwVerified=false, eskomOn=false, eskomZones=null;
+// NHW public map mode state
+var nhwMode=false, nhwIdentityData=null, nhwPatrolLayer=null, nhwAoiLayer=null, nhwBoundaryLayer=null;
 var reports=[], _outageData=[];
 var layerStates={crimes:true,heat:true,power:true,drugs:false,patrol:false};
 var activeSuburb=null, suburbBoundary=null;
@@ -2248,8 +2250,24 @@ function loadFeed(){
   })
   .then(function(d){
     reports=d.reports||[];
-    renderCrimeMarkers(reports);
-    renderHeat(reports);
+    // In NHW mode, filter markers to assigned suburb only
+    if(nhwMode && nhwIdentityData && nhwIdentityData.bbox){
+      var bbox=nhwIdentityData.bbox, multi=nhwIdentityData.multi_suburbs, PAD=0.003;
+      var filtered=reports.filter(function(r){
+        var lat=r.display_lat||r.lat, lng=r.display_lng||r.lng;
+        if(multi&&multi.length){
+          return multi.some(function(b){
+            return lat>=(b.south-PAD)&&lat<=(b.north+PAD)&&lng>=(b.west-PAD)&&lng<=(b.east+PAD);
+          });
+        }
+        return lat>=(bbox.south-PAD)&&lat<=(bbox.north+PAD)&&lng>=(bbox.west-PAD)&&lng<=(bbox.east+PAD);
+      });
+      renderCrimeMarkers(filtered);
+      renderHeat(filtered);
+    } else {
+      renderCrimeMarkers(reports);
+      renderHeat(reports);
+    }
     renderPatrolLayer(reports);
     document.getElementById('lc-crimes').textContent=reports.length;
   })
@@ -2476,6 +2494,7 @@ function restoreNhwSession(code){
   code=normaliseNhwCode(code);
   if(!validNhwFormat(code)){
     try{localStorage.removeItem('snhw');}catch(e){}
+    try{localStorage.removeItem('snhw_identity');}catch(e){}
     return;
   }
   fetch(API+'/api/nhw/verify',{
@@ -2489,7 +2508,8 @@ function restoreNhwSession(code){
   })
   .then(function(d){
     if(d.valid===true){
-      grantNhwAccess(code);
+      try{localStorage.setItem('snhw_identity',JSON.stringify(d));}catch(e){}
+      grantNhwAccess(code, d);
     } else {
       revokeNhwAccess();
     }
@@ -2498,16 +2518,22 @@ function restoreNhwSession(code){
     revokeNhwAccess();
   });
 }
-function grantNhwAccess(code){
+function grantNhwAccess(code, identityData){
   nhwVerified=true;
+  nhwIdentityData=identityData||null;
   try{localStorage.setItem('snhw',code);}catch(e){}
   closeNhwModal();
   activateNhwUI();
   loadLiveFeed();
   loadDrugMarkers();
+  // Enter NHW map mode — suburb filter + patrol layers
+  if(nhwIdentityData){
+    enterNhwMapMode(nhwIdentityData);
+  }
 }
 function revokeNhwAccess(){
   nhwVerified=false;
+  nhwIdentityData=null;
   try{localStorage.removeItem('snhw');}catch(e){}
   var btn=document.getElementById('nhw-btn');
   if(btn){btn.classList.remove('active');btn.textContent='NHW Access';}
@@ -2521,6 +2547,8 @@ function revokeNhwAccess(){
   if(drugBtn){drugBtn.classList.remove('on');}
   var drugCount=document.getElementById('lc-drugs');
   if(drugCount){drugCount.textContent='0';}
+  // Exit NHW map mode — restore full public view
+  exitNhwMapMode();
 }
 function activateNhwUI(){
   document.getElementById('nhw-btn').classList.add('active');
@@ -3269,6 +3297,317 @@ async function drawApproximateSuburbCircle(name){
 
 
 <script>
+/* ═══════════════════════════════════════════════════════════════
+   SafeNote NHW Public Map Mode
+   When a member verifies their NHW code on the public map:
+   - Map zooms and locks to their assigned suburb boundary
+   - Incidents filtered to that suburb only
+   - Patrol zones and AOI circles from their group load on map
+   - NHW mode banner shown
+   On logout / refresh: everything reverts to full public view
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+
+  /* ── CSS for NHW mode banner and patrol layers ── */
+  var css = document.createElement('style');
+  css.textContent = `
+    .nhw-mode-banner{
+      position:fixed;top:calc(var(--topbar-h,56px) + 4px);left:50%;
+      transform:translateX(-50%);z-index:900;
+      background:rgba(10,18,10,.95);
+      border:1.5px solid rgba(125,171,138,.5);
+      border-radius:999px;padding:6px 18px;
+      font:700 10px 'DM Mono',monospace;
+      color:#7dab8a;letter-spacing:.8px;
+      white-space:nowrap;backdrop-filter:blur(10px);
+      box-shadow:0 4px 18px rgba(0,0,0,.45);
+      display:flex;align-items:center;gap:8px;
+    }
+    .nhw-mode-banner .nhw-pip{
+      width:7px;height:7px;border-radius:50%;
+      background:#7dab8a;
+      animation:pip 2s ease-in-out infinite;
+    }
+    .nhw-mode-banner .nhw-logout{
+      margin-left:6px;cursor:pointer;
+      color:rgba(125,171,138,.6);font-size:13px;line-height:1;
+      background:none;border:none;padding:0;
+    }
+    .nhw-mode-banner .nhw-logout:hover{color:#f07070}
+    @media(max-width:768px){
+      .nhw-mode-banner{
+        top:calc(var(--topbar-h,52px) + var(--mobile-action-h,92px) + 6px)!important;
+        font-size:9px!important;padding:5px 14px!important;
+      }
+    }
+  `;
+  document.head.appendChild(css);
+
+  /* ── Leaflet styles for NHW patrol/AOI layers ── */
+  var mapCss = document.createElement('style');
+  mapCss.textContent = `
+    .nhw-patrol-popup .leaflet-popup-content-wrapper{
+      background:#1a2818;border:1.5px solid rgba(125,171,138,.35);
+      border-radius:10px;color:#e8f0ea;
+    }
+    .nhw-patrol-popup .leaflet-popup-tip{background:#1a2818}
+  `;
+  document.head.appendChild(mapCss);
+
+  /* ── enterNhwMapMode ── */
+  window.enterNhwMapMode = function(identity){
+    if(!identity || !window.map) return;
+    nhwMode = true;
+
+    // 1. Draw suburb boundary and zoom map
+    var suburbName = identity.suburb_name;
+    var bbox = identity.bbox;
+    var multi = identity.multi_suburbs;
+
+    if(suburbName){
+      drawNhwBoundary(suburbName, bbox, multi);
+    }
+
+    // 2. Filter incident markers to suburb only
+    filterMarkersToSuburb(bbox, multi);
+
+    // 3. Load and render patrol zones + AOI for this group
+    loadNhwPatrolLayers(identity);
+
+    // 4. Show NHW mode banner
+    showNhwBanner(identity);
+  };
+
+  /* ── exitNhwMapMode ── */
+  window.exitNhwMapMode = function(){
+    nhwMode = false;
+
+    // Remove boundary layer
+    if(nhwBoundaryLayer){
+      try{map.removeLayer(nhwBoundaryLayer);}catch(e){}
+      nhwBoundaryLayer = null;
+    }
+
+    // Remove patrol layers
+    if(nhwPatrolLayer){
+      try{map.removeLayer(nhwPatrolLayer);}catch(e){}
+      nhwPatrolLayer = null;
+    }
+    if(nhwAoiLayer){
+      try{map.removeLayer(nhwAoiLayer);}catch(e){}
+      nhwAoiLayer = null;
+    }
+
+    // Remove banner
+    var banner = document.getElementById('nhw-mode-banner');
+    if(banner) banner.remove();
+
+    // Restore full map bounds and zoom
+    try{
+      map.setMaxBounds(null);
+      map.setMinZoom(9);
+    }catch(e){}
+
+    // Reload full public feed (unfiltered)
+    if(typeof loadFeed === 'function') loadFeed();
+    else if(typeof renderCrimeMarkers === 'function' && window.reports) renderCrimeMarkers(reports);
+
+    showToast('NHW view exited','Showing all community reports');
+  };
+
+  /* ── Draw suburb red boundary on the public map ── */
+  function drawNhwBoundary(suburbName, bbox, multi){
+    // Clear existing
+    if(nhwBoundaryLayer){try{map.removeLayer(nhwBoundaryLayer);}catch(e){} nhwBoundaryLayer=null;}
+
+    // Try to fetch GeoJSON boundary first
+    fetch(API + '/api/suburb/boundary?name=' + encodeURIComponent(suburbName))
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(nhwBoundaryLayer){try{map.removeLayer(nhwBoundaryLayer);}catch(e){} nhwBoundaryLayer=null;}
+
+        if(d && d.geojson){
+          nhwBoundaryLayer = L.geoJSON(d.geojson, {
+            style: {
+              color:'#7dab8a', weight:2.5, opacity:.9,
+              fillColor:'#7dab8a', fillOpacity:.05,
+              dashArray:null
+            }
+          }).addTo(map);
+          try{ map.fitBounds(nhwBoundaryLayer.getBounds(), {padding:[30,30], maxZoom:15}); }catch(e){}
+        } else if(bbox && bbox.south != null){
+          var bounds = [[bbox.south, bbox.west],[bbox.north, bbox.east]];
+          nhwBoundaryLayer = L.rectangle(bounds, {
+            color:'#7dab8a', weight:2.5, opacity:.9,
+            fillColor:'#7dab8a', fillOpacity:.05,
+            dashArray:'8 5'
+          }).addTo(map);
+          map.fitBounds(bounds, {padding:[30,30], maxZoom:15});
+        } else if(d && d.lat && d.lng){
+          nhwBoundaryLayer = L.circle([d.lat, d.lng], {
+            radius: d.fallback_radius_m||1800,
+            color:'#7dab8a', weight:2.5, opacity:.9,
+            fillColor:'#7dab8a', fillOpacity:.05,
+            dashArray:'8 5'
+          }).addTo(map);
+          try{ map.fitBounds(nhwBoundaryLayer.getBounds(), {padding:[30,30], maxZoom:14}); }catch(e){}
+        }
+
+        // Lock map to this area — soft lock (can zoom in, not out too far)
+        if(bbox && bbox.south != null){
+          var PAD = 0.02;
+          map.setMaxBounds([[bbox.south-PAD, bbox.west-PAD],[bbox.north+PAD, bbox.east+PAD]]);
+          map.setMinZoom(12);
+        }
+      })
+      .catch(function(){
+        // Fallback: just use bbox if available
+        if(bbox && bbox.south != null){
+          var bounds = [[bbox.south, bbox.west],[bbox.north, bbox.east]];
+          nhwBoundaryLayer = L.rectangle(bounds, {
+            color:'#7dab8a', weight:2, opacity:.8,
+            fillColor:'#7dab8a', fillOpacity:.04,
+            dashArray:'8 5'
+          }).addTo(map);
+          map.fitBounds(bounds, {padding:[30,30], maxZoom:15});
+        }
+      });
+  }
+
+  /* ── Filter crime markers to bbox ── */
+  function filterMarkersToSuburb(bbox, multi){
+    if(!bbox || bbox.south == null){
+      // No bbox — show all (no restriction)
+      return;
+    }
+    var PAD = 0.003; // ~300m padding
+    // Re-render markers filtered to bbox
+    if(window.reports && window.reports.length){
+      var filtered = window.reports.filter(function(r){
+        var lat = r.display_lat || r.lat;
+        var lng = r.display_lng || r.lng;
+        if(multi && multi.length){
+          return multi.some(function(b){
+            return lat >= (b.south-PAD) && lat <= (b.north+PAD) &&
+                   lng >= (b.west-PAD)  && lng <= (b.east+PAD);
+          });
+        }
+        return lat >= (bbox.south-PAD) && lat <= (bbox.north+PAD) &&
+               lng >= (bbox.west-PAD)  && lng <= (bbox.east+PAD);
+      });
+      if(typeof renderCrimeMarkers === 'function') renderCrimeMarkers(filtered);
+    }
+  }
+
+  /* ── Load patrol zones and AOI circles for this NHW group ── */
+  function loadNhwPatrolLayers(identity){
+    var tok = '';
+    try{ tok = localStorage.getItem('snhw') || ''; }catch(e){}
+    if(!tok) return;
+
+    // Clear existing
+    if(nhwPatrolLayer){try{map.removeLayer(nhwPatrolLayer);}catch(e){}}
+    if(nhwAoiLayer){try{map.removeLayer(nhwAoiLayer);}catch(e){}}
+    nhwPatrolLayer = L.layerGroup().addTo(map);
+    nhwAoiLayer    = L.layerGroup().addTo(map);
+
+    // Load patrol zones
+    fetch(API + '/api/nhw/patrol-zones', {headers:{'Authorization':'Bearer '+tok}})
+      .then(function(r){ return r.ok ? r.json() : {zones:[]}; })
+      .then(function(d){
+        (d.zones||[]).forEach(function(z){
+          if(!z.geometry) return;
+          try{
+            L.geoJSON(z.geometry, {
+              style:{
+                color: z.color||'#7dab8a',
+                weight:2,
+                opacity:.85,
+                fillColor: z.color||'#7dab8a',
+                fillOpacity:.08
+              }
+            })
+            .bindPopup(
+              '<div style="font-family:DM Sans,sans-serif;min-width:140px">'+
+              '<strong style="color:'+(z.color||'#7dab8a')+';font-family:Playfair Display,serif;font-size:13px">'+
+              (z.name||'Patrol Zone')+'</strong><br>'+
+              '<span style="font-family:DM Mono,monospace;font-size:9px;color:#7dab8a">'+
+              (z.zone_type||'patrol').replace(/_/g,' ').toUpperCase()+'</span>'+
+              '</div>',
+              {className:'nhw-patrol-popup'}
+            )
+            .addTo(nhwPatrolLayer);
+          }catch(e){}
+        });
+      })
+      .catch(function(){});
+
+    // Load AOI circles
+    fetch(API + '/api/nhw/aoi', {headers:{'Authorization':'Bearer '+tok}})
+      .then(function(r){ return r.ok ? r.json() : {areas:[]}; })
+      .then(function(d){
+        (d.areas||[]).forEach(function(a){
+          L.circle([a.lat, a.lng], {
+            radius: a.radius_m||250,
+            color: a.color||'#7dab8a',
+            fillColor: a.color||'#7dab8a',
+            fillOpacity:.08,
+            weight:2,
+            dashArray:'6 4'
+          })
+          .bindPopup(
+            '<div style="font-family:DM Sans,sans-serif;min-width:140px">'+
+            '<strong style="color:'+(a.color||'#7dab8a')+';font-family:Playfair Display,serif;font-size:13px">'+
+            (a.name||'Area of Interest')+'</strong><br>'+
+            '<span style="font-family:DM Mono,monospace;font-size:9px;color:#9db99f">'+
+            'Radius: '+(a.radius_m||250)+'m</span>'+
+            (a.note?'<br><span style="font-size:11px;color:#b8d4bc">'+a.note+'</span>':'')+
+            '</div>',
+            {className:'nhw-patrol-popup'}
+          )
+          .addTo(nhwAoiLayer);
+        });
+      })
+      .catch(function(){});
+  }
+
+  /* ── NHW mode banner ── */
+  function showNhwBanner(identity){
+    var existing = document.getElementById('nhw-mode-banner');
+    if(existing) existing.remove();
+
+    var suburbName = identity.suburb_name || (identity.group_label||'NHW');
+    var groupLabel = identity.group_label || 'NHW Group';
+
+    var banner = document.createElement('div');
+    banner.id = 'nhw-mode-banner';
+    banner.className = 'nhw-mode-banner';
+    banner.innerHTML =
+      '<div class="nhw-pip"></div>' +
+      '<span>NHW MODE · ' + suburbName.toUpperCase() + '</span>' +
+      '<button class="nhw-logout" onclick="revokeNhwAccess()" title="Exit NHW view">×</button>';
+    document.body.appendChild(banner);
+  }
+
+  /* ── On page load: restore session with identity ── */
+  var _origLoad = window.addEventListener;
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      try{
+        var saved = localStorage.getItem('snhw');
+        var savedIdentity = localStorage.getItem('snhw_identity');
+        if(saved && savedIdentity){
+          nhwIdentityData = JSON.parse(savedIdentity);
+        }
+      }catch(e){}
+    }, 1500);
+  });
+
+})();
+</script>
+
+
+<script>
 /* Phase 1A public map overrides */
 (function(){
   window.renderPatrolLayer=function(){try{if(window.patrolLayer)patrolLayer.clearLayers();}catch(e){}};
@@ -3286,9 +3625,10 @@ async function drawApproximateSuburbCircle(name){
     .then(function(r){if(!r.ok)throw new Error('verify failed');return r.json();})
     .then(function(d){
       if(d.valid===true){
-        /* Stay on the public map — unlock the live feed. NHW Portal is at /nhw separately. */
+        /* Stay on the public map — unlock NHW mode with suburb filtering. */
         try{localStorage.setItem('snhw',code);}catch(e){}
-        grantNhwAccess(code);
+        try{localStorage.setItem('snhw_identity',JSON.stringify(d));}catch(e){}
+        grantNhwAccess(code, d);
       } else {
         document.getElementById('nhw-err').style.display='block';
       }
