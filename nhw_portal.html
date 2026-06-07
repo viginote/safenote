@@ -345,6 +345,7 @@ body.locked .content{display:none}
           <div class="kpi-sub">drug / gang houses</div>
         </div>
       </div>
+      <div id="suburb-filter-note" style="display:none;font:600 10px 'DM Mono',monospace;padding:6px 12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--line)"></div>
 
       <div class="pgrid">
         <div class="panel full map-panel" style="border-radius:14px;overflow:hidden">
@@ -602,12 +603,67 @@ async function verifyAndLoad(){
     if(!d.valid){setAuth(false,'Invalid code — contact your CPF coordinator');toast('Invalid access code');return}
     nhwIdentity=d;
     document.getElementById('role-chip').textContent=(d.role||'NHW').toUpperCase().replace(/_/g,' ');
-    setAuth(true,'Verified: '+(d.group_label||'NHW Group')+' · '+(d.member_label||d.role||'Member'));
+
+    // Build suburb display string
+    let suburbDisplay='';
+    if(d.suburb_name){
+      suburbDisplay=' · '+d.suburb_name;
+      // Show suburb badge in topbar
+      const chip=document.getElementById('role-chip');
+      chip.title='Data restricted to: '+d.suburb_name+(d.multi_suburbs?' + '+(d.multi_suburbs.length-1)+' more':'');
+    }
+    setAuth(true,'Verified: '+(d.group_label||'NHW Group')+' · '+(d.member_label||d.role||'Member')+suburbDisplay);
     unlock();
     applyRoleUI();
     initMaps();
+
+    // Lock map to suburb boundary after init
+    if(d.bbox){
+      lockMapToBbox(d.bbox, d.suburb_name);
+    } else if(d.suburb_lat && d.suburb_lng){
+      overviewMap && overviewMap.setView([d.suburb_lat, d.suburb_lng], 14);
+      planningMap && planningMap.setView([d.suburb_lat, d.suburb_lng], 14);
+    }
+
+    // Show suburb restriction notice
+    if(d.suburb_name){
+      showSuburbBanner(d.suburb_name, d.multi_suburbs);
+    }
+
     await refreshAll();
   }catch(e){setAuth(false,'Verification failed — check connection');toast('Verification failed')}
+}
+
+function lockMapToBbox(bbox, suburbName){
+  if(!bbox||bbox.south==null)return;
+  const PAD=0.005;
+  const bounds=[[bbox.south-PAD, bbox.west-PAD],[bbox.north+PAD, bbox.east+PAD]];
+  try{
+    if(overviewMap){
+      overviewMap.fitBounds(bounds,{padding:[20,20],maxZoom:15});
+      overviewMap.setMaxBounds([[bbox.south-0.02,bbox.west-0.02],[bbox.north+0.02,bbox.east+0.02]]);
+      overviewMap.setMinZoom(12);
+    }
+    if(planningMap){
+      planningMap.fitBounds(bounds,{padding:[20,20],maxZoom:15});
+      planningMap.setMaxBounds([[bbox.south-0.02,bbox.west-0.02],[bbox.north+0.02,bbox.east+0.02]]);
+      planningMap.setMinZoom(12);
+    }
+  }catch(e){console.warn('bbox lock failed',e)}
+}
+
+function showSuburbBanner(suburbName, multiSuburbs){
+  // Show a subtle banner on the overview map
+  let existing=document.getElementById('suburb-banner');
+  if(!existing){
+    existing=document.createElement('div');
+    existing.id='suburb-banner';
+    existing.style.cssText='position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(14,15,17,.92);border:1px solid rgba(76,175,125,.3);border-radius:999px;padding:5px 14px;font:600 10px DM Mono,monospace;color:var(--green);letter-spacing:.5px;white-space:nowrap;backdrop-filter:blur(8px);pointer-events:none';
+    const mapEl=document.getElementById('overview-map');
+    if(mapEl)mapEl.style.position='relative',mapEl.appendChild(existing);
+  }
+  const names=multiSuburbs?[suburbName,...multiSuburbs.slice(1).map(s=>s.name||s)].join(' + '):suburbName;
+  existing.textContent='📍 '+names+' only';
 }
 
 function logout(){token='';nhwIdentity=null;try{sessionStorage.clear()}catch(e){}location.href='/nhw'}
@@ -688,6 +744,22 @@ async function loadAnalytics(){
     let off=0;
     const paths=segs.map(seg=>{const pct=seg.v/total;const dash=circ*pct;const p=`<circle cx="${cx}" cy="${cy}" r="${r2}" fill="none" stroke="${seg.c}" stroke-width="14" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" opacity=".85"/>`;off+=dash;return p}).join('');
     document.getElementById('sev-donut').innerHTML=`<svg width="120" height="120" style="flex-shrink:0"><circle cx="${cx}" cy="${cy}" r="${r2}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="14"/>${paths}<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-family="Playfair Display" font-weight="900" font-size="18" fill="var(--text)">${total}</text><text x="${cx}" y="${cy+16}" text-anchor="middle" font-family="DM Mono" font-size="8" fill="var(--muted)" letter-spacing="1">PERIOD</text></svg><div class="donut-legend">${segs.map(seg=>`<div class="donut-leg-row"><div class="donut-dot" style="background:${seg.c}"></div><div class="donut-leg-lbl">${seg.l}</div><div class="donut-leg-n">${seg.v}</div></div>`).join('')}</div>`;
+
+    // Suburb filter indicator
+    const suburbName=d.suburb_filter||nhwIdentity?.suburb_name;
+    const bboxActive=d.bbox_active||!!nhwIdentity?.bbox;
+    const filterNote=document.getElementById('suburb-filter-note');
+    if(filterNote){
+      if(suburbName){
+        filterNote.textContent='Filtered: '+suburbName+(bboxActive?' (boundary active)':' (no boundary set)');
+        filterNote.style.color=bboxActive?'var(--green)':'var(--gold)';
+        filterNote.style.display='block';
+      } else {
+        filterNote.textContent='No suburb filter — seeing all Western Cape data';
+        filterNote.style.color='var(--muted)';
+        filterNote.style.display='block';
+      }
+    }
 
     // Area signals
     const sigEl=document.getElementById('area-signals');
