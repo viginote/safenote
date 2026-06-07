@@ -8,221 +8,221 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0f1a0f;
-  --panel:#182618;
-  --panel2:#1f321f;
-  --panel3:#253d25;
-  --line:rgba(160,210,160,.13);
-  --line2:rgba(160,210,160,.24);
-  --text:#e8f0e8;
-  --text2:#b8d4b8;
-  --muted:#7a9e7a;
-  --dim:#4a6a4a;
-  --green:#7dab8a;
-  --green-dk:#4a7c59;
-  --green-lt:#a8cdb2;
-  --green-soft:#8aba96;
-  --gold:#c9a227;
-  --orange:#d4834a;
-  --red:#d96060;
-  --blue:#5aa0c0;
+  --bg:#111214;
+  --panel:#18191c;
+  --panel2:#1e2023;
+  --panel3:#242628;
+  --line:rgba(255,255,255,.07);
+  --line2:rgba(255,255,255,.12);
+  --text:#f0f1f2;
+  --text2:#b8bcc2;
+  --muted:#7a8090;
+  --dim:#464c58;
+  --green:#4caf7d;
+  --green-lt:#6fcf97;
+  --red:#e05c5c;
+  --orange:#e0874a;
+  --gold:#d4a827;
+  --blue:#4a9fd4;
   --purple:#9b7fd4;
-  --shadow:0 4px 32px rgba(0,0,0,.45);
+  --teal:#4abdb5;
+  --shadow:0 8px 32px rgba(0,0,0,.55);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px}
 body{overflow:hidden}
 
 /* ── SHELL ── */
-.app{display:grid;grid-template-columns:248px 1fr;height:100vh}
+.app{display:grid;grid-template-columns:232px 1fr;height:100vh}
 
 /* ── SIDEBAR ── */
-.side{background:#0d160d;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
-.brand{display:flex;align-items:center;gap:13px;padding:20px 18px 16px;border-bottom:1px solid var(--line)}
-.logo{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#2e5238,#4a7c59);display:grid;place-items:center;font:900 13px 'DM Mono',monospace;color:#a8cdb2;flex-shrink:0;border:1.5px solid rgba(125,171,138,.35)}
-.brand-name{font:900 19px 'Playfair Display',serif;color:var(--text)}
-.brand-sub{font:500 9px 'DM Mono',monospace;color:var(--dim);letter-spacing:1.8px;text-transform:uppercase;margin-top:3px}
+.side{background:#0e0f11;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:12px;padding:20px 16px 16px;border-bottom:1px solid var(--line)}
+.logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#2a5c3f,#3d7a55);display:grid;place-items:center;font:900 12px 'DM Mono',monospace;color:#a8cdb2;flex-shrink:0}
+.brand-name{font:900 18px 'Playfair Display',serif;color:var(--text)}
+.brand-sub{font:500 9px 'DM Mono',monospace;color:var(--dim);letter-spacing:1.6px;text-transform:uppercase;margin-top:2px}
 
-.nav-section{font:500 8px 'DM Mono',monospace;letter-spacing:2.2px;text-transform:uppercase;color:var(--dim);padding:16px 18px 6px}
-.nav-btn{display:flex;align-items:center;gap:11px;width:100%;padding:10px 18px;border:none;background:transparent;color:var(--muted);font:500 13px 'DM Sans',sans-serif;cursor:pointer;text-align:left;transition:all .15s;border-left:2.5px solid transparent}
-.nav-btn:hover{background:rgba(125,171,138,.07);color:var(--text2);border-left-color:rgba(125,171,138,.3)}
-.nav-btn.active{background:rgba(125,171,138,.1);color:var(--green-lt);border-left-color:var(--green-soft);font-weight:600}
-.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
-.nav-btn.active .nav-icon{opacity:1}
+.nav-sec-label{font:500 8px 'DM Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:var(--dim);padding:14px 16px 5px}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 16px;border:none;background:transparent;color:var(--muted);font:500 13px 'DM Sans',sans-serif;cursor:pointer;text-align:left;transition:all .14s;position:relative}
+.nav-btn:hover{background:rgba(255,255,255,.04);color:var(--text2)}
+.nav-btn.active{background:rgba(255,255,255,.06);color:var(--text);font-weight:600}
+.nav-btn.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:2.5px;background:var(--green);border-radius:0 2px 2px 0}
+.nav-ico{width:15px;height:15px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
+.nav-btn.active .nav-ico{opacity:1}
 
-.side-spacer{flex:1}
-.side-footer{padding:14px 18px 0;border-top:1px solid var(--line)}
-.auth-pill{padding:9px 12px;border-radius:10px;border:1px solid rgba(160,80,80,.3);background:rgba(200,80,80,.07);color:#d08080;font:500 10px 'DM Mono',monospace;line-height:1.55;margin-bottom:10px}
-.auth-pill.ok{border-color:rgba(125,171,138,.28);background:rgba(125,171,138,.07);color:var(--green)}
-.side-link{display:flex;justify-content:space-between;align-items:center;width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;margin-bottom:6px;transition:all .14s}
-.side-link:hover{border-color:var(--line2);color:var(--text2);background:rgba(125,171,138,.05)}
-.side-link.danger{color:var(--red);border-color:rgba(200,90,90,.22)}
-.side-link.danger:hover{background:rgba(200,90,90,.07)}
-.login-wrap{padding:12px 18px 18px}
-.login-label{font:500 8px 'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:6px}
-.login-inp{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:rgba(0,0,0,.35);color:var(--text);font:500 12px 'DM Mono',monospace;outline:none;margin-bottom:8px;letter-spacing:.5px}
-.login-inp:focus{border-color:var(--green)}
-.unlock-btn{width:100%;padding:10px;border-radius:9px;border:none;background:linear-gradient(135deg,#3a6647,#4a7c59);color:#c8e8c8;font:700 13px 'DM Sans',sans-serif;cursor:pointer;transition:all .15s}
-.unlock-btn:hover{background:linear-gradient(135deg,#4a7c59,#5d9a70)}
+.side-footer{margin-top:auto;padding:14px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:7px}
+.auth-pill{padding:8px 11px;border-radius:8px;border:1px solid rgba(220,80,80,.25);background:rgba(220,80,80,.06);color:#c08080;font:500 10px 'DM Mono',monospace;line-height:1.5}
+.auth-pill.ok{border-color:rgba(76,175,125,.28);background:rgba(76,175,125,.07);color:var(--green)}
+.s-link{display:flex;justify-content:space-between;align-items:center;width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;transition:all .13s}
+.s-link:hover{border-color:var(--line2);color:var(--text2);background:rgba(255,255,255,.03)}
+.s-link.danger{color:var(--red);border-color:rgba(220,80,80,.2)}
+.s-link.danger:hover{background:rgba(220,80,80,.06)}
+
+.login-wrap{padding:12px 16px 18px}
+.login-lbl{font:500 8px 'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:6px}
+.login-inp{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.4);color:var(--text);font:500 12px 'DM Mono',monospace;outline:none;margin-bottom:8px}
+.login-inp:focus{border-color:rgba(76,175,125,.4)}
+.unlock-btn{width:100%;padding:9px;border-radius:8px;border:none;background:rgba(255,255,255,.07);color:var(--text2);font:700 13px 'DM Sans',sans-serif;cursor:pointer;transition:all .14s}
+.unlock-btn:hover{background:rgba(255,255,255,.11);color:var(--text)}
 
 /* ── MAIN ── */
-.main{display:flex;flex-direction:column;height:100vh;overflow:hidden;background:var(--bg)}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--line);flex-shrink:0;gap:14px}
-.page-title{font:900 26px 'Playfair Display',serif;color:var(--text)}
-.page-sub{font:400 12px 'DM Sans',sans-serif;color:var(--muted);margin-top:3px}
-.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.tb-sel{padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text2);font:500 12px 'DM Sans',sans-serif;outline:none;cursor:pointer}
-.tb-btn{padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .14s}
-.tb-btn:hover{border-color:var(--green);color:var(--green-lt);background:rgba(125,171,138,.07)}
+.main{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;border-bottom:1px solid var(--line);flex-shrink:0;gap:14px}
+.page-title{font:900 24px 'Playfair Display',serif}
+.page-sub{font:400 12px 'DM Sans',sans-serif;color:var(--muted);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.tb-sel{padding:7px 10px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--text2);font:500 12px 'DM Sans',sans-serif;outline:none;cursor:pointer}
+.tb-btn{padding:7px 12px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .13s}
+.tb-btn:hover{border-color:var(--line2);color:var(--text2);background:rgba(255,255,255,.04)}
 .tb-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* ── CONTENT ── */
-.content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
-.section{display:none;flex-direction:column;gap:16px}
+.content{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+.section{display:none;flex-direction:column;gap:14px}
 .section.active{display:flex}
 
-/* ── KPI ── */
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;position:relative;overflow:hidden}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green-dk),var(--green-soft));opacity:.6}
-.kpi-lbl{font:500 9px 'DM Mono',monospace;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim)}
-.kpi-val{font:900 32px 'Playfair Display',serif;margin:7px 0 3px;line-height:1;color:var(--text)}
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;cursor:default}
+.kpi-accent{position:absolute;top:0;left:0;right:0;height:2px}
+.kpi-lbl{font:500 9px 'DM Mono',monospace;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+.kpi-val{font:900 30px 'Playfair Display',serif;margin:7px 0 3px;line-height:1;color:var(--text)}
 .kpi-sub{font:400 11px 'DM Sans',sans-serif;color:var(--muted)}
-.kpi-delta{font:600 11px 'DM Mono',monospace;margin-top:6px}
-.up{color:var(--red)}.dn{color:var(--green)}.flat{color:var(--dim)}
+.kpi-delta{font:600 11px 'DM Mono',monospace;margin-top:5px}
+.kpi-spark{position:absolute;bottom:0;right:0;width:60px;height:36px;opacity:.2}
 
-/* ── PANEL GRID ── */
-.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.pgrid.three{grid-template-columns:1fr 1fr 1fr}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
-.panel.wide{grid-column:span 2}
+/* ── GRID ── */
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
 .panel.full{grid-column:1/-1}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.ph-title{font:900 16px 'Playfair Display',serif;color:var(--text)}
+.ph-left{display:flex;flex-direction:column;gap:2px}
+.ph-title{font:900 15px 'Playfair Display',serif;color:var(--text)}
 .ph-meta{font:500 10px 'DM Mono',monospace;color:var(--dim)}
-.ph-right{display:flex;gap:6px}
 
-/* ── BUTTONS ── */
-.btn{padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;transition:all .13s}
-.btn:hover{border-color:var(--green);color:var(--green-lt);background:rgba(125,171,138,.07)}
-.btn.primary{background:linear-gradient(135deg,#3a6647,#4a7c59);border-color:#4a7c59;color:#c8e8c8;font-weight:700}
-.btn.primary:hover{background:linear-gradient(135deg,#4a7c59,#5d9a70)}
-.btn.danger{color:var(--red);border-color:rgba(200,90,90,.25)}
-.btn.danger:hover{background:rgba(200,90,90,.08)}
+/* ── BTNS ── */
+.btn{padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 12px 'DM Sans',sans-serif;cursor:pointer;transition:all .13s}
+.btn:hover{border-color:var(--line2);color:var(--text2);background:rgba(255,255,255,.04)}
+.btn.primary{background:rgba(76,175,125,.12);border-color:rgba(76,175,125,.3);color:var(--green-lt)}
+.btn.primary:hover{background:rgba(76,175,125,.2)}
+.btn.danger{color:var(--red);border-color:rgba(220,80,80,.22)}
+.btn.danger:hover{background:rgba(220,80,80,.07)}
 
-/* ── PILLS / BADGES ── */
-.pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font:700 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
-.p-crit{background:rgba(217,96,96,.16);color:#e08080}
-.p-high{background:rgba(212,131,74,.16);color:#d4834a}
-.p-med{background:rgba(201,162,39,.16);color:#c9a227}
-.p-low{background:rgba(125,171,138,.16);color:var(--green)}
-.p-new{background:rgba(201,162,39,.12);color:#c9a227}
-.p-verified{background:rgba(125,171,138,.14);color:var(--green-soft)}
-.p-reviewed{background:rgba(90,160,192,.14);color:var(--blue)}
-.p-duplicate{background:rgba(125,171,138,.07);color:var(--dim)}
-.p-false{background:rgba(217,96,96,.1);color:var(--red)}
-.p-archived{background:rgba(74,106,74,.12);color:var(--dim)}
+/* ── PILLS ── */
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font:700 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.p-crit{background:rgba(224,92,92,.15);color:#e08080}
+.p-high{background:rgba(224,135,74,.15);color:#d4874a}
+.p-med{background:rgba(212,168,39,.15);color:#c9a020}
+.p-low{background:rgba(76,175,125,.15);color:var(--green)}
+.p-new{background:rgba(212,168,39,.12);color:#c9a020}
+.p-verified{background:rgba(76,175,125,.14);color:var(--green-lt)}
+.p-reviewed{background:rgba(74,159,212,.14);color:var(--blue)}
+.p-duplicate{background:rgba(255,255,255,.06);color:var(--dim)}
+.p-false{background:rgba(224,92,92,.1);color:var(--red)}
+.p-archived{background:rgba(255,255,255,.05);color:var(--dim)}
 
 /* ── FEED ── */
-.feed-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.feed-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
 .feed-item:last-child{border-bottom:none;padding-bottom:0}
 .feed-type{font:600 13px 'DM Sans',sans-serif;color:var(--text)}
 .feed-meta{font:400 11px 'DM Sans',sans-serif;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.feed-empty{font:400 12px 'DM Sans',sans-serif;color:var(--dim);padding:14px 0;text-align:center}
+.empty{font:400 12px 'DM Sans',sans-serif;color:var(--dim);padding:16px 0;text-align:center}
 
 /* ── BAR CHART ── */
-.bar-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(125,171,138,.07)}
+.bar-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
 .bar-row:last-child{border-bottom:none}
-.bar-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:128px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bar-track{flex:1;height:5px;background:rgba(125,171,138,.1);border-radius:999px;overflow:hidden}
-.bar-fill{height:100%;border-radius:999px;transition:width .5s ease}
-.bar-n{font:600 12px 'DM Mono',monospace;color:var(--text);width:28px;text-align:right;flex-shrink:0}
+.bar-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:126px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.bar-n{font:600 12px 'DM Mono',monospace;color:var(--text2);width:28px;text-align:right;flex-shrink:0}
 
 /* ── SIGNAL ── */
-.sig-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(125,171,138,.07)}
+.sig-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
 .sig-row:last-child{border-bottom:none}
-.sig-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:122px;flex-shrink:0}
-.sig-track{flex:1;height:5px;background:rgba(125,171,138,.1);border-radius:999px;overflow:hidden}
-.sig-fill{height:100%;border-radius:999px;transition:width .5s ease}
-.sig-val{font:600 11px 'DM Mono',monospace;width:36px;text-align:right;flex-shrink:0;color:var(--text2)}
+.sig-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:120px;flex-shrink:0}
+.sig-track{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden}
+.sig-fill{height:100%;border-radius:999px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.sig-val{font:600 11px 'DM Mono',monospace;width:38px;text-align:right;flex-shrink:0;color:var(--text2)}
 
-/* ── NHW ROWS ── */
-.nhw-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+/* ── DONUT CHART ── */
+.donut-wrap{display:flex;align-items:center;gap:18px}
+.donut-legend{display:flex;flex-direction:column;gap:8px;flex:1}
+.donut-leg-row{display:flex;align-items:center;gap:8px}
+.donut-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.donut-leg-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);flex:1}
+.donut-leg-n{font:600 12px 'DM Mono',monospace;color:var(--text2)}
+
+/* ── SPARKLINE TREND ── */
+.trend-wrap{display:flex;align-items:flex-end;gap:3px;height:80px;padding-top:8px}
+.trend-bar{flex:1;border-radius:3px 3px 0 0;min-height:3px;transition:height .4s ease;cursor:default;position:relative}
+.trend-bar:hover::after{content:attr(data-n);position:absolute;top:-20px;left:50%;transform:translateX(-50%);font:600 10px 'DM Mono',monospace;color:var(--text2);white-space:nowrap}
+.trend-labels{display:flex;gap:3px;margin-top:4px}
+.trend-lbl{flex:1;font:500 8px 'DM Mono',monospace;color:var(--dim);text-align:center;overflow:hidden}
+
+/* ── NHW ── */
+.nhw-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
 .nhw-row:last-child{border-bottom:none}
 .nhw-name{font:600 13px 'DM Sans',sans-serif;color:var(--text)}
 .nhw-code{font:400 11px 'DM Mono',monospace;color:var(--green);margin-top:2px}
 .nhw-date{font:400 10px 'DM Mono',monospace;color:var(--dim);flex-shrink:0}
-.ico-btn{padding:5px 7px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;transition:all .12s}
-.ico-btn:hover{border-color:var(--green);color:var(--green)}
-.ico-btn.red:hover{border-color:var(--red);color:var(--red)}
-.new-code-box{padding:12px 14px;border-radius:12px;border:1px solid rgba(125,171,138,.3);background:rgba(125,171,138,.07);margin-bottom:12px;display:none}
+.ico-btn{padding:5px 7px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;transition:all .12s}
+.ico-btn:hover{border-color:rgba(76,175,125,.4);color:var(--green)}
+.ico-btn.red:hover{border-color:rgba(220,80,80,.4);color:var(--red)}
+.nhw-create-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:12px}
+.new-code-box{padding:12px 14px;border-radius:10px;border:1px solid rgba(76,175,125,.25);background:rgba(76,175,125,.06);margin-bottom:12px;display:none}
 .new-code-box.show{display:block}
 .new-code-lbl{font:500 9px 'DM Mono',monospace;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px}
-.new-code-val{font:700 15px 'DM Mono',monospace;color:var(--green-lt);word-break:break-all}
-.nhw-create-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:12px}
-.form-inp{padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--text);font:400 13px 'DM Sans',sans-serif;outline:none;width:100%}
-.form-inp:focus{border-color:var(--green)}
-.form-sel{padding:8px 11px;border-radius:9px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--text);font:400 12px 'DM Sans',sans-serif;outline:none}
-.form-sel:focus{border-color:var(--green)}
+.new-code-val{font:700 14px 'DM Mono',monospace;color:var(--green-lt);word-break:break-all}
+.f-inp{padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--text);font:400 13px 'DM Sans',sans-serif;outline:none;width:100%}
+.f-inp:focus{border-color:rgba(76,175,125,.4)}
+.f-sel{padding:8px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--text);font:400 12px 'DM Sans',sans-serif;outline:none}
+.f-sel:focus{border-color:rgba(76,175,125,.4)}
 
 /* ── TABLE ── */
 .tbl-filters{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:12px}
-.tbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto;border-radius:10px;border:1px solid var(--line)}
+.tbl-wrap{overflow-x:auto;max-height:440px;overflow-y:auto;border-radius:10px;border:1px solid var(--line)}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 .tbl th{text-align:left;color:var(--dim);font:500 8px 'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;border-bottom:1px solid var(--line);padding:10px 12px;position:sticky;top:0;background:var(--panel2);z-index:1}
-.tbl td{border-bottom:1px solid rgba(125,171,138,.07);padding:10px 12px;vertical-align:middle;color:var(--text2)}
-.tbl tr:hover td{background:rgba(125,171,138,.04)}
+.tbl td{border-bottom:1px solid rgba(255,255,255,.04);padding:10px 12px;vertical-align:middle;color:var(--text2)}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
 .tbl tr:last-child td{border-bottom:none}
 .stat-sel{padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--text);font:500 11px 'DM Sans',sans-serif;outline:none;cursor:pointer}
-.stat-sel:focus{border-color:var(--green)}
-.tbl-empty{padding:24px;text-align:center;color:var(--dim);font:400 13px 'DM Sans',sans-serif}
+.stat-sel:focus{border-color:rgba(76,175,125,.4)}
 
-/* ── PLACEHOLDER PAGES ── */
-.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;border-radius:16px;border:1px dashed var(--line2);background:rgba(125,171,138,.03);gap:12px;text-align:center;padding:40px}
-.ph-icon{font-size:36px;opacity:.4}
-.ph-label{font:900 20px 'Playfair Display',serif;color:var(--text2)}
-.ph-desc{font:400 13px 'DM Sans',sans-serif;color:var(--muted);max-width:380px;line-height:1.7}
-.ph-tag{display:inline-block;padding:4px 12px;border-radius:999px;border:1px solid var(--line2);background:rgba(125,171,138,.07);font:500 10px 'DM Mono',monospace;color:var(--green);letter-spacing:1px;text-transform:uppercase}
+/* ── METRIC CARD ── */
+.metric-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.mc-lbl{font:500 9px 'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.mc-val{font:900 22px 'Playfair Display',serif;color:var(--text)}
+.mc-sub{font:400 11px 'DM Sans',sans-serif;color:var(--muted);margin-top:3px}
 
-/* ── DANGER SECTION ── */
-.danger-note{font:400 12px 'DM Sans',sans-serif;color:var(--muted);line-height:1.7;padding:12px 14px;border-radius:10px;border:1px solid rgba(200,90,90,.2);background:rgba(200,90,90,.04);margin-bottom:12px}
-.action-list{display:flex;flex-direction:column;gap:8px}
-.action-row{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-radius:10px;border:1px solid var(--line);background:rgba(125,171,138,.03);cursor:pointer;transition:all .14s;font:600 13px 'DM Sans',sans-serif;color:var(--muted)}
-.action-row:hover{border-color:var(--line2);color:var(--text2);background:rgba(125,171,138,.06)}
-.action-row.danger{border-color:rgba(200,90,90,.22);color:var(--red)}
-.action-row.danger:hover{background:rgba(200,90,90,.07)}
-.action-row.primary{background:linear-gradient(135deg,rgba(58,102,71,.5),rgba(74,124,89,.4));border-color:rgba(125,171,138,.35);color:#c8e8c8}
-.action-row.primary:hover{background:linear-gradient(135deg,rgba(74,124,89,.6),rgba(93,154,112,.4))}
+/* ── PLACEHOLDER ── */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;border-radius:12px;border:1px dashed var(--line2);background:rgba(255,255,255,.02);gap:10px;text-align:center;padding:32px}
+.ph-ico{font-size:32px;opacity:.35}
+.ph-lbl{font:900 18px 'Playfair Display',serif;color:var(--text2)}
+.ph-desc{font:400 13px 'DM Sans',sans-serif;color:var(--muted);max-width:360px;line-height:1.7}
+.ph-tag{display:inline-block;padding:3px 12px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.04);font:500 9px 'DM Mono',monospace;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
 
-/* ── SESSION SIGNALS ── */
-.session-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:14px}
-.session-row:last-child{border-bottom:none}
-.session-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:130px;flex-shrink:0}
-.session-val{font:600 13px 'DM Mono',monospace;color:var(--text2)}
+/* ── DANGER ── */
+.danger-note{font:400 12px 'DM Sans',sans-serif;color:var(--muted);line-height:1.7;padding:10px 13px;border-radius:9px;border:1px solid rgba(220,80,80,.18);background:rgba(220,80,80,.04);margin-bottom:12px}
+.action-row{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.02);cursor:pointer;transition:all .13s;font:600 13px 'DM Sans',sans-serif;color:var(--muted);margin-bottom:7px}
+.action-row:hover{border-color:var(--line2);color:var(--text2);background:rgba(255,255,255,.04)}
+.action-row.danger{border-color:rgba(220,80,80,.2);color:var(--red)}
+.action-row.danger:hover{background:rgba(220,80,80,.06)}
+.action-row.primary{background:rgba(76,175,125,.08);border-color:rgba(76,175,125,.25);color:var(--green-lt)}
+.action-row.primary:hover{background:rgba(76,175,125,.14)}
+.sess-row{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);gap:14px}
+.sess-row:last-child{border-bottom:none}
+.sess-lbl{font:400 12px 'DM Sans',sans-serif;color:var(--muted);width:130px;flex-shrink:0}
+.sess-val{font:600 13px 'DM Mono',monospace;color:var(--text2)}
 
 /* ── TOAST ── */
-.toast{position:fixed;right:20px;bottom:20px;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:13px 18px;color:var(--text);box-shadow:var(--shadow);transform:translateY(120px);transition:.28s cubic-bezier(.32,.72,0,1);z-index:9999;font:500 13px 'DM Sans',sans-serif;max-width:300px}
+.toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:12px 18px;color:var(--text);box-shadow:var(--shadow);transform:translateY(120px);transition:.26s cubic-bezier(.32,.72,0,1);z-index:9999;font:500 13px 'DM Sans',sans-serif;max-width:280px}
 .toast.show{transform:translateY(0)}
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(125,171,138,.18);border-radius:999px}
-
-/* ── RESPONSIVE ── */
-@media(max-width:960px){
-  body{overflow:auto}
-  .app{display:block;height:auto}
-  .main{height:auto;overflow:visible}
-  .content{overflow:visible}
-  .kpi-row,.pgrid,.pgrid.three{grid-template-columns:1fr 1fr}
-  .panel.wide,.panel.full{grid-column:span 1}
-  .tbl-filters{grid-template-columns:1fr 1fr}
-}
-@media(max-width:600px){
-  .kpi-row,.pgrid,.pgrid.three{grid-template-columns:1fr}
-  .side{display:none}
-}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:999px}
+@media(max-width:900px){body{overflow:auto}.app{display:block;height:auto}.main{height:auto;overflow:visible}.content{overflow:visible}.kpi-row,.pgrid,.pgrid3{grid-template-columns:1fr 1fr}.panel.full{grid-column:span 1}.tbl-filters{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -234,61 +234,51 @@ body{overflow:hidden}
     <div class="logo">SN</div>
     <div>
       <div class="brand-name">SafeNote</div>
-      <div class="brand-sub">Admin control room</div>
+      <div class="brand-sub">Admin Hub</div>
     </div>
   </div>
 
-  <div class="nav-section">Overview</div>
-  <button class="nav-btn active" data-sec="dashboard" onclick="showSection('dashboard',this)">
-    <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-    Dashboard
+  <div class="nav-sec-label">Overview</div>
+  <button class="nav-btn active" data-sec="dashboard" onclick="nav('dashboard',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Dashboard
   </button>
-  <button class="nav-btn" data-sec="incidents" onclick="showSection('incidents',this)">
-    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-    Incident manager
+  <button class="nav-btn" data-sec="incidents" onclick="nav('incidents',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Incident manager
   </button>
-  <button class="nav-btn" data-sec="nhw" onclick="showSection('nhw',this)">
-    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    NHW manager
+  <button class="nav-btn" data-sec="nhw" onclick="nav('nhw',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>NHW manager
   </button>
-  <button class="nav-btn" data-sec="intel" onclick="showSection('intel',this)">
-    <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    Intel reports
+  <button class="nav-btn" data-sec="intel" onclick="nav('intel',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Intel reports
   </button>
 
-  <div class="nav-section">Data</div>
-  <button class="nav-btn" data-sec="trends" onclick="showSection('trends',this)">
-    <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    Trend analysis
+  <div class="nav-sec-label">Analytics</div>
+  <button class="nav-btn" data-sec="trends" onclick="nav('trends',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Trend analysis
   </button>
-  <button class="nav-btn" data-sec="riskmap" onclick="showSection('riskmap',this)">
-    <svg class="nav-icon" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-    Area risk map
+  <button class="nav-btn" data-sec="riskmap" onclick="nav('riskmap',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Area risk map
   </button>
-  <button class="nav-btn" data-sec="exports" onclick="showSection('exports',this)">
-    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    Exports
+  <button class="nav-btn" data-sec="exports" onclick="nav('exports',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exports
   </button>
 
-  <div class="nav-section">System</div>
-  <button class="nav-btn" data-sec="settings" onclick="showSection('settings',this)">
-    <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M2 12h2M20 12h2"/></svg>
-    Platform settings
+  <div class="nav-sec-label">System</div>
+  <button class="nav-btn" data-sec="settings" onclick="nav('settings',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M2 12h2M20 12h2"/></svg>Platform settings
   </button>
-  <button class="nav-btn" data-sec="controls" onclick="showSection('controls',this)">
-    <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-    Data controls
+  <button class="nav-btn" data-sec="controls" onclick="nav('controls',this)">
+    <svg class="nav-ico" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>Data controls
   </button>
 
-  <div class="side-spacer"></div>
   <div class="side-footer">
     <div class="auth-pill" id="auth-status">Locked — enter admin secret below</div>
-    <button class="side-link" onclick="window.open('/','_blank')">Public map <span>↗</span></button>
-    <button class="side-link" onclick="window.open('/nhw','_blank')">NHW portal <span>↗</span></button>
-    <button class="side-link danger" onclick="logout()">Log out <span>×</span></button>
+    <button class="s-link" onclick="window.open('/','_blank')">Public map <span>↗</span></button>
+    <button class="s-link" onclick="window.open('/nhw','_blank')">NHW portal <span>↗</span></button>
+    <button class="s-link danger" onclick="logout()">Log out <span>×</span></button>
   </div>
   <div class="login-wrap">
-    <label class="login-label">Admin secret</label>
+    <label class="login-lbl">Admin secret</label>
     <input class="login-inp" id="admin-secret" type="password" placeholder="ADMIN_SECRET" autocomplete="off"/>
     <button class="unlock-btn" onclick="login()">Unlock Admin Hub</button>
   </div>
@@ -309,12 +299,10 @@ body{overflow:hidden}
         <option value="90">Last 90 days</option>
       </select>
       <button class="tb-btn" onclick="refreshAll()">
-        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        Refresh
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh
       </button>
       <button class="tb-btn" onclick="window.open('/','_blank')">
-        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Public map
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Public map
       </button>
     </div>
   </div>
@@ -324,139 +312,154 @@ body{overflow:hidden}
     <!-- ══ DASHBOARD ══ -->
     <div class="section active" id="sec-dashboard">
       <div class="kpi-row">
-        <div class="kpi"><div class="kpi-lbl">Reports today</div><div class="kpi-val" id="k-today">—</div><div class="kpi-sub">public submissions</div><div class="kpi-delta flat" id="k-today-d">awaiting data</div></div>
-        <div class="kpi"><div class="kpi-lbl">This week</div><div class="kpi-val" id="k-week">—</div><div class="kpi-sub">all incident types</div><div class="kpi-delta flat" id="k-week-d">awaiting data</div></div>
-        <div class="kpi"><div class="kpi-lbl">Critical / high</div><div class="kpi-val" id="k-risk">—</div><div class="kpi-sub">priority reports</div><div class="kpi-delta flat" id="k-risk-d">awaiting data</div></div>
-        <div class="kpi"><div class="kpi-lbl">NHW groups</div><div class="kpi-val" id="k-nhw">—</div><div class="kpi-sub" id="k-intel-sub">loading…</div><div class="kpi-delta flat" id="k-nhw-d">awaiting data</div></div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:linear-gradient(90deg,var(--blue),transparent)"></div>
+          <div class="kpi-lbl">Reports today</div>
+          <div class="kpi-val" id="k-today">—</div>
+          <div class="kpi-sub">public submissions</div>
+          <div class="kpi-delta" id="k-today-d" style="color:var(--dim)">awaiting data</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:linear-gradient(90deg,var(--purple),transparent)"></div>
+          <div class="kpi-lbl">This week</div>
+          <div class="kpi-val" id="k-week">—</div>
+          <div class="kpi-sub">all incident types</div>
+          <div class="kpi-delta" id="k-week-d" style="color:var(--dim)">awaiting data</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
+          <div class="kpi-lbl">Critical / high</div>
+          <div class="kpi-val" id="k-risk">—</div>
+          <div class="kpi-sub">priority reports</div>
+          <div class="kpi-delta" id="k-risk-d" style="color:var(--dim)">awaiting data</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-accent" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
+          <div class="kpi-lbl">NHW groups</div>
+          <div class="kpi-val" id="k-nhw">—</div>
+          <div class="kpi-sub" id="k-intel-sub">intel reports in system</div>
+          <div class="kpi-delta" id="k-nhw-d" style="color:var(--dim)">awaiting data</div>
+        </div>
       </div>
+
       <div class="pgrid">
         <div class="panel">
-          <div class="ph"><div class="ph-title">Live incident feed</div><div class="ph-meta" id="feed-meta">last 24h</div></div>
-          <div id="live-feed"><div class="feed-empty">Unlock admin to load feed</div></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Live incident feed</div><div class="ph-meta" id="feed-meta">last 24h</div></div></div>
+          <div id="live-feed"><div class="empty">Unlock admin to load feed</div></div>
         </div>
         <div class="panel">
-          <div class="ph"><div class="ph-title">Top incident types</div><div class="ph-meta" id="types-meta">period</div></div>
-          <div id="types-chart"><div class="feed-empty">Unlock admin to load data</div></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Top incident types</div><div class="ph-meta" id="types-meta">period</div></div></div>
+          <div id="types-chart"><div class="empty">Unlock admin to load data</div></div>
         </div>
         <div class="panel">
-          <div class="ph"><div class="ph-title">Platform signals</div><div class="ph-meta">health + quality</div></div>
-          <div id="signals">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Platform signals</div><div class="ph-meta">health + quality</div></div></div>
+          <div>
             <div class="sig-row"><div class="sig-lbl">API health</div><div class="sig-track"><div class="sig-fill" id="sig-api" style="width:0%;background:var(--green)"></div></div><div class="sig-val" id="sig-api-v">—</div></div>
-            <div class="sig-row"><div class="sig-lbl">High/critical rate</div><div class="sig-track"><div class="sig-fill" id="sig-risk" style="width:0%;background:var(--red)"></div></div><div class="sig-val" id="sig-risk-v">—</div></div>
+            <div class="sig-row"><div class="sig-lbl">Critical/high rate</div><div class="sig-track"><div class="sig-fill" id="sig-risk" style="width:0%;background:var(--red)"></div></div><div class="sig-val" id="sig-risk-v">—</div></div>
             <div class="sig-row"><div class="sig-lbl">Intel reports</div><div class="sig-track"><div class="sig-fill" id="sig-intel" style="width:0%;background:var(--gold)"></div></div><div class="sig-val" id="sig-intel-v">—</div></div>
-            <div class="sig-row"><div class="sig-lbl">Active areas</div><div class="sig-track"><div class="sig-fill" id="sig-areas" style="width:0%;background:var(--blue)"></div></div><div class="sig-val" id="sig-areas-v">—</div></div>
-            <div class="sig-row"><div class="sig-lbl">Period total</div><div class="sig-track"><div class="sig-fill" id="sig-period" style="width:100%;background:var(--green-dk)"></div></div><div class="sig-val" id="sig-period-v">—</div></div>
+            <div class="sig-row"><div class="sig-lbl">NHW groups</div><div class="sig-track"><div class="sig-fill" id="sig-nhw" style="width:0%;background:var(--blue)"></div></div><div class="sig-val" id="sig-nhw-v">—</div></div>
+            <div class="sig-row"><div class="sig-lbl">Period total</div><div class="sig-track"><div class="sig-fill" id="sig-period" style="width:100%;background:var(--muted)"></div></div><div class="sig-val" id="sig-period-v">—</div></div>
           </div>
         </div>
         <div class="panel">
-          <div class="ph">
-            <div class="ph-title">NHW groups</div>
-            <button class="btn primary" onclick="showSection('nhw',document.querySelector('[data-sec=nhw]'))">Manage</button>
-          </div>
-          <div id="nhw-quick"><div class="feed-empty">Unlock admin to load groups</div></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">NHW groups</div><div class="ph-meta" id="nhw-dash-meta">active access codes</div></div><button class="btn primary" onclick="nav('nhw',document.querySelector('[data-sec=nhw]'))">Manage</button></div>
+          <div id="nhw-quick"><div class="empty">Unlock admin to load groups</div></div>
         </div>
       </div>
     </div>
 
-    <!-- ══ INCIDENT MANAGER ══ -->
+    <!-- ══ INCIDENTS ══ -->
     <div class="section" id="sec-incidents">
       <div class="panel full">
-        <div class="ph">
-          <div><div class="ph-title">Incident manager</div><div class="ph-meta" id="reports-count">0 records</div></div>
-          <button class="btn primary" onclick="loadReports()">Apply filter</button>
-        </div>
+        <div class="ph"><div class="ph-left"><div class="ph-title">Incident manager</div><div class="ph-meta" id="reports-count">0 records</div></div></div>
         <div class="tbl-filters">
-          <select class="form-sel" id="type-filter"><option value="">All types</option></select>
-          <select class="form-sel" id="sev-filter"><option value="">All severities</option><option>low</option><option>medium</option><option>high</option><option>critical</option></select>
-          <select class="form-sel" id="report-limit"><option value="100">100 records</option><option value="250">250 records</option><option value="500">500 records</option></select>
-          <button class="btn primary" onclick="loadReports()">Filter</button>
+          <select class="f-sel" id="type-filter"><option value="">All types</option></select>
+          <select class="f-sel" id="sev-filter"><option value="">All severities</option><option>low</option><option>medium</option><option>high</option><option>critical</option></select>
+          <select class="f-sel" id="report-limit"><option value="100">100 records</option><option value="250">250 records</option><option value="500">500 records</option></select>
+          <button class="btn primary" onclick="loadReports()">Apply</button>
         </div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Status</th><th>Coordinates</th><th>Note</th></tr></thead>
-            <tbody id="reports-body"><tr><td colspan="6"><div class="tbl-empty">Unlock admin to load reports</div></td></tr></tbody>
+            <tbody id="reports-body"><tr><td colspan="6"><div class="empty" style="padding:24px">Unlock admin to load reports</div></td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- ══ NHW MANAGER ══ -->
+    <!-- ══ NHW ══ -->
     <div class="section" id="sec-nhw">
       <div class="pgrid">
         <div class="panel">
-          <div class="ph"><div class="ph-title">Create NHW access code</div><div class="ph-meta">chairman level</div></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Create NHW code</div><div class="ph-meta">chairman / root level</div></div></div>
           <div class="nhw-create-row">
-            <input class="form-inp" id="nhw-label" placeholder="e.g. Claremont NHW, Sea Point CPF…"/>
+            <input class="f-inp" id="nhw-label" placeholder="e.g. Claremont NHW, Sea Point CPF…"/>
             <button class="btn primary" onclick="createNhwToken()">Generate</button>
           </div>
           <div class="new-code-box" id="new-code-box">
-            <div class="new-code-lbl">New code created — share securely with the group chairman</div>
+            <div class="new-code-lbl">New code — share securely with the group chairman</div>
             <div class="new-code-val" id="new-code-val"></div>
             <div style="margin-top:10px;display:flex;gap:6px">
-              <button class="btn primary" onclick="copyText(document.getElementById('new-code-val').textContent)">Copy code</button>
+              <button class="btn primary" onclick="copyText(document.getElementById('new-code-val').textContent)">Copy</button>
               <button class="btn" onclick="document.getElementById('new-code-box').classList.remove('show')">Dismiss</button>
             </div>
           </div>
-          <div style="font:400 12px 'DM Sans',sans-serif;color:var(--muted);line-height:1.7;padding:11px 13px;border-radius:10px;background:rgba(125,171,138,.05);border:1px solid var(--line)">
-            Chairman codes grant full NHW portal access. Each chairman can create up to 30 member sub-codes for their patrol team from within the NHW portal.
+          <div style="font:400 12px 'DM Sans',sans-serif;color:var(--muted);line-height:1.7;padding:10px 12px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--line)">
+            Chairman codes give full NHW portal access. Each chairman can create up to 30 member sub-codes for their patrol team from within the NHW portal.
           </div>
         </div>
         <div class="panel">
-          <div class="ph"><div class="ph-title">Active NHW groups</div><div class="ph-meta" id="nhw-count">0 groups</div></div>
-          <div id="nhw-list"><div class="feed-empty">Unlock admin to load groups</div></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Active NHW groups</div><div class="ph-meta" id="nhw-count">0 groups</div></div></div>
+          <div id="nhw-list"><div class="empty">Unlock admin to load groups</div></div>
         </div>
       </div>
     </div>
 
-    <!-- ══ INTEL REPORTS ══ -->
+    <!-- ══ INTEL ══ -->
     <div class="section" id="sec-intel">
       <div class="panel full">
-        <div class="ph">
-          <div><div class="ph-title">Intel reports</div><div class="ph-meta">Drug / gang house — NHW + admin only, never public</div></div>
-          <button class="btn primary" onclick="loadIntel()">Refresh</button>
-        </div>
+        <div class="ph"><div class="ph-left"><div class="ph-title">Intel reports</div><div class="ph-meta">Drug / gang houses — NHW + admin only, never public</div></div><button class="btn primary" onclick="loadIntel()">Refresh</button></div>
         <div class="tbl-wrap">
           <table class="tbl">
             <thead><tr><th>Time</th><th>Type</th><th>Duration</th><th>Coordinates</th><th>Note</th></tr></thead>
-            <tbody id="intel-body"><tr><td colspan="5"><div class="tbl-empty">Unlock admin to load intel</div></td></tr></tbody>
+            <tbody id="intel-body"><tr><td colspan="5"><div class="empty" style="padding:24px">Unlock admin to load intel</div></td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- ══ TREND ANALYSIS ══ -->
+    <!-- ══ TRENDS ══ -->
     <div class="section" id="sec-trends">
-      <div class="placeholder">
-        <div class="ph-icon">📈</div>
-        <div class="ph-label">Trend analysis</div>
-        <div class="ph-desc">Daily and weekly incident trend charts, severity breakdowns over time, and community activity patterns across the Western Cape. This page will display interactive charts powered by your live report data.</div>
-        <div class="ph-tag">Coming soon</div>
-      </div>
       <div class="pgrid">
         <div class="panel">
-          <div class="ph"><div class="ph-title">Daily report volume</div><div class="ph-meta">30-day trend</div></div>
-          <div style="height:140px;display:flex;align-items:flex-end;gap:4px;padding-top:10px" id="trend-bars">
-            <div class="feed-empty" style="width:100%;align-self:center">Unlock admin to load trend data</div>
-          </div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Daily report volume</div><div class="ph-meta" id="trend-meta">last 14 days</div></div></div>
+          <div class="trend-wrap" id="trend-bars"><div class="empty" style="width:100%;align-self:center">Unlock admin to load trend data</div></div>
+          <div class="trend-labels" id="trend-labels"></div>
         </div>
         <div class="panel">
-          <div class="ph"><div class="ph-title">Severity breakdown</div><div class="ph-meta">period distribution</div></div>
-          <div id="sev-breakdown"><div class="feed-empty">Unlock admin to load data</div></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Severity distribution</div><div class="ph-meta">period breakdown</div></div></div>
+          <div class="donut-wrap" id="sev-donut">
+            <div class="empty">Unlock admin to load data</div>
+          </div>
+        </div>
+        <div class="panel full">
+          <div class="ph"><div class="ph-left"><div class="ph-title">Top incident types — trend period</div><div class="ph-meta" id="trend-types-meta">breakdown</div></div></div>
+          <div id="trend-types"><div class="empty">Unlock admin to load data</div></div>
         </div>
       </div>
     </div>
 
-    <!-- ══ AREA RISK MAP ══ -->
+    <!-- ══ RISK MAP ══ -->
     <div class="section" id="sec-riskmap">
       <div class="placeholder">
-        <div class="ph-icon">🗺️</div>
-        <div class="ph-label">Area risk map</div>
-        <div class="ph-desc">An interactive heatmap of incident density and severity across Western Cape suburbs. Hotspot identification, patrol prioritisation zones, and area-level risk scoring. Powered by your live report coordinates.</div>
-        <div class="ph-tag">Coming soon</div>
+        <div class="ph-ico">🗺️</div>
+        <div class="ph-lbl">Interactive area risk map</div>
+        <div class="ph-desc">A live heatmap of incident density and severity across Western Cape suburbs. Hotspot identification, patrol prioritisation zones, and area-level risk scoring — powered by your live report coordinates.</div>
+        <div class="ph-tag">Building tomorrow</div>
       </div>
       <div class="panel full">
-        <div class="ph"><div class="ph-title">Top hotspot areas</div><div class="ph-meta">highest incident density</div></div>
-        <div id="hotspots"><div class="feed-empty">Unlock admin to load hotspot data</div></div>
+        <div class="ph"><div class="ph-left"><div class="ph-title">Top hotspot coordinates</div><div class="ph-meta">highest incident density</div></div></div>
+        <div id="hotspots"><div class="empty">Unlock admin to load hotspot data</div></div>
       </div>
     </div>
 
@@ -464,116 +467,92 @@ body{overflow:hidden}
     <div class="section" id="sec-exports">
       <div class="pgrid">
         <div class="panel">
-          <div class="ph"><div class="ph-title">CSV exports</div><div class="ph-meta">anonymised data</div></div>
-          <div class="action-list">
-            <div class="action-row primary" onclick="downloadAdminExport()">Download full admin CSV <span>↓</span></div>
-            <div class="action-row" onclick="downloadNhwExport()">Download NHW operational CSV <span>↓</span></div>
-          </div>
-          <div style="margin-top:14px;font:400 11px 'DM Mono',monospace;color:var(--dim);line-height:1.8">
-            Exports are fully anonymised — no reporter identity. Coordinates, type, severity and timestamp only. Suitable for SAPS intelligence packages and funding applications.
-          </div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">CSV exports</div><div class="ph-meta">anonymised data</div></div></div>
+          <div class="action-row primary" onclick="downloadAdminExport()">Download full admin export CSV <span>↓</span></div>
+          <div class="action-row" onclick="downloadNhwExport()">Download NHW operational CSV <span>↓</span></div>
+          <div style="margin-top:12px;font:400 11px 'DM Mono',monospace;color:var(--dim);line-height:1.8">No reporter identity is included. Coordinates, type, severity and timestamp only. Suitable for SAPS intelligence packages and funding applications.</div>
         </div>
         <div class="panel">
-          <div class="ph"><div class="ph-title">Export scope</div><div class="ph-meta">current selection</div></div>
-          <div class="session-row"><div class="session-lbl">Period selected</div><div class="session-val" id="exp-period">30 days</div></div>
-          <div class="session-row"><div class="session-lbl">Records in range</div><div class="session-val" id="exp-records">—</div></div>
-          <div class="session-row"><div class="session-lbl">Intel records</div><div class="session-val" id="exp-intel">—</div></div>
-          <div class="session-row"><div class="session-lbl">NHW groups</div><div class="session-val" id="exp-nhw">—</div></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Export scope</div><div class="ph-meta">current selection</div></div></div>
+          <div class="sess-row"><div class="sess-lbl">Period selected</div><div class="sess-val" id="exp-period">30 days</div></div>
+          <div class="sess-row"><div class="sess-lbl">Records in range</div><div class="sess-val" id="exp-records">—</div></div>
+          <div class="sess-row"><div class="sess-lbl">Intel records</div><div class="sess-val" id="exp-intel">—</div></div>
+          <div class="sess-row"><div class="sess-lbl">NHW groups</div><div class="sess-val" id="exp-nhw">—</div></div>
         </div>
       </div>
     </div>
 
-    <!-- ══ PLATFORM SETTINGS ══ -->
+    <!-- ══ SETTINGS ══ -->
     <div class="section" id="sec-settings">
       <div class="placeholder">
-        <div class="ph-icon">⚙️</div>
-        <div class="ph-label">Platform settings</div>
-        <div class="ph-desc">Configure report delay windows, privacy radius defaults, NHW access rules, rate limits, moderation thresholds and notification preferences. Settings are stored server-side and take effect immediately.</div>
-        <div class="ph-tag">Coming soon</div>
+        <div class="ph-ico">⚙️</div>
+        <div class="ph-lbl">Platform settings</div>
+        <div class="ph-desc">Configure privacy radius defaults, moderation thresholds, rate limits, NHW access rules, and notification preferences. Settings take effect immediately server-side.</div>
+        <div class="ph-tag">Building tomorrow</div>
       </div>
       <div class="pgrid">
         <div class="panel">
-          <div class="ph"><div class="ph-title">Current configuration</div><div class="ph-meta">read-only preview</div></div>
-          <div class="session-row"><div class="session-lbl">Public delay</div><div class="session-val" style="color:var(--green)">0 seconds (live)</div></div>
-          <div class="session-row"><div class="session-lbl">Privacy radius</div><div class="session-val" style="color:var(--green)">Max 300m</div></div>
-          <div class="session-row"><div class="session-lbl">Rate limit</div><div class="session-val">10 reports / hour / IP</div></div>
-          <div class="session-row"><div class="session-lbl">Intel rate limit</div><div class="session-val">3 reports / hour / IP</div></div>
-          <div class="session-row"><div class="session-lbl">NHW member limit</div><div class="session-val">30 per group</div></div>
-          <div class="session-row"><div class="session-lbl">Outage cluster radius</div><div class="session-val">500m</div></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Current configuration</div><div class="ph-meta">read-only preview</div></div></div>
+          <div class="sess-row"><div class="sess-lbl">Public delay</div><div class="sess-val" style="color:var(--green)">0s — live</div></div>
+          <div class="sess-row"><div class="sess-lbl">Privacy radius</div><div class="sess-val" style="color:var(--green)">Max 300m</div></div>
+          <div class="sess-row"><div class="sess-lbl">Rate limit</div><div class="sess-val">10 reports / hr / IP</div></div>
+          <div class="sess-row"><div class="sess-lbl">Intel rate limit</div><div class="sess-val">3 reports / hr / IP</div></div>
+          <div class="sess-row"><div class="sess-lbl">NHW member limit</div><div class="sess-val">30 per group</div></div>
+          <div class="sess-row"><div class="sess-lbl">Outage cluster radius</div><div class="sess-val">500m</div></div>
         </div>
         <div class="panel">
-          <div class="ph"><div class="ph-title">Environment</div><div class="ph-meta">runtime info</div></div>
-          <div class="session-row"><div class="session-lbl">API version</div><div class="session-val" id="api-version">—</div></div>
-          <div class="session-row"><div class="session-lbl">API status</div><div class="session-val" id="api-status">—</div></div>
-          <div class="session-row"><div class="session-lbl">Server time</div><div class="session-val" id="api-ts">—</div></div>
-          <div class="session-row"><div class="session-lbl">Database</div><div class="session-val" style="color:var(--green)">SQLite · persistent</div></div>
-          <div class="session-row"><div class="session-lbl">Host</div><div class="session-val">Render.com</div></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Environment</div><div class="ph-meta">runtime info</div></div></div>
+          <div class="sess-row"><div class="sess-lbl">API version</div><div class="sess-val" id="api-version">—</div></div>
+          <div class="sess-row"><div class="sess-lbl">API status</div><div class="sess-val" id="api-status">—</div></div>
+          <div class="sess-row"><div class="sess-lbl">Server time</div><div class="sess-val" id="api-ts">—</div></div>
+          <div class="sess-row"><div class="sess-lbl">Database</div><div class="sess-val" style="color:var(--green)">SQLite · persistent</div></div>
+          <div class="sess-row"><div class="sess-lbl">Host</div><div class="sess-val">Render.com</div></div>
         </div>
       </div>
     </div>
 
-    <!-- ══ DATA CONTROLS ══ -->
+    <!-- ══ CONTROLS ══ -->
     <div class="section" id="sec-controls">
       <div class="pgrid">
         <div class="panel">
-          <div class="ph"><div class="ph-title">Administrative controls</div><div class="ph-meta">irreversible actions</div></div>
-          <div class="danger-note">These actions permanently delete data and cannot be undone. Use only when required for administrative cleanup. All actions require an active admin session.</div>
-          <div class="action-list">
-            <div class="action-row danger" onclick="clearReports()">Clear incident reports only <span>⚠</span></div>
-            <div class="action-row danger" onclick="clearIntel()">Clear intel reports only <span>⚠</span></div>
-            <div class="action-row danger" onclick="fullReset()">Full reset: reports + intel <span>⚠</span></div>
-          </div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Administrative controls</div><div class="ph-meta">irreversible actions</div></div></div>
+          <div class="danger-note">These actions permanently delete data and cannot be undone. Use only for administrative cleanup. An active admin session is required.</div>
+          <div class="action-row danger" onclick="clearReports()">Clear incident reports only <span>⚠</span></div>
+          <div class="action-row danger" onclick="clearIntel()">Clear intel reports only <span>⚠</span></div>
+          <div class="action-row danger" onclick="fullReset()">Full reset: reports + intel <span>⚠</span></div>
         </div>
         <div class="panel">
-          <div class="ph"><div class="ph-title">Session</div><div class="ph-meta">current admin session</div></div>
-          <div class="session-row"><div class="session-lbl">Auth status</div><div class="session-val" id="ctrl-auth">Locked</div></div>
-          <div class="session-row"><div class="session-lbl">Last refresh</div><div class="session-val" id="ctrl-sync">—</div></div>
-          <div class="session-row"><div class="session-lbl">API origin</div><div class="session-val" id="ctrl-origin">—</div></div>
-          <div style="height:14px"></div>
+          <div class="ph"><div class="ph-left"><div class="ph-title">Session</div><div class="ph-meta">current admin session</div></div></div>
+          <div class="sess-row"><div class="sess-lbl">Auth status</div><div class="sess-val" id="ctrl-auth">Locked</div></div>
+          <div class="sess-row"><div class="sess-lbl">Last refresh</div><div class="sess-val" id="ctrl-sync">—</div></div>
+          <div class="sess-row"><div class="sess-lbl">API origin</div><div class="sess-val" id="ctrl-origin">—</div></div>
+          <div style="height:12px"></div>
           <div class="action-row danger" onclick="logout()">Log out and clear session <span>×</span></div>
         </div>
       </div>
     </div>
 
-  </div><!-- /content -->
-</div><!-- /main -->
-</div><!-- /app -->
+  </div>
+</div>
+</div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const API = window.location.origin;
-let adminSecret = '';
+const API=window.location.origin;let adminSecret='';
+const TYPES=["murder","shooting","stabbing","attempted_murder","hijacking","armed_robbery","mugging","house_robbery","atm_robbery","burglary","vehicle_theft","theft","vandalism","gbv","domestic","sexual_assault","child_abuse","suspicious_person","suspicious_vehicle","loitering","drone_surveillance","casing","following","drug_dealing","gang_activity","illegal_firearm","extortion","cable_theft","illegal_connection","manhole_theft","road_blockage","water_cut","fire","missing_person","illegal_dumping","protest_violence","farm_attack","mob_justice","xenophobia","other","power_loadshedding","power_fault","power_partial","power_restored"];
+const PAGES={dashboard:{title:'Dashboard',sub:'Overview of platform activity and health'},incidents:{title:'Incident manager',sub:'Review, filter and moderate all reports'},nhw:{title:'NHW manager',sub:'Create and manage NHW / CPF group access codes'},intel:{title:'Intel reports',sub:'Drug and gang house intel — never shown publicly'},trends:{title:'Trend analysis',sub:'Daily and weekly incident patterns over time'},riskmap:{title:'Area risk map',sub:'Geographic hotspot identification across Western Cape'},exports:{title:'Exports',sub:'Download anonymised CSV data for reporting and SAPS packages'},settings:{title:'Platform settings',sub:'Runtime configuration and environment info'},controls:{title:'Data controls',sub:'Administrative actions and session management'}};
 
-const TYPES = ["murder","shooting","stabbing","attempted_murder","hijacking","armed_robbery","mugging","house_robbery","atm_robbery","burglary","vehicle_theft","theft","vandalism","gbv","domestic","sexual_assault","child_abuse","suspicious_person","suspicious_vehicle","loitering","drone_surveillance","casing","following","drug_dealing","gang_activity","illegal_firearm","extortion","cable_theft","illegal_connection","manhole_theft","road_blockage","water_cut","fire","missing_person","illegal_dumping","protest_violence","farm_attack","mob_justice","xenophobia","other","power_loadshedding","power_fault","power_partial","power_restored"];
-
-const PAGES = {
-  dashboard: {title:'Dashboard', sub:'Overview of platform activity and health'},
-  incidents: {title:'Incident manager', sub:'Review, filter and moderate all reports'},
-  nhw:       {title:'NHW manager', sub:'Create and manage NHW / CPF group access codes'},
-  intel:     {title:'Intel reports', sub:'Drug and gang house intel — never shown publicly'},
-  trends:    {title:'Trend analysis', sub:'Daily and weekly incident patterns over time'},
-  riskmap:   {title:'Area risk map', sub:'Geographic hotspot identification across Western Cape'},
-  exports:   {title:'Exports', sub:'Download anonymised CSV data for reporting and SAPS packages'},
-  settings:  {title:'Platform settings', sub:'Runtime configuration and environment info'},
-  controls:  {title:'Data controls', sub:'Administrative actions and session management'},
-};
-
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
 function hdrs(){return{'Authorization':'Bearer '+adminSecret,'X-Admin-Secret':adminSecret}}
 function fmtTime(ts){return ts?new Date(ts*1000).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'—'}
 function fmtAgo(ts){const s=Math.floor(Date.now()/1000-ts);if(s<60)return s+'s ago';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}
 function lbl(x){return String(x||'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase())}
-function copyText(txt){navigator.clipboard.writeText(txt).then(()=>toast('Copied to clipboard'))}
+function copyText(txt){navigator.clipboard.writeText(txt).then(()=>toast('Copied'))}
 
-function setAuth(ok,msg){
-  const el=document.getElementById('auth-status');
-  el.textContent=msg; el.classList.toggle('ok',ok);
-  document.getElementById('ctrl-auth').textContent=ok?'Active':'Locked';
-  document.getElementById('ctrl-auth').style.color=ok?'var(--green)':'var(--red)';
-}
+function setAuth(ok,msg){const el=document.getElementById('auth-status');el.textContent=msg;el.classList.toggle('ok',ok);document.getElementById('ctrl-auth').textContent=ok?'Active':'Locked';document.getElementById('ctrl-auth').style.color=ok?'var(--green)':'var(--red)'}
 
-function showSection(name,btn){
+function nav(name,btn){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('sec-'+name).classList.add('active');
@@ -583,27 +562,22 @@ function showSection(name,btn){
   document.getElementById('page-sub').textContent=p.sub||'';
 }
 
-function pillSev(s){return{critical:'p-crit',high:'p-high',medium:'p-med',low:'p-low'}[s]||'p-low'}
-function pillStat(s){return{new:'p-new',verified:'p-verified',reviewed:'p-reviewed',duplicate:'p-duplicate',false_report:'p-false',archived:'p-archived'}[s]||'p-new'}
+function pSev(s){return{critical:'p-crit',high:'p-high',medium:'p-med',low:'p-low'}[s]||'p-low'}
+function pStat(s){return{new:'p-new',verified:'p-verified',reviewed:'p-reviewed',duplicate:'p-duplicate',false_report:'p-false',archived:'p-archived'}[s]||'p-new'}
 
 function statusDropdown(rep){
-  const statuses=['new','reviewed','verified','duplicate','false_report','archived'];
-  const sel=document.createElement('select');
-  sel.className='stat-sel';
-  statuses.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=lbl(s);if(s===(rep.status||'new'))o.selected=true;sel.appendChild(o)});
-  sel.addEventListener('change',()=>updateStatus(rep.id,sel.value));
-  return sel;
+  const stats=['new','reviewed','verified','duplicate','false_report','archived'];
+  const sel=document.createElement('select');sel.className='stat-sel';
+  stats.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=lbl(s);if(s===(rep.status||'new'))o.selected=true;sel.appendChild(o)});
+  sel.addEventListener('change',()=>updateStatus(rep.id,sel.value));return sel;
 }
 
 async function updateStatus(id,status){
-  if(!id){toast('Missing report ID');return}
   const r=await fetch(API+'/api/admin/reports/'+encodeURIComponent(id)+'/status',{method:'PATCH',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify({status})});
   if(!r.ok){toast('Status update failed');return}
-  toast('Marked: '+lbl(status));
-  loadReports(); loadOverview();
+  toast('Marked: '+lbl(status));loadReports();loadOverview();
 }
 
-// ── AUTH ──
 async function login(){
   adminSecret=document.getElementById('admin-secret').value.trim();
   if(!adminSecret){toast('Enter admin secret');return}
@@ -612,50 +586,30 @@ async function login(){
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.ok){setAuth(false,'Login failed — check ADMIN_SECRET');toast('Login failed');return}
     localStorage.setItem('safenote_admin_secret',adminSecret);
-    setAuth(true,'Admin active');
-    document.getElementById('ctrl-origin').textContent=window.location.origin;
-    toast('Admin unlocked');
-    await refreshAll();
-  }catch(e){setAuth(false,'Login request failed — check API');toast('Login request failed')}
+    setAuth(true,'Admin active');document.getElementById('ctrl-origin').textContent=window.location.origin;
+    toast('Admin unlocked');await refreshAll();
+  }catch(e){setAuth(false,'Login request failed');toast('Login request failed')}
 }
 
 function logout(){
   try{localStorage.removeItem('safenote_admin_secret')}catch(e){}
-  adminSecret='';
-  try{document.getElementById('admin-secret').value=''}catch(e){}
-  setAuth(false,'Locked — enter admin secret below');
-  toast('Session cleared');
-  setTimeout(()=>location.reload(),350);
+  adminSecret='';try{document.getElementById('admin-secret').value=''}catch(e){}
+  setAuth(false,'Locked — enter admin secret below');toast('Session cleared');setTimeout(()=>location.reload(),350);
 }
 
-// ── REFRESH ALL ──
 async function refreshAll(){
   if(!adminSecret){toast('Unlock admin first');return}
   try{
     await Promise.all([loadOverview(),loadTokens(),loadReports(),loadIntel(),loadHealth()]);
     const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    setAuth(true,'Admin active · synced '+t);
-    document.getElementById('ctrl-sync').textContent=t;
-    toast('Data refreshed');
-  }catch(e){
-    setAuth(false,'Auth failed or API unavailable');
-    toast('Could not load admin data');
-  }
+    setAuth(true,'Admin active · synced '+t);document.getElementById('ctrl-sync').textContent=t;toast('Data refreshed');
+  }catch(e){setAuth(false,'Auth failed or API unavailable');toast('Could not load admin data')}
 }
 
-// ── HEALTH ──
 async function loadHealth(){
-  try{
-    const r=await fetch(API+'/api/health');
-    const d=await r.json();
-    document.getElementById('api-version').textContent=d.version||'—';
-    document.getElementById('api-status').textContent=d.status==='ok'?'Online ✓':'Degraded';
-    document.getElementById('api-status').style.color=d.status==='ok'?'var(--green)':'var(--red)';
-    document.getElementById('api-ts').textContent=fmtTime(d.ts);
-  }catch(e){}
+  try{const r=await fetch(API+'/api/health');const d=await r.json();document.getElementById('api-version').textContent=d.version||'—';document.getElementById('api-status').textContent=d.status==='ok'?'Online ✓':'Degraded';document.getElementById('api-status').style.color=d.status==='ok'?'var(--green)':'var(--red)';document.getElementById('api-ts').textContent=fmtTime(d.ts)}catch(e){}
 }
 
-// ── OVERVIEW ──
 async function loadOverview(){
   const days=document.getElementById('days').value;
   const r=await fetch(API+'/api/admin/overview?days='+days,{headers:hdrs()});
@@ -672,258 +626,159 @@ async function loadOverview(){
   document.getElementById('exp-intel').textContent=d.intel_total||0;
   document.getElementById('exp-nhw').textContent=d.nhw_tokens||0;
 
-  // Signals
   const total=Math.max(d.period_total||1,1);
   const risk=(d.critical||0)+(d.high||0);
   const riskPct=Math.round(risk/total*100);
 
-  document.getElementById('sig-api').style.width='100%';
-  document.getElementById('sig-api-v').textContent='OK';
-  document.getElementById('sig-api-v').style.color='var(--green)';
+  document.getElementById('sig-api').style.width='100%';document.getElementById('sig-api-v').textContent='OK';document.getElementById('sig-api-v').style.color='var(--green)';
+  document.getElementById('sig-risk').style.width=Math.min(riskPct*2,100)+'%';document.getElementById('sig-risk-v').textContent=riskPct+'%';document.getElementById('sig-risk-v').style.color=riskPct>25?'var(--red)':'var(--muted)';
+  document.getElementById('sig-intel').style.width=Math.min((d.intel_total||0)*6,100)+'%';document.getElementById('sig-intel-v').textContent=d.intel_total||0;document.getElementById('sig-intel-v').style.color='var(--gold)';
+  document.getElementById('sig-nhw').style.width=Math.min((d.nhw_tokens||0)*12,100)+'%';document.getElementById('sig-nhw-v').textContent=d.nhw_tokens||0;document.getElementById('sig-nhw-v').style.color='var(--blue)';
+  document.getElementById('sig-period').style.width='100%';document.getElementById('sig-period-v').textContent=d.period_total||0;document.getElementById('sig-period-v').style.color='var(--text2)';
 
-  document.getElementById('sig-risk').style.width=Math.min(riskPct*2,100)+'%';
-  document.getElementById('sig-risk-v').textContent=riskPct+'%';
-  document.getElementById('sig-risk-v').style.color=riskPct>30?'var(--red)':'var(--muted)';
-
-  document.getElementById('sig-intel').style.width=Math.min((d.intel_total||0)*6,100)+'%';
-  document.getElementById('sig-intel-v').textContent=d.intel_total||0;
-  document.getElementById('sig-intel-v').style.color='var(--gold)';
-
-  document.getElementById('sig-period').style.width='100%';
-  document.getElementById('sig-period-v').textContent=d.period_total||0;
-  document.getElementById('sig-period-v').style.color='var(--text2)';
-
-  loadLiveFeed();
-  loadTypeChart();
-  loadTrends();
-  loadHotspots();
-  loadSevBreakdown(d);
+  loadLiveFeed();loadTypeChart();loadTrends(d);loadHotspots();
 }
 
-// ── LIVE FEED ──
 async function loadLiveFeed(){
   const r=await fetch(API+'/api/admin/reports?days=1&limit=8',{headers:hdrs()});
-  if(!r.ok)return;
-  const d=await r.json();
-  const rows=(d.reports||[]).slice(0,6);
+  if(!r.ok)return;const d=await r.json();const rows=(d.reports||[]).slice(0,6);
   const el=document.getElementById('live-feed');
-  if(!rows.length){el.innerHTML='<div class="feed-empty">No reports in the last 24 hours</div>';return}
-  el.innerHTML=rows.map(r=>`
-    <div class="feed-item">
-      <span class="pill ${pillSev(r.severity)}" style="margin-top:1px">${r.severity}</span>
-      <div>
-        <div class="feed-type">${lbl(r.type)}</div>
-        <div class="feed-meta">${fmtAgo(r.ts)} <span class="pill ${pillStat(r.status||'new')}">${lbl(r.status||'new')}</span>${r.note?'· '+r.note.slice(0,36)+(r.note.length>36?'…':''):''}</div>
-      </div>
-    </div>`).join('');
+  if(!rows.length){el.innerHTML='<div class="empty">No reports in the last 24 hours</div>';return}
+  el.innerHTML=rows.map(r=>`<div class="feed-item"><span class="pill ${pSev(r.severity)}" style="margin-top:1px;flex-shrink:0">${r.severity}</span><div><div class="feed-type">${lbl(r.type)}</div><div class="feed-meta">${fmtAgo(r.ts)} <span class="pill ${pStat(r.status||'new')}">${lbl(r.status||'new')}</span>${r.note?'· '+r.note.slice(0,34)+(r.note.length>34?'…':''):''}</div></div></div>`).join('');
   document.getElementById('feed-meta').textContent=rows.length+' recent reports';
 }
 
-// ── TYPE CHART ──
 async function loadTypeChart(){
-  const days=document.getElementById('days').value;
-  let byType=[];
-  try{
-    const r=await fetch(API+'/api/nhw/analytics?days='+days,{headers:hdrs()});
-    if(r.ok){const d=await r.json();byType=(d.by_type||[]).slice(0,7)}
-  }catch(e){}
+  const days=document.getElementById('days').value;let byType=[];
+  try{const r=await fetch(API+'/api/nhw/analytics?days='+days,{headers:hdrs()});if(r.ok){const d=await r.json();byType=(d.by_type||[]).slice(0,7)}}catch(e){}
   if(!byType.length){
-    try{
-      const r=await fetch(API+'/api/admin/reports?days='+days+'&limit=500',{headers:hdrs()});
-      if(r.ok){
-        const d=await r.json();
-        const counts={};
-        (d.reports||[]).forEach(rep=>{counts[rep.type]=(counts[rep.type]||0)+1});
-        byType=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([type,count])=>({type,count}));
-      }
-    }catch(e){}
+    try{const r=await fetch(API+'/api/admin/reports?days='+days+'&limit=500',{headers:hdrs()});if(r.ok){const d=await r.json();const c={};(d.reports||[]).forEach(rep=>{c[rep.type]=(c[rep.type]||0)+1});byType=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([type,count])=>({type,count}))}}catch(e){}
   }
-  if(!byType.length){document.getElementById('types-chart').innerHTML='<div class="feed-empty">No data for this period</div>';return}
+  if(!byType.length){document.getElementById('types-chart').innerHTML='<div class="empty">No data for this period</div>';return}
   const max=byType[0]?.count||1;
-  const cols={'murder':'var(--red)','shooting':'var(--red)','stabbing':'var(--red)','hijacking':'var(--orange)','armed_robbery':'var(--orange)','house_robbery':'var(--orange)','drug_dealing':'var(--gold)','gang_activity':'var(--gold)','suspicious_person':'var(--blue)'};
-  document.getElementById('types-chart').innerHTML=byType.map(({type,count})=>`
-    <div class="bar-row">
-      <div class="bar-lbl" title="${lbl(type)}">${lbl(type)}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/max*100)}%;background:${cols[type]||'var(--green)'}"></div></div>
-      <div class="bar-n">${count}</div>
-    </div>`).join('');
+  const cols={murder:'var(--red)',shooting:'var(--red)',stabbing:'var(--red)',hijacking:'var(--orange)',armed_robbery:'var(--orange)',house_robbery:'var(--orange)',drug_dealing:'var(--gold)',gang_activity:'var(--gold)',suspicious_person:'var(--blue)',burglary:'var(--purple)',vehicle_theft:'var(--purple)',gbv:'var(--teal)'};
+  document.getElementById('types-chart').innerHTML=byType.map(({type,count})=>`<div class="bar-row"><div class="bar-lbl" title="${lbl(type)}">${lbl(type)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/max*100)}%;background:${cols[type]||'var(--muted)'}"></div></div><div class="bar-n">${count}</div></div>`).join('');
   document.getElementById('types-meta').textContent=days+'-day period';
+
+  // Also populate trend types
+  const tt=document.getElementById('trend-types');
+  if(tt){tt.innerHTML=byType.map(({type,count})=>`<div class="bar-row"><div class="bar-lbl" title="${lbl(type)}">${lbl(type)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/max*100)}%;background:${cols[type]||'var(--muted)'}"></div></div><div class="bar-n">${count}</div></div>`).join('');document.getElementById('trend-types-meta').textContent=days+'-day breakdown'}
 }
 
-// ── TREND MINI BARS ──
-async function loadTrends(){
+async function loadTrends(overview){
   const days=document.getElementById('days').value;
+  const d_data=overview||{};
+  // Severity donut SVG
+  const crit=d_data.critical||0,high=d_data.high||0;
+  const med=Math.max((d_data.period_total||0)-crit-high,0);
+  const total=Math.max(crit+high+med,1);
+  const donutEl=document.getElementById('sev-donut');
+  if(donutEl){
+    const r=52,cx=60,cy=60,circ=2*Math.PI*r;
+    const segs=[{v:crit,c:'var(--red)',l:'Critical'},{v:high,c:'var(--orange)',l:'High'},{v:med,c:'var(--muted)',l:'Medium/Low'}];
+    let offset=0;
+    const paths=segs.map(s=>{
+      const pct=s.v/total;const dash=circ*pct;const path=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.c}" stroke-width="14" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" opacity="0.85"/>`;
+      offset+=dash;return path;
+    }).join('');
+    donutEl.innerHTML=`<svg width="120" height="120" style="flex-shrink:0"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="14"/>${paths}<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-family="Playfair Display" font-weight="900" font-size="18" fill="var(--text)">${total}</text><text x="${cx}" y="${cy+16}" text-anchor="middle" font-family="DM Mono" font-size="8" fill="var(--muted)" letter-spacing="1">TOTAL</text></svg><div class="donut-legend">${segs.map(s=>`<div class="donut-leg-row"><div class="donut-dot" style="background:${s.c}"></div><div class="donut-leg-lbl">${s.l}</div><div class="donut-leg-n">${s.v}</div></div>`).join('')}</div>`;
+  }
+
+  // Trend bars
   try{
     const r=await fetch(API+'/api/nhw/analytics?days='+days,{headers:hdrs()});
-    if(!r.ok)return;
-    const d=await r.json();
+    if(!r.ok)return;const d=await r.json();
     const trend=(d.trend||[]).slice(-14);
     if(!trend.length)return;
     const max=Math.max(...trend.map(t=>t.count),1);
-    const el=document.getElementById('trend-bars');
-    el.style.display='flex';
-    el.innerHTML=trend.map(t=>`
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <div style="width:100%;background:var(--green-dk);border-radius:3px 3px 0 0;height:${Math.max(Math.round(t.count/max*120),4)}px;opacity:.8"></div>
-        <div style="font:500 9px 'DM Mono',monospace;color:var(--dim);writing-mode:vertical-rl;transform:rotate(180deg);height:38px;overflow:hidden">${t.day.slice(5)}</div>
-      </div>`).join('');
+    const barsEl=document.getElementById('trend-bars');
+    const lblsEl=document.getElementById('trend-labels');
+    barsEl.innerHTML=trend.map(t=>`<div class="trend-bar" data-n="${t.count}" style="height:${Math.max(Math.round(t.count/max*80),3)}px;background:${t.count===max?'var(--blue)':'rgba(255,255,255,.18)'}"></div>`).join('');
+    lblsEl.innerHTML=trend.map(t=>`<div class="trend-lbl">${t.day.slice(5)}</div>`).join('');
+    document.getElementById('trend-meta').textContent='last '+trend.length+' days';
   }catch(e){}
 }
 
-// ── SEV BREAKDOWN ──
-function loadSevBreakdown(d){
-  const vals=[{lbl:'Critical',n:d.critical||0,cls:'p-crit',col:'var(--red)'},{lbl:'High',n:d.high||0,cls:'p-high',col:'var(--orange)'},{lbl:'Medium',n:Math.max((d.period_total||0)-(d.critical||0)-(d.high||0),0),cls:'p-med',col:'var(--gold)'},{lbl:'Low',n:0,cls:'p-low',col:'var(--green)'}];
-  const total=Math.max(d.period_total||1,1);
-  const el=document.getElementById('sev-breakdown');
-  if(!el)return;
-  el.innerHTML=vals.map(v=>`
-    <div class="sig-row">
-      <div class="sig-lbl"><span class="pill ${v.cls}">${v.lbl}</span></div>
-      <div class="sig-track"><div class="sig-fill" style="width:${Math.min(Math.round(v.n/total*100),100)}%;background:${v.col}"></div></div>
-      <div class="sig-val">${v.n}</div>
-    </div>`).join('');
-}
-
-// ── HOTSPOTS ──
 async function loadHotspots(){
   const days=document.getElementById('days').value;
   try{
     const r=await fetch(API+'/api/nhw/analytics?days='+days,{headers:hdrs()});
-    if(!r.ok)return;
-    const d=await r.json();
-    const spots=(d.hotspots||[]).slice(0,8);
-    const el=document.getElementById('hotspots');
-    if(!el)return;
-    if(!spots.length){el.innerHTML='<div class="feed-empty">No hotspot data for this period</div>';return}
+    if(!r.ok)return;const d=await r.json();const spots=(d.hotspots||[]).slice(0,8);
+    const el=document.getElementById('hotspots');if(!el)return;
+    if(!spots.length){el.innerHTML='<div class="empty">No hotspot data for this period</div>';return}
     const max=Math.max(...spots.map(s=>s.count),1);
-    el.innerHTML=spots.map((s,i)=>`
-      <div class="bar-row">
-        <div class="bar-lbl">${Number(s.lat).toFixed(3)}, ${Number(s.lng).toFixed(3)}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.count/max*100)}%;background:${i<2?'var(--red)':i<4?'var(--orange)':'var(--green)'}"></div></div>
-        <div class="bar-n">${s.count}</div>
-      </div>`).join('');
+    el.innerHTML=spots.map((s,i)=>`<div class="bar-row"><div class="bar-lbl">${Number(s.lat).toFixed(3)}, ${Number(s.lng).toFixed(3)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.count/max*100)}%;background:${i<2?'var(--red)':i<4?'var(--orange)':'var(--muted)'}"></div></div><div class="bar-n">${s.count}</div></div>`).join('');
   }catch(e){}
 }
 
-// ── NHW TOKENS ──
 async function loadTokens(){
-  const r=await fetch(API+'/api/admin/nhw-tokens',{headers:hdrs()});
-  if(!r.ok)throw new Error('tokens');
-  const d=await r.json();
-  const rows=d.tokens||[];
+  const r=await fetch(API+'/api/admin/nhw-tokens',{headers:hdrs()});if(!r.ok)throw new Error('tokens');
+  const d=await r.json();const rows=d.tokens||[];
   document.getElementById('nhw-count').textContent=rows.length+' groups';
   document.getElementById('k-nhw').textContent=rows.length;
+  document.getElementById('nhw-dash-meta').textContent=rows.length+' active groups';
 
-  const renderRow=(t,showDate=true)=>`
-    <div class="nhw-row">
-      <div style="flex:1">
-        <div class="nhw-name">${t.label||'—'}</div>
-        <div class="nhw-code">${t.token}</div>
-      </div>
-      ${showDate?`<div class="nhw-date">${fmtTime(t.created_at)}</div>`:''}
-      <div style="display:flex;gap:4px;margin-left:8px">
-        <button class="ico-btn" onclick="copyText('${t.token}')" title="Copy code">⎘</button>
-        <button class="ico-btn red" onclick="revokeToken('${t.token}')" title="Revoke">✕</button>
-      </div>
-    </div>`;
+  const renderRow=(t,full=true)=>`<div class="nhw-row"><div style="flex:1"><div class="nhw-name">${t.label||'—'}</div><div class="nhw-code">${t.token}</div></div>${full?`<div class="nhw-date">${fmtTime(t.created_at)}</div>`:''}<div style="display:flex;gap:4px;margin-left:8px"><button class="ico-btn" onclick="copyText('${t.token}')" title="Copy">⎘</button>${full?`<button class="ico-btn red" onclick="revokeToken('${t.token}')" title="Revoke">✕</button>`:''}</div></div>`;
 
-  const list=document.getElementById('nhw-list');
-  list.innerHTML=rows.length?rows.map(t=>renderRow(t,true)).join(''):'<div class="feed-empty">No NHW groups yet — create one above</div>';
+  document.getElementById('nhw-list').innerHTML=rows.length?rows.map(t=>renderRow(t,true)).join(''):'<div class="empty">No NHW groups yet — create one above</div>';
+  document.getElementById('nhw-quick').innerHTML=rows.length?rows.slice(0,4).map(t=>renderRow(t,false)).join('')+(rows.length>4?`<div class="empty" style="padding-top:8px">+ ${rows.length-4} more · see NHW manager</div>`:''):'<div class="empty">No NHW groups yet</div>';
 
-  const quick=document.getElementById('nhw-quick');
-  quick.innerHTML=rows.length
-    ?rows.slice(0,4).map(t=>renderRow(t,false)).join('')+(rows.length>4?`<div class="feed-empty" style="text-align:center;padding-top:8px">+ ${rows.length-4} more · see NHW manager</div>`:'')
-    :'<div class="feed-empty">No NHW groups yet</div>';
-
-  // Signals
-  document.getElementById('sig-areas').style.width=Math.min(rows.length*12,100)+'%';
-  document.getElementById('sig-areas-v').textContent=rows.length;
-  document.getElementById('sig-areas-v').style.color='var(--blue)';
+  document.getElementById('sig-nhw').style.width=Math.min(rows.length*12,100)+'%';
+  document.getElementById('sig-nhw-v').textContent=rows.length;
 }
 
 async function createNhwToken(){
-  const groupLabel=document.getElementById('nhw-label').value.trim();
-  if(!groupLabel){toast('Add a group label first');return}
-  const r=await fetch(API+'/api/admin/nhw-tokens?label='+encodeURIComponent(groupLabel),{method:'POST',headers:hdrs()});
+  const g=document.getElementById('nhw-label').value.trim();if(!g){toast('Add a group label first');return}
+  const r=await fetch(API+'/api/admin/nhw-tokens?label='+encodeURIComponent(g),{method:'POST',headers:hdrs()});
   if(!r.ok){toast('Could not create token');return}
-  const d=await r.json();
-  document.getElementById('nhw-label').value='';
-  document.getElementById('new-code-val').textContent=d.token;
-  document.getElementById('new-code-box').classList.add('show');
-  toast('NHW code created');
-  loadTokens(); loadOverview();
+  const d=await r.json();document.getElementById('nhw-label').value='';
+  document.getElementById('new-code-val').textContent=d.token;document.getElementById('new-code-box').classList.add('show');
+  toast('NHW code created');loadTokens();loadOverview();
 }
 
 async function revokeToken(tok){
-  if(!confirm('Revoke NHW access for this group? All members using this code will lose access immediately.'))return;
+  if(!confirm('Revoke NHW access for this group? All members lose access immediately.'))return;
   const r=await fetch(API+'/api/admin/nhw-tokens/'+encodeURIComponent(tok),{method:'DELETE',headers:hdrs()});
-  if(!r.ok){toast('Could not revoke');return}
-  toast('Token revoked');
-  loadTokens(); loadOverview();
+  if(!r.ok){toast('Could not revoke');return}toast('Token revoked');loadTokens();loadOverview();
 }
 
-// ── REPORTS TABLE ──
 async function loadReports(){
-  const days=document.getElementById('days').value;
-  const limit=document.getElementById('report-limit').value;
-  const type=document.getElementById('type-filter').value;
-  const sev=document.getElementById('sev-filter').value;
+  const days=document.getElementById('days').value,limit=document.getElementById('report-limit').value,type=document.getElementById('type-filter').value,sev=document.getElementById('sev-filter').value;
   let url=API+'/api/admin/reports?days='+days+'&limit='+limit;
-  if(type)url+='&type_filter='+encodeURIComponent(type);
-  if(sev)url+='&severity_filter='+encodeURIComponent(sev);
-  const r=await fetch(url,{headers:hdrs()});
-  if(!r.ok)throw new Error('reports');
-  const d=await r.json();
-  const rows=d.reports||[];
+  if(type)url+='&type_filter='+encodeURIComponent(type);if(sev)url+='&severity_filter='+encodeURIComponent(sev);
+  const r=await fetch(url,{headers:hdrs()});if(!r.ok)throw new Error('reports');
+  const d=await r.json();const rows=d.reports||[];
   document.getElementById('reports-count').textContent=(d.total||rows.length)+' records';
   const body=document.getElementById('reports-body');
-  if(!rows.length){body.innerHTML='<tr><td colspan="6"><div class="tbl-empty">No reports for this filter</div></td></tr>';return}
+  if(!rows.length){body.innerHTML='<tr><td colspan="6"><div class="empty" style="padding:20px">No reports for this filter</div></td></tr>';return}
   body.innerHTML='';
   rows.forEach(rep=>{
     const tr=document.createElement('tr');
-    const td=(h)=>{const el=document.createElement('td');el.innerHTML=h;return el};
-    tr.appendChild(td(fmtTime(rep.ts)));
-    tr.appendChild(td(lbl(rep.type)));
-    tr.appendChild(td(`<span class="pill ${pillSev(rep.severity)}">${rep.severity}</span>`));
-    const stTd=document.createElement('td');stTd.appendChild(statusDropdown(rep));tr.appendChild(stTd);
+    const td=h=>{const el=document.createElement('td');el.innerHTML=h;return el};
+    tr.appendChild(td(fmtTime(rep.ts)));tr.appendChild(td(lbl(rep.type)));tr.appendChild(td(`<span class="pill ${pSev(rep.severity)}">${rep.severity}</span>`));
+    const st=document.createElement('td');st.appendChild(statusDropdown(rep));tr.appendChild(st);
     tr.appendChild(td(Number(rep.lat||0).toFixed(4)+', '+Number(rep.lng||0).toFixed(4)));
     tr.appendChild(td(rep.note?rep.note.slice(0,55)+(rep.note.length>55?'…':''):'<span style="color:var(--dim)">—</span>'));
     body.appendChild(tr);
   });
 }
 
-// ── INTEL TABLE ──
 async function loadIntel(){
-  const r=await fetch(API+'/api/admin/intel',{headers:hdrs()});
-  if(!r.ok)return;
-  const d=await r.json();
-  const rows=d.locations||[];
-  const body=document.getElementById('intel-body');
-  if(!rows.length){body.innerHTML='<tr><td colspan="5"><div class="tbl-empty">No intel reports yet</div></td></tr>';return}
+  const r=await fetch(API+'/api/admin/intel',{headers:hdrs()});if(!r.ok)return;
+  const d=await r.json();const rows=d.locations||[];const body=document.getElementById('intel-body');
+  if(!rows.length){body.innerHTML='<tr><td colspan="5"><div class="empty" style="padding:20px">No intel reports yet</div></td></tr>';return}
   body.innerHTML='';
-  rows.forEach(l=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${fmtTime(l.ts)}</td>
-      <td><span class="pill p-high">${lbl(l.type)}</span></td>
-      <td>${lbl(l.duration||'unknown')}</td>
-      <td>${Number(l.lat||0).toFixed(4)}, ${Number(l.lng||0).toFixed(4)}</td>
-      <td>${l.note?l.note.slice(0,65)+(l.note.length>65?'…':''):'<span style="color:var(--dim)">—</span>'}</td>`;
-    body.appendChild(tr);
-  });
+  rows.forEach(l=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${fmtTime(l.ts)}</td><td><span class="pill p-high">${lbl(l.type)}</span></td><td>${lbl(l.duration||'unknown')}</td><td>${Number(l.lat||0).toFixed(4)}, ${Number(l.lng||0).toFixed(4)}</td><td>${l.note?l.note.slice(0,65)+(l.note.length>65?'…':''):'<span style="color:var(--dim)">—</span>'}</td>`;body.appendChild(tr)});
 }
 
-// ── EXPORTS ──
 function downloadAdminExport(){window.open(API+'/api/admin/export-download?admin_secret='+encodeURIComponent(adminSecret),'_blank')}
 function downloadNhwExport(){const days=document.getElementById('days').value;window.open(API+'/api/admin/nhw-export-download?days='+days+'&admin_secret='+encodeURIComponent(adminSecret),'_blank')}
 
-// ── DATA CONTROLS ──
 async function adminDelete(path,msg){if(!confirm(msg))return;const r=await fetch(API+path,{method:'DELETE',headers:hdrs()});if(!r.ok){toast('Action failed');return}toast('Done');refreshAll()}
-function clearReports(){adminDelete('/api/admin/reports/all','Clear ALL incident reports? This cannot be undone.')}
-function clearIntel(){adminDelete('/api/admin/intel/all','Clear ALL intel reports? This cannot be undone.')}
-function fullReset(){adminDelete('/api/admin/reset','FULL RESET — delete all reports and intel? This cannot be undone.')}
+function clearReports(){adminDelete('/api/admin/reports/all','Clear ALL incident reports? Cannot be undone.')}
+function clearIntel(){adminDelete('/api/admin/intel/all','Clear ALL intel reports? Cannot be undone.')}
+function fullReset(){adminDelete('/api/admin/reset','FULL RESET — delete all reports and intel? Cannot be undone.')}
 
-// ── INIT ──
 function init(){
   TYPES.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=lbl(t);document.getElementById('type-filter').appendChild(o)});
   document.getElementById('ctrl-origin').textContent=window.location.origin;
