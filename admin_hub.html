@@ -392,9 +392,14 @@ body{overflow:hidden}
       <div class="pgrid">
         <div class="panel">
           <div class="ph"><div class="ph-left"><div class="ph-title">Create NHW code</div><div class="ph-meta">chairman / root level</div></div></div>
-          <div class="nhw-create-row">
-            <input class="f-inp" id="nhw-label" placeholder="e.g. Claremont NHW, Sea Point CPF…"/>
-            <button class="btn primary" onclick="createNhwToken()">Generate</button>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+            <input class="f-inp" id="nhw-label" placeholder="Group name e.g. Claremont NHW, Sea Point CPF…"/>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+              <input class="f-inp" id="nhw-suburb" placeholder="Suburb name e.g. Claremont (optional — restricts data access)"/>
+              <button class="btn" onclick="geocodeSuburb()" id="geocode-btn">Search</button>
+            </div>
+            <div id="suburb-preview" style="display:none;padding:9px 12px;border-radius:9px;border:1px solid rgba(76,175,125,.28);background:rgba(76,175,125,.06);font:500 11px 'DM Mono',monospace;color:var(--green)"></div>
+            <button class="btn primary" onclick="createNhwToken()">Generate code</button>
           </div>
           <div class="new-code-box" id="new-code-box">
             <div class="new-code-lbl">New code — share securely with the group chairman</div>
@@ -405,7 +410,7 @@ body{overflow:hidden}
             </div>
           </div>
           <div style="font:400 12px 'DM Sans',sans-serif;color:var(--muted);line-height:1.7;padding:10px 12px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--line)">
-            Chairman codes give full NHW portal access. Each chairman can create up to 30 member sub-codes for their patrol team from within the NHW portal.
+            Chairman codes give full NHW portal access. Assigning a suburb restricts the group to only see reports and data within that boundary. Each chairman can create up to 30 member sub-codes.
           </div>
         </div>
         <div class="panel">
@@ -718,7 +723,7 @@ async function loadTokens(){
   document.getElementById('k-nhw').textContent=rows.length;
   document.getElementById('nhw-dash-meta').textContent=rows.length+' active groups';
 
-  const renderRow=(t,full=true)=>`<div class="nhw-row"><div style="flex:1"><div class="nhw-name">${t.label||'—'}</div><div class="nhw-code">${t.token}</div></div>${full?`<div class="nhw-date">${fmtTime(t.created_at)}</div>`:''}<div style="display:flex;gap:4px;margin-left:8px"><button class="ico-btn" onclick="copyText('${t.token}')" title="Copy">⎘</button>${full?`<button class="ico-btn red" onclick="revokeToken('${t.token}')" title="Revoke">✕</button>`:''}</div></div>`;
+  const renderRow=(t,full=true)=>`<div class="nhw-row"><div style="flex:1"><div class="nhw-name">${t.label||'—'} ${t.has_boundary?'<span class="pill p-low" style="font-size:8px">'+( t.suburb_name||'bounded')+'</span>':'<span class="pill p-duplicate" style="font-size:8px">no boundary</span>'}</div><div class="nhw-code">${t.token}</div></div>${full?`<div class="nhw-date">${fmtTime(t.created_at)}</div>`:''}<div style="display:flex;gap:4px;margin-left:8px"><button class="ico-btn" onclick="copyText('${t.token}')" title="Copy">⎘</button>${full?`<button class="ico-btn red" onclick="revokeToken('${t.token}')" title="Revoke">✕</button>`:''}</div></div>`;
 
   document.getElementById('nhw-list').innerHTML=rows.length?rows.map(t=>renderRow(t,true)).join(''):'<div class="empty">No NHW groups yet — create one above</div>';
   document.getElementById('nhw-quick').innerHTML=rows.length?rows.slice(0,4).map(t=>renderRow(t,false)).join('')+(rows.length>4?`<div class="empty" style="padding-top:8px">+ ${rows.length-4} more · see NHW manager</div>`:''):'<div class="empty">No NHW groups yet</div>';
@@ -727,13 +732,50 @@ async function loadTokens(){
   document.getElementById('sig-nhw-v').textContent=rows.length;
 }
 
+let _suburbGeocode = null;
+
+async function geocodeSuburb(){
+  const name=document.getElementById('nhw-suburb').value.trim();
+  if(!name){toast('Enter a suburb name first');return}
+  const btn=document.getElementById('geocode-btn');
+  btn.textContent='...';btn.disabled=true;
+  try{
+    const r=await fetch(API+'/api/admin/geocode-suburb?name='+encodeURIComponent(name),{headers:hdrs()});
+    if(!r.ok){toast('Suburb not found — check spelling');_suburbGeocode=null;document.getElementById('suburb-preview').style.display='none';return}
+    const d=await r.json();
+    _suburbGeocode=d;
+    const prev=document.getElementById('suburb-preview');
+    prev.style.display='block';
+    prev.textContent='✓ '+d.suburb_name+(d.has_boundary?' · boundary found':' · approximate centre only')+' · '+Number(d.suburb_lat).toFixed(4)+', '+Number(d.suburb_lng).toFixed(4);
+    toast('Suburb found: '+d.suburb_name);
+  }catch(e){toast('Geocode failed');_suburbGeocode=null}
+  btn.textContent='Search';btn.disabled=false;
+}
+
 async function createNhwToken(){
-  const g=document.getElementById('nhw-label').value.trim();if(!g){toast('Add a group label first');return}
-  const r=await fetch(API+'/api/admin/nhw-tokens?label='+encodeURIComponent(g),{method:'POST',headers:hdrs()});
+  const g=document.getElementById('nhw-label').value.trim();
+  if(!g){toast('Add a group label first');return}
+  const payload={label:g};
+  if(_suburbGeocode){
+    payload.suburb_name=_suburbGeocode.suburb_name;
+    payload.suburb_lat=_suburbGeocode.suburb_lat;
+    payload.suburb_lng=_suburbGeocode.suburb_lng;
+    payload.bbox_south=_suburbGeocode.bbox_south;
+    payload.bbox_north=_suburbGeocode.bbox_north;
+    payload.bbox_west=_suburbGeocode.bbox_west;
+    payload.bbox_east=_suburbGeocode.bbox_east;
+  }
+  const r=await fetch(API+'/api/admin/nhw-tokens',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify(payload)});
   if(!r.ok){toast('Could not create token');return}
-  const d=await r.json();document.getElementById('nhw-label').value='';
-  document.getElementById('new-code-val').textContent=d.token;document.getElementById('new-code-box').classList.add('show');
-  toast('NHW code created');loadTokens();loadOverview();
+  const d=await r.json();
+  document.getElementById('nhw-label').value='';
+  document.getElementById('nhw-suburb').value='';
+  document.getElementById('suburb-preview').style.display='none';
+  _suburbGeocode=null;
+  document.getElementById('new-code-val').textContent=d.token;
+  document.getElementById('new-code-box').classList.add('show');
+  toast(d.has_boundary?'NHW code created · suburb boundary assigned':'NHW code created · no boundary (sees all data)');
+  loadTokens();loadOverview();
 }
 
 async function revokeToken(tok){
